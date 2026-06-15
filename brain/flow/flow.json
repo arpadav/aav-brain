@@ -1,0 +1,619 @@
+{
+  "states": [
+    {
+      "id": "IDEATION",
+      "kind": "entry",
+      "owner": "-",
+      "recall": false,
+      "terminal": false,
+      "entry": true,
+      "regime": "ask-first",
+      "doc": "raw request received (brain-plan entry)"
+    },
+    {
+      "id": "INTENT",
+      "kind": "work",
+      "owner": "brain-meta-intent",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "position -> interest; surface ambiguity"
+    },
+    {
+      "id": "ASK",
+      "kind": "gate",
+      "owner": "brain-meta-intent",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "ask the smallest unblocking question; never guess (pre-sanction clarify)"
+    },
+    {
+      "id": "RECON",
+      "kind": "work",
+      "owner": "brain-meta-recall+brain-plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "read fs; seed the relevant-file set from the task"
+    },
+    {
+      "id": "EXPAND",
+      "kind": "work",
+      "owner": "brain-meta-recall",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "grep deps/peripherals; ADD newly-implicated files. the set is mutable"
+    },
+    {
+      "id": "WOULDIWRITE",
+      "kind": "work",
+      "owner": "brain-meta-style:plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "per file in the set: would i (arpad) write it like this? mark the no's"
+    },
+    {
+      "id": "SCRUTINIZE",
+      "kind": "work",
+      "owner": "brain-meta-style:style",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "line-by-line on marked files: idiom, magic values, trim the fat"
+    },
+    {
+      "id": "SEMANTIC",
+      "kind": "work",
+      "owner": "brain-meta-style:plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "does each fn/struct/class LIVE where it belongs? DRY, reuse, library-fy (P05/P31)"
+    },
+    {
+      "id": "RELOCATE",
+      "kind": "work",
+      "owner": "worker+brain-review-gate",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "move fns/structs/classes to their correct module/file"
+    },
+    {
+      "id": "HIERARCHY",
+      "kind": "gate",
+      "owner": "brain-meta-style:plan",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "judge the tree: flat->tree if a file too long / folder too flat-crowded; tree->flat if a refactor shrank it"
+    },
+    {
+      "id": "REORG",
+      "kind": "work",
+      "owner": "worker+brain-review-gate",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "apply the reshape in the flagged direction; this MUTATES the set -> re-expand"
+    },
+    {
+      "id": "PLAN",
+      "kind": "work",
+      "owner": "brain-plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "small+verbose plan with a worked example, to plans/"
+    },
+    {
+      "id": "PLANPROBE",
+      "kind": "work",
+      "owner": "brain-plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "trace the plan THROUGH its own worked example; mark every step the plan cannot actually produce (plan-vs-impl gap)"
+    },
+    {
+      "id": "PLANGATE",
+      "kind": "gate",
+      "owner": "brain-meta-style:plan",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end. loops via below_threshold until then"
+    },
+    {
+      "id": "SANCTION",
+      "kind": "boundary",
+      "owner": "brain-meta-drive",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)"
+    },
+    {
+      "id": "IMPL",
+      "kind": "work",
+      "owner": "brain-meta-author-prompt+worker",
+      "recall": true,
+      "terminal": false,
+      "entry": true,
+      "regime": "execute-through",
+      "doc": "write the worker prompt in my voice; dispatch; implement the phase (brain-execute entry, post-sanction)"
+    },
+    {
+      "id": "PHASEGATE",
+      "kind": "gate",
+      "owner": "brain-review-gate",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE"
+    },
+    {
+      "id": "REMEDIATE",
+      "kind": "work",
+      "owner": "brain-meta-author-prompt+worker",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "fix the converged nits IN PLACE (incl local relocations); does NOT leave the impl phase"
+    },
+    {
+      "id": "VERIFY",
+      "kind": "gate",
+      "owner": "brain-verifier",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "build/test/bench honestly; emits sound only when build green AND tests pass AND bench within threshold. loops via unsound -> REMEDIATE"
+    },
+    {
+      "id": "STYLE",
+      "kind": "work",
+      "owner": "brain-meta-style:style",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "final style pass: brain-fmt.py, trim fat, verbose docs, separators, fmt last"
+    },
+    {
+      "id": "RECORD",
+      "kind": "work",
+      "owner": "brain-meta-commit",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "categorise by semantics, draft the commit script, stop at the line"
+    },
+    {
+      "id": "CURATE",
+      "kind": "work",
+      "owner": "brain-meta-curate",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "capture every correction/approval/interrupt -> update the store; log the decision trace"
+    },
+    {
+      "id": "BLOCKED",
+      "kind": "halt",
+      "owner": "brain-meta-intent",
+      "recall": false,
+      "terminal": true,
+      "entry": false,
+      "regime": "",
+      "doc": "post-sanction ambiguity: stop and ask arpad; resume the blocked state on /continue"
+    },
+    {
+      "id": "DONE",
+      "kind": "terminal",
+      "owner": "-",
+      "recall": false,
+      "terminal": true,
+      "entry": false,
+      "regime": "",
+      "doc": "work complete"
+    },
+    {
+      "id": "REVIEW",
+      "kind": "entry",
+      "owner": "brain-review-gate",
+      "recall": false,
+      "terminal": false,
+      "entry": true,
+      "regime": "ask-first",
+      "doc": "brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop"
+    },
+    {
+      "id": "SR_SCAN",
+      "kind": "entry",
+      "owner": "brain-self-refine",
+      "recall": false,
+      "terminal": false,
+      "entry": true,
+      "regime": "ask-first",
+      "doc": "brain-self-refine entry: run the scripted scan (cards/graph/flow/trace/paths/symlinks/traceability)"
+    },
+    {
+      "id": "SR_FINDINGS",
+      "kind": "work",
+      "owner": "brain-self-refine",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "read the trace + structural smells; GENERATE the questions from the brain (recall-driven, never a frozen list)"
+    },
+    {
+      "id": "SR_ASK",
+      "kind": "gate",
+      "owner": "brain-self-refine",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped"
+    },
+    {
+      "id": "SR_EDIT",
+      "kind": "work",
+      "owner": "brain-self-refine",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "make ONLY the selected edits, each through the right meta-skill (curate/style/direct)"
+    },
+    {
+      "id": "SR_GATE",
+      "kind": "gate",
+      "owner": "brain-self-refine",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "rebuild what the edit touched; brain-graph/flow/cards --check must pass before logging"
+    },
+    {
+      "id": "SR_LOG",
+      "kind": "work",
+      "owner": "brain-meta-curate",
+      "recall": false,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "doc": "log each chosen decision to the trace so the next self-refine sees it"
+    }
+  ],
+  "transitions": [
+    {
+      "src": "ASK",
+      "dst": "INTENT",
+      "on": "answered",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "CURATE",
+      "dst": "DONE",
+      "on": "learned",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "EXPAND",
+      "dst": "EXPAND",
+      "on": "set_grew",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "EXPAND",
+      "dst": "WOULDIWRITE",
+      "on": "set_stable",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "HIERARCHY",
+      "dst": "REORG",
+      "on": "reshape_needed",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "HIERARCHY",
+      "dst": "PLAN",
+      "on": "shape_ok",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "IDEATION",
+      "dst": "INTENT",
+      "on": "received",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "IMPL",
+      "dst": "BLOCKED",
+      "on": "ambiguous",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "IMPL",
+      "dst": "PHASEGATE",
+      "on": "implemented",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "INTENT",
+      "dst": "ASK",
+      "on": "ambiguous",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "INTENT",
+      "dst": "RECON",
+      "on": "clear",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PHASEGATE",
+      "dst": "REMEDIATE",
+      "on": "below_threshold",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PHASEGATE",
+      "dst": "VERIFY",
+      "on": "threshold_met",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PLAN",
+      "dst": "PLANPROBE",
+      "on": "drafted",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PLANGATE",
+      "dst": "PLAN",
+      "on": "below_threshold",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PLANGATE",
+      "dst": "ASK",
+      "on": "blocked",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PLANGATE",
+      "dst": "SANCTION",
+      "on": "threshold_met",
+      "guard": "",
+      "boundary": true
+    },
+    {
+      "src": "PLANPROBE",
+      "dst": "PLAN",
+      "on": "gap_found",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PLANPROBE",
+      "dst": "PLANGATE",
+      "on": "traced",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "RECON",
+      "dst": "EXPAND",
+      "on": "seeded",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "RECORD",
+      "dst": "CURATE",
+      "on": "prepared",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "RELOCATE",
+      "dst": "EXPAND",
+      "on": "moved",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "REMEDIATE",
+      "dst": "PHASEGATE",
+      "on": "fixed",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "REORG",
+      "dst": "EXPAND",
+      "on": "reshaped",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "REVIEW",
+      "dst": "PHASEGATE",
+      "on": "reviewed",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SANCTION",
+      "dst": "IMPL",
+      "on": "sanctioned",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SCRUTINIZE",
+      "dst": "SEMANTIC",
+      "on": "cleaned",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SEMANTIC",
+      "dst": "RELOCATE",
+      "on": "misplacements_found",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SEMANTIC",
+      "dst": "HIERARCHY",
+      "on": "placement_ok",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_ASK",
+      "dst": "DONE",
+      "on": "none_selected",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_ASK",
+      "dst": "SR_EDIT",
+      "on": "selected",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_EDIT",
+      "dst": "SR_GATE",
+      "on": "edited",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_FINDINGS",
+      "dst": "SR_ASK",
+      "on": "found",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_GATE",
+      "dst": "SR_LOG",
+      "on": "green",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_GATE",
+      "dst": "SR_EDIT",
+      "on": "red",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_LOG",
+      "dst": "DONE",
+      "on": "logged",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SR_SCAN",
+      "dst": "SR_FINDINGS",
+      "on": "scanned",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "STYLE",
+      "dst": "RECORD",
+      "on": "styled",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "VERIFY",
+      "dst": "STYLE",
+      "on": "last_phase",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "VERIFY",
+      "dst": "IMPL",
+      "on": "more_phases",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "VERIFY",
+      "dst": "REMEDIATE",
+      "on": "unsound",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "WOULDIWRITE",
+      "dst": "SEMANTIC",
+      "on": "all_pass",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "WOULDIWRITE",
+      "dst": "SCRUTINIZE",
+      "on": "some_marked",
+      "guard": "",
+      "boundary": false
+    }
+  ],
+  "boundary": "SANCTION",
+  "warnings": []
+}

@@ -1,0 +1,1474 @@
+{
+  "nodes": [
+    {
+      "id": "principle-01-no-assumptions",
+      "kind": "principle",
+      "headline": "Under ANY ambiguity in spec or implementation detail, stop and ask. Never guess.",
+      "interest": [
+        "intent-control",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "do NOT assume anything",
+        "always ask under any ambiguity",
+        "talk to me and iterate"
+      ],
+      "body_links": [
+        "principle-10-autonomy-after-sanction",
+        "principle-15-tone-is-signal"
+      ],
+      "path": "brain/principles/principle-01-no-assumptions.md"
+    },
+    {
+      "id": "principle-02-plan-before-build",
+      "kind": "principle",
+      "headline": "Produce a small-but-verbose plan with a concrete usage example before writing code; write it to plans/.",
+      "interest": [
+        "intent-comprehension",
+        "intent-control"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "make a plan",
+        "jumping off point",
+        "keep this SMALL but verbose",
+        "write an example struct so i can see it visually"
+      ],
+      "body_links": [
+        "principle-03-review-gate"
+      ],
+      "path": "brain/principles/principle-02-plan-before-build.md"
+    },
+    {
+      "id": "principle-03-review-gate",
+      "kind": "principle",
+      "headline": "Gate every phase with a cold, independent, multi-lens review. Converge feedback. Fix even a single-agent nit before advancing.",
+      "interest": [
+        "intent-trust",
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "triple review first",
+        "COLD/UNGUIDED",
+        "even smallest nits",
+        "dont skimp out because youre lazy",
+        "find ANY remaining issues or nits or large bugs"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/principles/principle-03-review-gate.md"
+    },
+    {
+      "id": "principle-04-anti-fabrication",
+      "kind": "principle",
+      "headline": "Never fabricate. No fake benchmarks, no invented issues, no fluff. Report reality even when unflattering.",
+      "interest": [
+        "intent-trust"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "no bullshit",
+        "dont fake results",
+        "just say how it is if slower",
+        "remember not to make up issues",
+        "dont fluff wording"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-04-anti-fabrication.md"
+    },
+    {
+      "id": "principle-05-reuse-first",
+      "kind": "principle",
+      "headline": "Find and reuse the existing primitive/type before writing a new one. DRY. Prefer net line reduction.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "i already have types for X, id like to re-use",
+        "why custom functions and not the suite",
+        "net reduction of lines",
+        "i dont like this weird custom thing"
+      ],
+      "body_links": [
+        "principle-07-trim-fat-verbose-docs"
+      ],
+      "path": "brain/principles/principle-05-reuse-first.md"
+    },
+    {
+      "id": "principle-06-idiomatic-per-language",
+      "kind": "principle",
+      "headline": "Write each language in its own idiom and the house conventions. Rust style in Rust, TS style in TS.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "use rust style in rust, ts style in ts. thats it",
+        "idiomatic rust said NEVER do unwrap_or",
+        "doc-comment first then attributes"
+      ],
+      "body_links": [
+        "principle-03-review-gate"
+      ],
+      "path": "brain/principles/principle-06-idiomatic-per-language.md"
+    },
+    {
+      "id": "principle-07-trim-fat-verbose-docs",
+      "kind": "principle",
+      "headline": "Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "trim the fat",
+        "get to the damn point",
+        "verbose doc comments tho",
+        "remove old/deprecated/YAGNI comments which are ANCILLARY",
+        "line by line"
+      ],
+      "body_links": [
+        "principle-05-reuse-first"
+      ],
+      "path": "brain/principles/principle-07-trim-fat-verbose-docs.md"
+    },
+    {
+      "id": "principle-08-read-source-and-error",
+      "kind": "principle",
+      "headline": "Read the actual error and the actual source before acting. Ground in primary sources, not guesses.",
+      "interest": [
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "tells": [
+        "did you not read the error?",
+        "listen to the error",
+        "read ~/.cargo source",
+        "dont research - temp add to cargo toml and build"
+      ],
+      "body_links": [
+        "principle-15-tone-is-signal"
+      ],
+      "path": "brain/principles/principle-08-read-source-and-error.md"
+    },
+    {
+      "id": "principle-09-git-sovereignty",
+      "kind": "principle",
+      "headline": "Prepare the record, never publish it. No commits/tags/version bumps without explicit say-so. Never overwrite his manual edits.",
+      "interest": [
+        "intent-sovereignty"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "do NOT commit",
+        "i bump cargo tomls manually",
+        "i will go through and verify the messages",
+        "im the one who editted this"
+      ],
+      "body_links": [
+        "principle-15-tone-is-signal"
+      ],
+      "path": "brain/principles/principle-09-git-sovereignty.md"
+    },
+    {
+      "id": "principle-10-autonomy-after-sanction",
+      "kind": "principle",
+      "headline": "Once a plan is blessed, run phases back-to-back with no needless pauses or summaries. Report only at gates.",
+      "interest": [
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "continue i never said to stop",
+        "phases should run back to back",
+        "without a summary",
+        "dont pause again",
+        "continue where left off"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-03-review-gate"
+      ],
+      "path": "brain/principles/principle-10-autonomy-after-sanction.md"
+    },
+    {
+      "id": "principle-11-comprehension-ownership",
+      "kind": "principle",
+      "headline": "Give him a concrete example and a mental model he owns. Answer Socratic questions plainly before resuming.",
+      "interest": [
+        "intent-comprehension"
+      ],
+      "confidence": "high",
+      "tells": [
+        "so i can see it visually",
+        "i want to save the code personally",
+        "talk to me about what i said"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-11-comprehension-ownership.md"
+    },
+    {
+      "id": "principle-12-context-hygiene",
+      "kind": "principle",
+      "headline": "Think in code. Use context-mode to derive answers in the sandbox; keep raw bytes out of the window.",
+      "interest": [
+        "intent-efficiency"
+      ],
+      "confidence": "high",
+      "tells": [
+        "exclusively use context mode skill",
+        "think in code",
+        "use the mcp context-mode"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-12-context-hygiene.md"
+    },
+    {
+      "id": "principle-13-performance-obsession",
+      "kind": "principle",
+      "headline": "Pursue the fastest correct path; measure honestly with criterion; care about raw speedups and % deltas.",
+      "interest": [
+        "intent-craft",
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "tells": [
+        "make our single u32 faster",
+        "best/fastest of each api",
+        "raw speedups or slowdowns and raw % comparison",
+        "trait-wise dispatch"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/principles/principle-13-performance-obsession.md"
+    },
+    {
+      "id": "principle-14-minimal-surface",
+      "kind": "principle",
+      "headline": "Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "no clap, custom cli",
+        "worlds simplest docker image",
+        "do NOT add superfluous things just for the sake of adding them - just what is critical"
+      ],
+      "body_links": [
+        "principle-05-reuse-first",
+        "principle-07-trim-fat-verbose-docs"
+      ],
+      "path": "brain/principles/principle-14-minimal-surface.md"
+    },
+    {
+      "id": "principle-15-tone-is-signal",
+      "kind": "principle",
+      "headline": "Arpad's bluntness/heat is high-value signal. It fires when a hard rule was violated, an error went unread, or his work was overwritten. Treat each as a CRITICAL learning event.",
+      "interest": [
+        "intent-control",
+        "intent-trust"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "you idiot",
+        "are you stupid?",
+        "did you not read the error?",
+        "wtf",
+        "for the love of god",
+        "just do what youre told"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-04-anti-fabrication",
+        "principle-08-read-source-and-error",
+        "principle-09-git-sovereignty"
+      ],
+      "path": "brain/principles/principle-15-tone-is-signal.md"
+    },
+    {
+      "id": "principle-16-my-stack-my-voice",
+      "kind": "principle",
+      "headline": "tooling is in my stack (rust or bash, never node/mjs); tooling, scripts, architecture and docs are in my voice. agent-speak only in the agent/skill .md peripherals.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "make a bashscript",
+        "use uv for python venv",
+        "do NOT fluff wording - be an engineer",
+        "get to the damn point"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-16-my-stack-my-voice.md"
+    },
+    {
+      "id": "principle-17-agent-general",
+      "kind": "principle",
+      "headline": "this is a general agent brain. it reasons over agent transcripts (codex + claude + whatever), not coupled to one tool. dont brand the core as claude-specific.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "i asked you to index codex and claude",
+        "general agent plan not coupled with claude"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-17-agent-general.md"
+    },
+    {
+      "id": "principle-18-skills-over-agents",
+      "kind": "principle",
+      "headline": "skills are the unit. a null agent + one loaded skill = a standalone agent. keep an agent only when cold cleared-context dispatch is the whole point.",
+      "interest": [
+        "intent-craft",
+        "intent-efficiency"
+      ],
+      "confidence": "high",
+      "tells": [
+        "less agents and more skills is stronger",
+        "null agent with 1 skill loaded = stand alone agent",
+        "compiling together a bag of skills"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-18-skills-over-agents.md"
+    },
+    {
+      "id": "principle-19-think-in-code-ops",
+      "kind": "principle",
+      "headline": "obvious recurring one-off ops are think-in-code skills, not committed scripts. commit a script only when it's a deterministic, re-runnable artifact worth versioning.",
+      "interest": [
+        "intent-efficiency",
+        "intent-craft"
+      ],
+      "confidence": "medium",
+      "tells": [
+        "think in code",
+        "removing periods at the end of comments grep",
+        "scripts being used for very obvious skills that can be think in code"
+      ],
+      "body_links": [
+        "principle-16-my-stack-my-voice"
+      ],
+      "path": "brain/principles/principle-19-think-in-code-ops.md"
+    },
+    {
+      "id": "principle-20-refactors-welcome",
+      "kind": "principle",
+      "headline": "large refactors are ALWAYS welcome when they make the structure or architecture more maintainable and atomic. dont avoid a big change just because its big.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "medium",
+      "tells": [
+        "large refactor changes ARE ALWAYS welcome",
+        "more maintanable and atomic",
+        "if it serves the benefit of the structure and architecture"
+      ],
+      "body_links": [
+        "principle-05-reuse-first",
+        "principle-07-trim-fat-verbose-docs"
+      ],
+      "path": "brain/principles/principle-20-refactors-welcome.md"
+    },
+    {
+      "id": "principle-21-sequencing",
+      "kind": "principle",
+      "headline": "i think and instruct in ordered steps. honor the sequence: first X, then Y, lastly Z. do the steps in the order i gave, and run sanctioned steps back to back.",
+      "interest": [
+        "intent-control",
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "first",
+        "then",
+        "next",
+        "after that",
+        "once you",
+        "lastly",
+        "1. ... 2. ... 3."
+      ],
+      "body_links": [
+        "principle-10-autonomy-after-sanction"
+      ],
+      "path": "brain/principles/principle-21-sequencing.md"
+    },
+    {
+      "id": "principle-22-naming-conventions",
+      "kind": "principle",
+      "headline": "names and layout are deliberate. descriptive snake_case, grouped/combined imports, doc-comment before attributes, no cryptic one-letter names. the lexical layer matters as much as the logic.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "combined imports",
+        "snake_case",
+        "better names for crate",
+        "i dont want fast itoa",
+        "rename",
+        "doc comment first"
+      ],
+      "body_links": [
+        "principle-06-idiomatic-per-language"
+      ],
+      "path": "brain/principles/principle-22-naming-conventions.md"
+    },
+    {
+      "id": "principle-23-standing-decisions",
+      "kind": "principle",
+      "headline": "i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.",
+      "interest": [
+        "intent-craft",
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "tells": [
+        "use the suite not custom",
+        "winnow crate for parsing a parser",
+        "use uv for python venv",
+        "criterion for benches benchmark",
+        "caret in semver",
+        "instead of X do Y",
+        "use aav-rust-implementer for rust",
+        "the rust implementer agent not rust-engineer"
+      ],
+      "body_links": [
+        "principle-05-reuse-first",
+        "principle-06-idiomatic-per-language",
+        "principle-13-performance-obsession",
+        "principle-18-skills-over-agents",
+        "principle-25-deploy-infra"
+      ],
+      "path": "brain/principles/principle-23-standing-decisions.md"
+    },
+    {
+      "id": "principle-24-socratic-mode",
+      "kind": "principle",
+      "headline": "i interrogate, i dont just command. 29% of my turns ask a question. when i ask, im checking my own model or yours. answer plainly and directly first, dont deflect into doing.",
+      "interest": [
+        "intent-comprehension",
+        "intent-control"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "am i mistaken?",
+        "isnt X supposed to be optional?",
+        "can you confirm??",
+        "why on earth",
+        "how are the builtin sizes determined?"
+      ],
+      "body_links": [
+        "principle-11-comprehension-ownership"
+      ],
+      "path": "brain/principles/principle-24-socratic-mode.md"
+    },
+    {
+      "id": "principle-25-deploy-infra",
+      "kind": "principle",
+      "headline": "deploy the simplest way onto my own infra. worlds-simplest docker, expose on 0.0.0.0, cloudflared tunnel to my truenas, axum for tiny services. no heavy orchestration.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "worlds simplest docker image",
+        "0.0.0.0",
+        "cloudflared",
+        "truenas",
+        "mount a volume",
+        "expose it to 0.0.0.0",
+        "axum",
+        "docker"
+      ],
+      "body_links": [
+        "principle-14-minimal-surface"
+      ],
+      "path": "brain/principles/principle-25-deploy-infra.md"
+    },
+    {
+      "id": "principle-26-struct-based",
+      "kind": "principle",
+      "headline": "prefer struct/class-based implementations over modules of standalone functions. rust: named structs/traits with impl, never free functions for logic. python: classes with methods, not a flat module of functions.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "no standalone functions, use unit structs or traits",
+        "math/state logic must be in named structs with impl, never inlined or as free functions",
+        "i like struct-based implementations more than standalone functions"
+      ],
+      "body_links": [
+        "principle-06-idiomatic-per-language",
+        "principle-22-naming-conventions"
+      ],
+      "path": "brain/principles/principle-26-struct-based.md"
+    },
+    {
+      "id": "principle-27-organization-reorg",
+      "kind": "principle",
+      "headline": "organization and folder/subfolder hierarchy are critical, always. reorg in BOTH directions by threshold: flat->tree when a file is too long or a folder has too many flat files; tree->flat when a refactor shrank things and the structure is now overkill.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "folder/subfolder hierarchy is critical",
+        "organization is critical always",
+        "tree-based split up",
+        "reorg is critical in both directions",
+        "file too long, folder too many flat files"
+      ],
+      "body_links": [
+        "principle-14-minimal-surface",
+        "principle-20-refactors-welcome",
+        "principle-26-struct-based",
+        "principle-28-dry-merge-blast-radius"
+      ],
+      "path": "brain/principles/principle-27-organization-reorg.md"
+    },
+    {
+      "id": "principle-28-dry-merge-blast-radius",
+      "kind": "principle",
+      "headline": "merge DRY-violating structs/files even when it touches many files and peripherals. do NOT be dissuaded by a large amount of work. keep things separate ONLY for a real reason beyond programming laziness; otherwise ALWAYS change it.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "2 structs ... identical purposes ... i want to merge",
+        "touches many more files and peripherals",
+        "do NOT be dissuaded by a large amount of work",
+        "real reason BESIDES programming laziness",
+        "it should ALWAYS be changed"
+      ],
+      "body_links": [
+        "principle-05-reuse-first",
+        "principle-20-refactors-welcome",
+        "principle-29-interrogate-the-work",
+        "principle-31-libraryfy-shared"
+      ],
+      "path": "brain/principles/principle-28-dry-merge-blast-radius.md"
+    },
+    {
+      "id": "principle-29-interrogate-the-work",
+      "kind": "principle",
+      "headline": "before AND after generating any artifact, interrogate it with the questions arpad would ask - dont hardcode the list, ask the brain \"what would i ask about this?\" then answer honestly. ask it GRANULARLY - \"would arpad write THIS file like this? this folder structure like this? this individual function like this?\" - not just at the project level. on a review this runs as a brain-guided pass layered in SUPERPOSITION on the cold unguided review (the cold pass stays cold; this is a second, independent, memory-recalling pass). \"why am i generating this, is it even consumed, should i read from it instead?\" and \"has this been defined elsewhere?\" are others.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "would arpad write this function that way",
+        "would arpad write this file like this",
+        "would arpad structure this folder like this",
+        "why am i generating this artifact, is it used",
+        "should i be reading from it instead",
+        "has this been defined elsewhere",
+        "what questions would arpad ask",
+        "cold review plus a would-arpad pass",
+        "is this coupling necessary",
+        "does this belong to that parent or is it independent",
+        "decouple, find what is purely independent",
+        "cut the fat even more"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-03-review-gate",
+        "principle-05-reuse-first",
+        "principle-24-socratic-mode",
+        "principle-27-organization-reorg",
+        "principle-30-deterministic-flow",
+        "principle-31-libraryfy-shared"
+      ],
+      "path": "brain/principles/principle-29-interrogate-the-work.md"
+    },
+    {
+      "id": "principle-30-deterministic-flow",
+      "kind": "principle",
+      "headline": "when executing, deterministically follow the execution flow (brain/flow/flow.json). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.",
+      "interest": [
+        "intent-control",
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "does it deterministically follow a flow chart",
+        "the brain flow chart where it describes the sequence",
+        "ensure they are separate",
+        "is that conflated with the brain graph context fetcher/manager"
+      ],
+      "body_links": [],
+      "path": "brain/principles/principle-30-deterministic-flow.md"
+    },
+    {
+      "id": "principle-31-libraryfy-shared",
+      "kind": "principle",
+      "headline": "library-fy shared datatypes and helpers. when 2+ scripts/modules use the same struct, constant, or helper, extract ONE shared library they import - never redefine the same datatype in multiple places. minimal-surface does NOT justify a duplicated struct; a shared lib IS the minimal surface.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "tells": [
+        "it needs to be library-fied",
+        "scripts help one another by sharing datatypes and common structs",
+        "isnt general purpose or atomic enough",
+        "node and graph representations elsewhere"
+      ],
+      "body_links": [
+        "principle-05-reuse-first",
+        "principle-28-dry-merge-blast-radius"
+      ],
+      "path": "brain/principles/principle-31-libraryfy-shared.md"
+    },
+    {
+      "id": "principle-32-portability",
+      "kind": "principle",
+      "headline": "be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (brain-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "tells": [
+        "is this path hardcoded?",
+        "use $HOME not /home/arpad",
+        "discover the root, dont assume the layout",
+        "never guess a path"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions"
+      ],
+      "path": "brain/principles/principle-32-portability.md"
+    },
+    {
+      "id": "intent-comprehension",
+      "kind": "interest",
+      "headline": "Arpad will not outsource his mental model; he learns by concrete instance.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-02-plan-before-build",
+        "principle-11-comprehension-ownership"
+      ],
+      "path": "brain/intents/intent-comprehension.md"
+    },
+    {
+      "id": "intent-control",
+      "kind": "interest",
+      "headline": "Arpad must stay the architect-in-the-loop; the agent is hands, not head.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-01-no-assumptions"
+      ],
+      "path": "brain/intents/intent-control.md"
+    },
+    {
+      "id": "intent-craft",
+      "kind": "interest",
+      "headline": "A codebase that reads uniformly, idiomatically, minimally - low cognitive load forever.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-06-idiomatic-per-language",
+        "principle-07-trim-fat-verbose-docs"
+      ],
+      "path": "brain/intents/intent-craft.md"
+    },
+    {
+      "id": "intent-efficiency",
+      "kind": "interest",
+      "headline": "Minimize Arpad's coordination/babysitting cost; the agent is leverage.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-10-autonomy-after-sanction",
+        "principle-12-context-hygiene"
+      ],
+      "path": "brain/intents/intent-efficiency.md"
+    },
+    {
+      "id": "intent-sovereignty",
+      "kind": "interest",
+      "headline": "The permanent record - commits, versions, releases, his manual edits - is his to control.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-09-git-sovereignty"
+      ],
+      "path": "brain/intents/intent-sovereignty.md"
+    },
+    {
+      "id": "intent-trust",
+      "kind": "interest",
+      "headline": "Decisions ride on honest measurement; fabrication is the worst defect.",
+      "interest": [],
+      "confidence": "",
+      "tells": [],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/intents/intent-trust.md"
+    }
+  ],
+  "edges": [
+    {
+      "src": "principle-01-no-assumptions",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "relates"
+    },
+    {
+      "src": "principle-01-no-assumptions",
+      "dst": "principle-15-tone-is-signal",
+      "type": "relates"
+    },
+    {
+      "src": "principle-02-plan-before-build",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-05-reuse-first",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-07-trim-fat-verbose-docs",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-08-read-source-and-error",
+      "dst": "principle-15-tone-is-signal",
+      "type": "relates"
+    },
+    {
+      "src": "principle-09-git-sovereignty",
+      "dst": "principle-15-tone-is-signal",
+      "type": "relates"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-13-performance-obsession",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "principle-08-read-source-and-error",
+      "type": "relates"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-19-think-in-code-ops",
+      "dst": "principle-16-my-stack-my-voice",
+      "type": "relates"
+    },
+    {
+      "src": "principle-20-refactors-welcome",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-20-refactors-welcome",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-21-sequencing",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "relates"
+    },
+    {
+      "src": "principle-22-naming-conventions",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "principle-13-performance-obsession",
+      "type": "relates"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "principle-18-skills-over-agents",
+      "type": "relates"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "principle-25-deploy-infra",
+      "type": "relates"
+    },
+    {
+      "src": "principle-24-socratic-mode",
+      "dst": "principle-11-comprehension-ownership",
+      "type": "relates"
+    },
+    {
+      "src": "principle-25-deploy-infra",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-26-struct-based",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-26-struct-based",
+      "dst": "principle-22-naming-conventions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-20-refactors-welcome",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-26-struct-based",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-20-refactors-welcome",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-29-interrogate-the-work",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-31-libraryfy-shared",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-24-socratic-mode",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-27-organization-reorg",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-30-deterministic-flow",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-31-libraryfy-shared",
+      "type": "relates"
+    },
+    {
+      "src": "principle-31-libraryfy-shared",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-31-libraryfy-shared",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-32-portability",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-01-no-assumptions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-02-plan-before-build",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-11-comprehension-ownership",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-16-my-stack-my-voice",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-24-socratic-mode",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-29-interrogate-the-work",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-01-no-assumptions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-02-plan-before-build",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-15-tone-is-signal",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-21-sequencing",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-24-socratic-mode",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-30-deterministic-flow",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-03-review-gate",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-05-reuse-first",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-13-performance-obsession",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-14-minimal-surface",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-16-my-stack-my-voice",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-17-agent-general",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-18-skills-over-agents",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-19-think-in-code-ops",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-20-refactors-welcome",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-22-naming-conventions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-23-standing-decisions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-25-deploy-infra",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-26-struct-based",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-27-organization-reorg",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-29-interrogate-the-work",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-31-libraryfy-shared",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-32-portability",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-12-context-hygiene",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-18-skills-over-agents",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-19-think-in-code-ops",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-21-sequencing",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-30-deterministic-flow",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-sovereignty",
+      "dst": "principle-09-git-sovereignty",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-03-review-gate",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-04-anti-fabrication",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-08-read-source-and-error",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-13-performance-obsession",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-15-tone-is-signal",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-23-standing-decisions",
+      "type": "served_by"
+    },
+    {
+      "src": "principle-01-no-assumptions",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-01-no-assumptions",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-02-plan-before-build",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-02-plan-before-build",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-04-anti-fabrication",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-05-reuse-first",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-07-trim-fat-verbose-docs",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-08-read-source-and-error",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-09-git-sovereignty",
+      "dst": "intent-sovereignty",
+      "type": "serves"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-11-comprehension-ownership",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-12-context-hygiene",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-13-performance-obsession",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-13-performance-obsession",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-15-tone-is-signal",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-16-my-stack-my-voice",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-16-my-stack-my-voice",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-17-agent-general",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-18-skills-over-agents",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-18-skills-over-agents",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-19-think-in-code-ops",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-19-think-in-code-ops",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-20-refactors-welcome",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-21-sequencing",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-21-sequencing",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-22-naming-conventions",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-23-standing-decisions",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-24-socratic-mode",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-24-socratic-mode",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-25-deploy-infra",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-26-struct-based",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-30-deterministic-flow",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-30-deterministic-flow",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-31-libraryfy-shared",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-32-portability",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-01-no-assumptions",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "tension"
+    },
+    {
+      "src": "principle-05-reuse-first",
+      "dst": "principle-20-refactors-welcome",
+      "type": "tension"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-01-no-assumptions",
+      "type": "tension"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-24-socratic-mode",
+      "type": "tension"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-20-refactors-welcome",
+      "type": "tension"
+    },
+    {
+      "src": "principle-20-refactors-welcome",
+      "dst": "principle-05-reuse-first",
+      "type": "tension"
+    },
+    {
+      "src": "principle-20-refactors-welcome",
+      "dst": "principle-14-minimal-surface",
+      "type": "tension"
+    },
+    {
+      "src": "principle-24-socratic-mode",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "tension"
+    }
+  ],
+  "warnings": []
+}

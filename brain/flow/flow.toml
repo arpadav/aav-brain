@@ -1,0 +1,480 @@
+# the execution flow - the authored source of truth (data, not code).
+# brain-flow.py READS this, validates it, and builds flow.json. brain-walk.py
+# steps flow.json. this is the SEQUENCE; the knowledge graph is the CONTEXT -
+# they are separate (P30).
+#
+# cyclic refinement is REQUIRED (P03), not optional: each gate is an
+# intermediate node that LOOPS (review -> fix -> re-review) until a metric
+# THRESHOLD holds, then advances ONE phase. PLAN..PLANGATE cycles the plan
+# against its own worked example to a soundness threshold; PHASEGATE/VERIFY are
+# tight in-phase loops through REMEDIATE that converge consistency-then-soundness
+# before advancing. the RECON..REORG region is the per-file scrutiny +
+# bidirectional reorg loop (P29, P27); the set expands to a fixpoint
+
+# --------------------------------------------------
+# states
+# --------------------------------------------------
+[[states]]
+id = "IDEATION"
+kind = "entry"
+owner = "-"
+recall = false
+entry = true
+regime = "ask-first"
+doc = "raw request received (brain-plan entry)"
+
+[[states]]
+id = "INTENT"
+kind = "work"
+owner = "brain-meta-intent"
+recall = true
+doc = "position -> interest; surface ambiguity"
+
+[[states]]
+id = "ASK"
+kind = "gate"
+owner = "brain-meta-intent"
+recall = true
+doc = "ask the smallest unblocking question; never guess (pre-sanction clarify)"
+
+[[states]]
+id = "RECON"
+kind = "work"
+owner = "brain-meta-recall+brain-plan"
+recall = true
+doc = "read fs; seed the relevant-file set from the task"
+
+[[states]]
+id = "EXPAND"
+kind = "work"
+owner = "brain-meta-recall"
+recall = true
+doc = "grep deps/peripherals; ADD newly-implicated files. the set is mutable"
+
+[[states]]
+id = "WOULDIWRITE"
+kind = "work"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "per file in the set: would i (arpad) write it like this? mark the no's"
+
+[[states]]
+id = "SCRUTINIZE"
+kind = "work"
+owner = "brain-meta-style:style"
+recall = true
+doc = "line-by-line on marked files: idiom, magic values, trim the fat"
+
+[[states]]
+id = "SEMANTIC"
+kind = "work"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "does each fn/struct/class LIVE where it belongs? DRY, reuse, library-fy (P05/P31)"
+
+[[states]]
+id = "RELOCATE"
+kind = "work"
+owner = "worker+brain-review-gate"
+recall = false
+doc = "move fns/structs/classes to their correct module/file"
+
+[[states]]
+id = "HIERARCHY"
+kind = "gate"
+owner = "brain-meta-style:plan"
+recall = false
+doc = "judge the tree: flat->tree if a file too long / folder too flat-crowded; tree->flat if a refactor shrank it"
+
+[[states]]
+id = "REORG"
+kind = "work"
+owner = "worker+brain-review-gate"
+recall = false
+doc = "apply the reshape in the flagged direction; this MUTATES the set -> re-expand"
+
+[[states]]
+id = "PLAN"
+kind = "work"
+owner = "brain-plan"
+recall = true
+doc = "small+verbose plan with a worked example, to plans/"
+
+[[states]]
+id = "PLANPROBE"
+kind = "work"
+owner = "brain-plan"
+recall = true
+doc = "trace the plan THROUGH its own worked example; mark every step the plan cannot actually produce (plan-vs-impl gap)"
+
+[[states]]
+id = "PLANGATE"
+kind = "gate"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end. loops via below_threshold until then"
+
+[[states]]
+id = "SANCTION"
+kind = "boundary"
+owner = "brain-meta-drive"
+recall = false
+doc = "arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)"
+
+[[states]]
+id = "IMPL"
+kind = "work"
+owner = "brain-meta-author-prompt+worker"
+recall = true
+entry = true
+regime = "execute-through"
+doc = "write the worker prompt in my voice; dispatch; implement the phase (brain-execute entry, post-sanction)"
+
+[[states]]
+id = "PHASEGATE"
+kind = "gate"
+owner = "brain-review-gate"
+recall = false
+doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE"
+
+[[states]]
+id = "REMEDIATE"
+kind = "work"
+owner = "brain-meta-author-prompt+worker"
+recall = true
+doc = "fix the converged nits IN PLACE (incl local relocations); does NOT leave the impl phase"
+
+[[states]]
+id = "VERIFY"
+kind = "gate"
+owner = "brain-verifier"
+recall = false
+doc = "build/test/bench honestly; emits sound only when build green AND tests pass AND bench within threshold. loops via unsound -> REMEDIATE"
+
+[[states]]
+id = "STYLE"
+kind = "work"
+owner = "brain-meta-style:style"
+recall = true
+doc = "final style pass: brain-fmt.py, trim fat, verbose docs, separators, fmt last"
+
+[[states]]
+id = "RECORD"
+kind = "work"
+owner = "brain-meta-commit"
+recall = false
+doc = "categorise by semantics, draft the commit script, stop at the line"
+
+[[states]]
+id = "CURATE"
+kind = "work"
+owner = "brain-meta-curate"
+recall = true
+doc = "capture every correction/approval/interrupt -> update the store; log the decision trace"
+
+[[states]]
+id = "BLOCKED"
+kind = "halt"
+owner = "brain-meta-intent"
+recall = false
+terminal = true
+doc = "post-sanction ambiguity: stop and ask arpad; resume the blocked state on /continue"
+
+[[states]]
+id = "DONE"
+kind = "terminal"
+owner = "-"
+recall = false
+terminal = true
+doc = "work complete"
+
+# --------------------------------------------------
+# review region (brain-review entry): cold multi-lens review of the current
+# diff, then it funnels into the SHARED PHASEGATE -> REMEDIATE -> VERIFY loop
+# (not duplicated) and rides those rails to a terminal.
+# --------------------------------------------------
+[[states]]
+id = "REVIEW"
+kind = "entry"
+owner = "brain-review-gate"
+recall = false
+entry = true
+regime = "ask-first"
+doc = "brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop"
+
+# --------------------------------------------------
+# self-refine region (brain-self-refine entry): scan -> findings -> ASK ->
+# edit -> gate -> log. ask-first throughout (SR_ASK is a pre-sanction ASK gate,
+# distinct from post-sanction BLOCKED). a separate region: it is not a build.
+# --------------------------------------------------
+[[states]]
+id = "SR_SCAN"
+kind = "entry"
+owner = "brain-self-refine"
+recall = false
+entry = true
+regime = "ask-first"
+doc = "brain-self-refine entry: run the scripted scan (cards/graph/flow/trace/paths/symlinks/traceability)"
+
+[[states]]
+id = "SR_FINDINGS"
+kind = "work"
+owner = "brain-self-refine"
+recall = true
+doc = "read the trace + structural smells; GENERATE the questions from the brain (recall-driven, never a frozen list)"
+
+[[states]]
+id = "SR_ASK"
+kind = "gate"
+owner = "brain-self-refine"
+recall = false
+doc = "present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped"
+
+[[states]]
+id = "SR_EDIT"
+kind = "work"
+owner = "brain-self-refine"
+recall = true
+doc = "make ONLY the selected edits, each through the right meta-skill (curate/style/direct)"
+
+[[states]]
+id = "SR_GATE"
+kind = "gate"
+owner = "brain-self-refine"
+recall = false
+doc = "rebuild what the edit touched; brain-graph/flow/cards --check must pass before logging"
+
+[[states]]
+id = "SR_LOG"
+kind = "work"
+owner = "brain-meta-curate"
+recall = false
+doc = "log each chosen decision to the trace so the next self-refine sees it"
+
+# --------------------------------------------------
+# transitions
+# --------------------------------------------------
+[[transitions]]
+src = "IDEATION"
+on = "received"
+dst = "INTENT"
+
+[[transitions]]
+src = "INTENT"
+on = "ambiguous"
+dst = "ASK"
+
+[[transitions]]
+src = "INTENT"
+on = "clear"
+dst = "RECON"
+
+[[transitions]]
+src = "ASK"
+on = "answered"
+dst = "INTENT"
+
+[[transitions]]
+src = "RECON"
+on = "seeded"
+dst = "EXPAND"
+
+[[transitions]]
+src = "EXPAND"
+on = "set_grew"
+dst = "EXPAND"
+
+[[transitions]]
+src = "EXPAND"
+on = "set_stable"
+dst = "WOULDIWRITE"
+
+[[transitions]]
+src = "WOULDIWRITE"
+on = "some_marked"
+dst = "SCRUTINIZE"
+
+[[transitions]]
+src = "WOULDIWRITE"
+on = "all_pass"
+dst = "SEMANTIC"
+
+[[transitions]]
+src = "SCRUTINIZE"
+on = "cleaned"
+dst = "SEMANTIC"
+
+[[transitions]]
+src = "SEMANTIC"
+on = "misplacements_found"
+dst = "RELOCATE"
+
+[[transitions]]
+src = "SEMANTIC"
+on = "placement_ok"
+dst = "HIERARCHY"
+
+[[transitions]]
+src = "RELOCATE"
+on = "moved"
+dst = "EXPAND"
+
+[[transitions]]
+src = "HIERARCHY"
+on = "reshape_needed"
+dst = "REORG"
+
+[[transitions]]
+src = "HIERARCHY"
+on = "shape_ok"
+dst = "PLAN"
+
+[[transitions]]
+src = "REORG"
+on = "reshaped"
+dst = "EXPAND"
+
+# plan phase: PLAN -> probe against the worked example -> gate, cycling until
+# the threshold holds, then sanction
+[[transitions]]
+src = "PLAN"
+on = "drafted"
+dst = "PLANPROBE"
+
+[[transitions]]
+src = "PLANPROBE"
+on = "gap_found"
+dst = "PLAN"
+
+[[transitions]]
+src = "PLANPROBE"
+on = "traced"
+dst = "PLANGATE"
+
+[[transitions]]
+src = "PLANGATE"
+on = "below_threshold"
+dst = "PLAN"
+
+[[transitions]]
+src = "PLANGATE"
+on = "blocked"
+dst = "ASK"
+
+[[transitions]]
+src = "PLANGATE"
+on = "threshold_met"
+dst = "SANCTION"
+boundary = true
+
+[[transitions]]
+src = "SANCTION"
+on = "sanctioned"
+dst = "IMPL"
+
+[[transitions]]
+src = "IMPL"
+on = "implemented"
+dst = "PHASEGATE"
+
+[[transitions]]
+src = "IMPL"
+on = "ambiguous"
+dst = "BLOCKED"
+
+# consistency loop: review -> remediate -> re-review until the threshold holds
+[[transitions]]
+src = "PHASEGATE"
+on = "below_threshold"
+dst = "REMEDIATE"
+
+[[transitions]]
+src = "REMEDIATE"
+on = "fixed"
+dst = "PHASEGATE"
+
+[[transitions]]
+src = "PHASEGATE"
+on = "threshold_met"
+dst = "VERIFY"
+
+# soundness loop: a fix routes back through PHASEGATE so consistency is
+# re-checked before re-verifying (nested loops).
+[[transitions]]
+src = "VERIFY"
+on = "unsound"
+dst = "REMEDIATE"
+
+[[transitions]]
+src = "VERIFY"
+on = "more_phases"
+dst = "IMPL"
+
+[[transitions]]
+src = "VERIFY"
+on = "last_phase"
+dst = "STYLE"
+
+[[transitions]]
+src = "STYLE"
+on = "styled"
+dst = "RECORD"
+
+[[transitions]]
+src = "RECORD"
+on = "prepared"
+dst = "CURATE"
+
+[[transitions]]
+src = "CURATE"
+on = "learned"
+dst = "DONE"
+
+# review region: enter the SHARED gate loop (PHASEGATE -> REMEDIATE -> VERIFY),
+# which rides the existing rails to a terminal. no new transitions on the shared
+# states - REVIEW just funnels in.
+[[transitions]]
+src = "REVIEW"
+on = "reviewed"
+dst = "PHASEGATE"
+
+# self-refine region loop
+[[transitions]]
+src = "SR_SCAN"
+on = "scanned"
+dst = "SR_FINDINGS"
+
+[[transitions]]
+src = "SR_FINDINGS"
+on = "found"
+dst = "SR_ASK"
+
+[[transitions]]
+src = "SR_ASK"
+on = "selected"
+dst = "SR_EDIT"
+
+[[transitions]]
+src = "SR_ASK"
+on = "none_selected"
+dst = "DONE"
+
+[[transitions]]
+src = "SR_EDIT"
+on = "edited"
+dst = "SR_GATE"
+
+[[transitions]]
+src = "SR_GATE"
+on = "green"
+dst = "SR_LOG"
+
+[[transitions]]
+src = "SR_GATE"
+on = "red"
+dst = "SR_EDIT"
+
+[[transitions]]
+src = "SR_LOG"
+on = "logged"
+dst = "DONE"
