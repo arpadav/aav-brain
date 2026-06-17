@@ -1,6 +1,6 @@
 # schema: decision trace
 
-the brain's own reasoning history: `brain/trace/decisions.jsonl`, one decision per line, append-only.
+the brain's own reasoning history: `~/.local/share/aav-brain/trace/decisions.jsonl` (the private logs submodule, via find_data), one decision per line, append-only.
 the point is the decided-AGAINST entries - when a later session disagrees with a past call, the trace
 shows WHERE it was made (`affects`) so it can be reversed precisely. written + read by `bin/brain-trace.py`
 (via the `Decision` dataclass in `bin/brainlib.py`); brain-meta-curate and brain-self-refine consume it.

@@ -5,7 +5,7 @@ evidence-based, mined from every human turn across 45 claude projects + the full
 read only spoken signal - every prompt, classified, nothing dropped.
 
 the live numbers (turn counts, tone %, class counts, sequencing histogram, opening verbs) are
-GENERATED, not hand-written: see `brain/evidence/fingerprint-stats.md`, rebuilt by
+GENERATED, not hand-written: see `~/.local/share/aav-~/.local/share/aav-brain/evidence/fingerprint-stats.md`, rebuilt by
 `python3 bin/brain-extract.py`. this doc carries the reading, not the raw figures, so the two can
 never drift (the served_by-is-derived move, applied to the fingerprint - P20).
 
@@ -25,10 +25,10 @@ dont pause, no summaries") are not opposed. they are two regimes split by a sanc
 ask-first before a plan is blessed, execute-through after. knowing which side youre on is the
 brains prime skill.
 
-## 1. quantitative tells (live numbers in brain/evidence/fingerprint-stats.md)
+## 1. quantitative tells (live numbers in ~/.local/share/aav-brain/evidence/fingerprint-stats.md)
 
 the table of counts, tone %, class counts, sequencing connectives, and opening verbs is generated -
-read `brain/evidence/fingerprint-stats.md`, refreshed by `python3 bin/brain-extract.py`. the reading
+read `~/.local/share/aav-~/.local/share/aav-brain/evidence/fingerprint-stats.md`, refreshed by `python3 bin/brain-extract.py`. the reading
 of those numbers:
 - casual register is the default (most turns all-lowercase). bluntness and "please" coexist.
 - highly socratic: ~3 in 10 turns ask a question - i interrogate, i dont just command. (P24)

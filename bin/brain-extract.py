@@ -36,8 +36,6 @@ from brainlib import clip, find_data
 # home directory root, used to locate every transcript source. portable -
 # resolves to whatever machine this runs on, not a hardcoded path
 HOME = Path.home()
-# this script's directory, used to resolve the default output path
-HERE = Path(__file__).resolve().parent
 # transcript sources as (root, tool-label). the label is a fact about
 # which tool produced the turn, not a coupling to that tool
 SOURCES = [
@@ -570,7 +568,8 @@ class Extractor:
 def main():
     """extract every transcript into the evidence store and print a summary."""
     corpus = Extractor(SOURCES).run()
-    out = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else find_data() / "evidence"
+    idx = sys.argv.index("--out") if "--out" in sys.argv else -1
+    out = Path(sys.argv[idx + 1]) if 0 <= idx < len(sys.argv) - 1 else find_data() / "evidence"
     out = out.resolve()
     corpus.write(out)
     buckets = Counter(p["bucket"] for p in corpus.prompts)

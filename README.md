@@ -4,8 +4,9 @@ my second brain for dev work. it learns how i plan, review, write, and push back
 transcripts (codex + claude), then acts as me: reviews other agents work, writes prompts in my voice,
 supervises a plan by dispatching other agents. it doesnt fabricate and it doesnt publish.
 
-this repo is the knowledge + docs + tooling. the skills + 2 agents that act live in a sibling repo:
-../agents/brain/.
+this is ONE repo: the doctrine (`brain/`), the tooling (`bin/`), and the acting suite
+(`agentic-files/` - skills + agents) that home-manager links into claude + codex. private memory
+(evidence + trace) lives in the `logs/` submodule, never in this repo's history.
 
 > human-facing doc - nothing reads this at runtime. the authoritative sources are
 > `brain/CONSTITUTION.md`, the cards, and `brain/flow/flow.toml`.
@@ -17,27 +18,28 @@ cold, refuses to fabricate, stops only on real ambiguity, prepares the commit. i
 
 ## layout
 ```
-aav-brain/
+aav-brain/             the one transferable brain (a `brain` submodule of home)
   README.md            you are here
-  ARCHITECTURE.md      the system: memory tiers, the 4 entries + brain-meta-* machinery + 2 agents
-  docs/
-    FINGERPRINT.md     evidence-based report on my dev & writing ethos
-    INTENT_MAP.md      positions -> interests (principled negotiation)
-    DEV_FLOWCHART.md   the end-to-end state machine + node->owner map
-    PRIOR_ART.md       what i borrowed (memgpt/letta, graphiti/zep, reflexion, getting to yes)
-  brain/               the queryable store
+  ARCHITECTURE.md      the system: memory tiers, the 4 entries + brain-meta-* machinery + agents
+  brain/               the queryable DOCTRINE store (committed, public knowledge)
     CONSTITUTION.md    tier-1 core: the hard rules + voice (always loaded)
     principles/        atomic principle cards (one belief each)
     intents/           interest cards (the why)
     voice/             how to write/review as me
-    evidence/          machine-derived signal (regenerate any time)
+    flow/  graph/      the deterministic flow + the graph derived from the cards
     INDEX.md           the store manifest
-  bin/
-    brain-extract.py   mine ~/.codex + ~/.claude -> evidence (python/uv; re-run to refresh)
-    brain-recall.py     retrieve the cards relevant to a task (bash/grep)
-  schema/
-    principle-card.md  the card schema
-    optional-graph.md  neo4j/graphiti upgrade path (optional, infra-free by default)
+  agentic-files/       the acting suite (home-manager links it into claude + codex)
+    skills/            the 12 skills (universal SKILL.md across claude / codex / ~/.agents)
+    agents/            categorized: brain/  general/  lang/rust/  custom/
+  bin/                 all tooling: brain-find, -recall, -cards, -graph, -flow, -trace, -walk,
+                       -fmt, -extract, compile (brainlib is the shared lib)
+  .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
+  logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
+                       lives in a separate private repo, never here; the scripts write to it via
+                       the XDG symlink ~/.local/share/aav-brain -> logs/ (brainlib.find_data).
+  docs/                FINGERPRINT, INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
+  schema/              the card / flow / trace schemas
+  plans/               worked plans (brain-plan writes here)
 ```
 
 ## quickstart
@@ -52,7 +54,8 @@ python3 bin/brain-recall.py "rust idiomatic review, dont commit, dont fake the b
 python3 bin/brain-recall.py --all
 ```
 
-then install the acting suite from ../agents/brain/ and use the FOUR entrypoints (the only skills you call):
+the acting suite lives in `agentic-files/` (home-manager links it into ~/.claude and ~/.codex). use the
+FOUR entrypoints (the only skills you call):
 - /brain-plan <idea>: plan this new thing (or a change) my way, to sanction.
 - /brain-execute: build a sanctioned plan to DONE - "continue" / "resume" picks it back up.
 - /brain-review: cold multi-lens review of the current diff.

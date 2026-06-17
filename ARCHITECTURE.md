@@ -8,10 +8,11 @@ a second brain for my dev work. it learns how i plan, review, write, and push ba
 agent transcripts (codex + claude), then acts as me: agrees/disagrees with other agents work, writes
 prompts in my voice, supervises a plan by dispatching other agents, and holds my standards.
 
-two halves, two repos:
-- `aav-brain/` (this repo): the knowledge store, the docs, the tooling. everything thats not an
-  agent or skill.
-- `agents/brain/`: the skills and the two cold agents that act.
+ONE repo, two halves by ROLE (not by repo):
+- the TOOL: the knowledge store (`brain/`), the docs, and the tooling (`bin/`).
+- the ACTING SUITE (`agentic-files/`): the skills + agents that act, linked into claude + codex by
+  home-manager. private memory (trace + evidence) is the `logs/` submodule - its content lives in a
+  separate private repo, never in this history.
 
 ## 1. memory, tiered (after memgpt/letta)
 
@@ -36,15 +37,18 @@ TIER 2.6 - flow = SEQUENCE (the execution flow; "what step is next") - SEPARATE 
   cyclic by design (P03): PLAN..PLANGATE, PHASEGATE/VERIFY loop through REMEDIATE until a metric
   threshold holds, only then advance one phase
 
-TIER 2.7 - trace = the brain's own reasoning history (append-only)
-  brain/trace/decisions.jsonl   one line per decision: chosen, what it rejected + why, what it affects
+TIER 2.7 - trace = the brain's own reasoning history (append-only; PRIVATE, out of repo)
+  <find_data>/trace/decisions.jsonl   one line per decision: chosen, what it rejected + why, affects
   written/read by bin/brain-trace.py; brain-meta-curate + brain-self-refine consult the decided-AGAINST
   entries to know WHERE a past call was made before re-litigating it
 
-TIER 3 - evidence (machine-derived; regenerate with bin/brain-extract.py)
-  brain/evidence/prompts.jsonl   EVERY human turn, bucketed + multi-label classed; nothing dropped
-  brain/evidence/corpus-stats.json   tone %, class counts, sequencing histogram, opening verbs
-  brain/evidence/*.jsonl         back-compat views (rejections, interruptions, approvals, directives, denials)
+TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with bin/brain-extract.py)
+  <find_data>/evidence/prompts.jsonl   EVERY human turn, bucketed + multi-label classed; nothing dropped
+  <find_data>/evidence/corpus-stats.json   tone %, class counts, sequencing histogram, opening verbs
+  <find_data>/evidence/*.jsonl         back-compat views (rejections, interruptions, approvals, directives, denials)
+
+  (find_data = $XDG_DATA_HOME/aav-brain, i.e. ~/.local/share/aav-brain -> the logs/ submodule. the raw
+   trace + prompts live in a SEPARATE private repo (aav-brain-logs), never in this repo's history.)
 ```
 
 the GRAPH and the FLOW are two distinct deterministic artifacts, never conflated (P30). the graph is
@@ -54,16 +58,18 @@ brain-recall to load context; the graph never calls the flow. both are byte-iden
 `--check`-guarded (`brain-graph.py --check`, `brain-flow.py --check`). file-first, zero servers. neo4j
 is an optional export only; see schema/optional-graph.md.
 
-## 2. the acting suite (in agents/brain/)
+## 2. the acting suite (in agentic-files/)
 
 skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FOUR
-user-callable ENTRY skills + eight `brain-meta-*` machinery skills + two cold agents. you only ever call
-the four entries; the `brain-meta-` prefix marks "machinery, dont call directly."
+user-callable ENTRY skills + eight `brain-meta-*` machinery skills + the agents (categorized under
+`agentic-files/agents/{brain,general,lang/rust,custom}`). you only ever call the four entries; the
+`brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
+claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
-every skill bundles a `scripts/` dir (a committed symlink to bin/) and EXECUTES those scripts - it does
-not read flow.json/graph.json and reason by hand. running a script keeps its code out of context and is
-deterministic; the discovery preamble (`scripts/brain-find.py --export`) locates the store with no
-hardcoded path, on any machine.
+every skill EXECUTES the bundled scripts rather than reading flow.json/graph.json and reasoning by hand -
+running a script keeps its code out of context and is deterministic. the discovery preamble
+(`eval "$(brain-find --export)"`, brain-find on PATH) sets `$AAV_BRAIN` with no hardcoded path on any
+machine; the skill then invokes `$AAV_BRAIN/bin/<script>.py` - no layout-assuming per-skill symlink (P32).
 
 the 4 ENTRIES (call these) - each enters the unified flow at its own node and walks to a terminal:
 | entry | enters flow at | what it does |
@@ -138,11 +144,13 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
    the trace. this is P29 pointed inward - the brain reviewing the brain.
 
 ## 5. isolation
-- all acting code under agents/brain/. all knowledge/tooling under aav-brain/.
-- the brain references only its own store + generic worker agents (a code-reviewer, a software
-  architect, language engineers). it does NOT import or depend on the existing aav-* agents.
+- ONE repo, separated by role: acting code under `agentic-files/`, doctrine under `brain/`, tooling
+  under `bin/`. private memory is the `logs/` submodule (content in a separate private repo).
+- the agents it bundles are DECOUPLED + general-purpose: they reference the current repo's layout +
+  conventions, never a specific project (the semantic-architecture reviewer discovers the repo's
+  crates/CLAUDE.md instead of hardcoding them; no machine-specific paths, P32).
 - the store is plain markdown + the brainlib library + the tools (extract, graph, recall, flow, walk,
-  fmt, cards, trace, find), all importing brainlib. no services to start.
+  fmt, cards, trace, find, compile), all importing brainlib. no services to start.
 
 ## 6. how to use it
 see README.md for the quickstart. the four entrypoints (the only skills you call):

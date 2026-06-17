@@ -346,7 +346,8 @@ def find_brain():
        when called from a brain script.
     2. a known brain-skill symlink under ~/.agents, then ~/.claude: readlink
        resolves the home-manager -> nix-store -> live-repo chain.
-    3. a relative fallback assuming the conventional checkout path.
+    there is NO hardcoded-path fallback: a guess at a conventional checkout path
+    (P32) would resolve a STALE sibling checkout, so discovery fails loud instead.
 
     # Returns
     the resolved aav-brain root Path; raises FileNotFoundError if it cannot be
@@ -369,28 +370,26 @@ def find_brain():
             root = link.resolve().parents[2]
             if (root / "brain" / "CONSTITUTION.md").exists():
                 return root
-    # --------------------------------------------------
-    # relative fallback: the conventional checkout path
-    # --------------------------------------------------
-    guess = Path.home() / "repos" / "personal" / "aav-brain"
-    if (guess / "brain" / "CONSTITUTION.md").exists():
-        return guess
-    raise FileNotFoundError("cannot locate aav-brain via __file__, ~/.agents, ~/.claude, or the fallback path")
+    raise FileNotFoundError("cannot locate aav-brain via __file__ or the ~/.agents / ~/.claude skill symlink")
 
 
 def find_data():
-    """the brain's PRIVATE memory dir (trace + evidence), OUTSIDE the repo.
+    """the brain's PRIVATE memory dir (trace + evidence).
 
-    private data - the decision trace and the extracted evidence corpus - must
-    NEVER live in the committable brain repo. it lands in the XDG data dir
-    (`$XDG_DATA_HOME/aav-brain`, else `~/.local/share/aav-brain`), which is
-    typically a symlink to the private `aav-brain-private` submodule. resolved
-    with no brain-specific env var (XDG is the standard, not a bespoke anchor).
+    private data - the decision trace and the extracted evidence corpus - never
+    lives in the public brain's git objects. it lands in the XDG data dir
+    (`$XDG_DATA_HOME/aav-brain`, else `~/.local/share/aav-brain`), which home-manager
+    symlinks to the `aav-brain-logs` submodule (gitlinked at `logs/`; its content
+    lives in a SEPARATE private repo, never in the public brain's history). resolved
+    with no brain-specific env var (XDG is the standard, not a bespoke anchor); a
+    relative `$XDG_DATA_HOME` is ignored, per the XDG spec.
 
     # Returns
     the aav-brain private-data root Path (created on demand by its writers).
     """
-    base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
+    base = os.path.expanduser(os.environ.get("XDG_DATA_HOME", ""))
+    if not os.path.isabs(base):
+        base = str(Path.home() / ".local" / "share")
     return Path(base) / "aav-brain"
 
 
