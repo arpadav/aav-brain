@@ -40,14 +40,14 @@ doc = "ask the smallest unblocking question; never guess (pre-sanction clarify)"
 [[states]]
 id = "RECON"
 kind = "work"
-owner = "brain-meta-recall+brain-plan"
+owner = "brain-recall+brain-plan"
 recall = true
 doc = "read fs; seed the relevant-file set from the task"
 
 [[states]]
 id = "EXPAND"
 kind = "work"
-owner = "brain-meta-recall"
+owner = "brain-recall"
 recall = true
 doc = "grep deps/peripherals; ADD newly-implicated files. the set is mutable"
 
@@ -122,13 +122,22 @@ recall = false
 doc = "arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)"
 
 [[states]]
-id = "IMPL"
-kind = "work"
-owner = "brain-meta-author-prompt+worker"
+id = "DOCTRINE"
+kind = "gate"
+owner = "brain-meta-author-prompt"
 recall = true
+binds = ["code"]
 entry = true
 regime = "execute-through"
-doc = "write the worker prompt in my voice; dispatch; implement the phase (brain-execute entry, post-sanction)"
+doc = "resolve the artifact PURPOSE (P41: scratch skip / tutorial light / production exhaustive) and the language row (P06); load the always-load doctrine set plus that language's extras; author the worker prompt carrying P40's before/after exemplars and the find-exhaustively ask. an adjective is not a resolved doctrine - emit unresolved (brain-execute entry, post-sanction)"
+
+[[states]]
+id = "IMPL"
+kind = "work"
+owner = "worker"
+recall = true
+regime = "execute-through"
+doc = "dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction)"
 
 [[states]]
 id = "PHASEGATE"
@@ -138,25 +147,32 @@ recall = false
 doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE"
 
 [[states]]
+id = "ADJUDICATE"
+kind = "work"
+owner = "brain-meta-style"
+recall = true
+doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate"
+
+[[states]]
 id = "REMEDIATE"
 kind = "work"
 owner = "brain-meta-author-prompt+worker"
 recall = true
-doc = "fix the converged nits IN PLACE (incl local relocations); does NOT leave the impl phase"
+doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase"
 
 [[states]]
 id = "VERIFY"
 kind = "gate"
 owner = "brain-verifier"
 recall = false
-doc = "build/test/bench honestly; emits sound only when build green AND tests pass AND bench within threshold. loops via unsound -> REMEDIATE"
+doc = "build/test/bench honestly; emits sound only when the build is green AND the artifact's OWN stated bar is met AND the bench is within threshold. the bar is usually 'tests pass' but is NOT hardcoded to it: an artifact that ships deliberately red (a rustlings-style tutorial, a lab with todo!()) declares its real bar - e.g. `--features solutions` green while a bare `cargo test` stays red - and THAT is what soundness means for it. measuring against the wrong bar makes unsound permanent, the same non-terminating loop ADJUDICATE breaks at PHASEGATE. loops via unsound -> REMEDIATE. the pass events REQUIRE a returned brain-verifier report: measured, the agent was dispatched on 9 of ~31 visits, so 7 times in 10 the author verified its own work and advanced. verifying yourself is not verification - emit unverified and dispatch the agent"
 
 [[states]]
 id = "STYLE"
-kind = "work"
-owner = "brain-meta-style:style"
+kind = "gate"
+owner = "brain-meta-style:style + aav-style-separators + aav-style-docs + aav-style-imports + aav-style-items"
 recall = true
-doc = "final style pass: brain-fmt.py, trim fat, verbose docs, separators, fmt last"
+doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check. emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing"
 
 [[states]]
 id = "RECORD"
@@ -183,10 +199,10 @@ doc = "post-sanction ambiguity: stop and ask arpad; resume the blocked state on 
 [[states]]
 id = "DONE"
 kind = "terminal"
-owner = "-"
+owner = "brain-learner"
 recall = false
 terminal = true
-doc = "work complete"
+doc = "work complete. DISPATCH brain-learner to mine this conversation for durable signal, and SAY SO in the closing line - e.g. `<brief summary>. everything is done. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything"
 
 # --------------------------------------------------
 # review region (brain-review entry): cold multi-lens review of the current
@@ -370,7 +386,21 @@ boundary = true
 [[transitions]]
 src = "SANCTION"
 on = "sanctioned"
+dst = "DOCTRINE"
+
+# every path to a writer passes through DOCTRINE. it is a GATE, not a work step:
+# a resolved doctrine names the purpose register, the language row and the
+# exemplars the worker will see. an unresolved one halts rather than letting an
+# adjective through, which is the failure P40 exists to name.
+[[transitions]]
+src = "DOCTRINE"
+on = "resolved"
 dst = "IMPL"
+
+[[transitions]]
+src = "DOCTRINE"
+on = "unresolved"
+dst = "BLOCKED"
 
 [[transitions]]
 src = "IMPL"
@@ -382,11 +412,44 @@ src = "IMPL"
 on = "ambiguous"
 dst = "BLOCKED"
 
-# consistency loop: review -> remediate -> re-review until the threshold holds
+# a multi-phase build sits in IMPL for its whole length, so finishing ONE phase
+# had no beat: the walk stepped 20 times across a 290-line planning region and 8
+# times across 2700 lines of execution. with no state change to mark it, each
+# phase boundary became a status report to arpad - which is exactly what P10
+# forbids and what he blew up at, twice. the self-loop makes the boundary a real
+# transition: re-enter IMPL, re-fire recall, take the next phase. it is NOT a
+# gate and produces no user-facing turn.
+[[transitions]]
+src = "IMPL"
+on = "phase_done"
+dst = "DOCTRINE"
+
+# consistency loop: review -> ADJUDICATE -> remediate -> re-review until the
+# threshold holds. the adjudication step is what makes the loop terminating: a
+# reviewer complaining that a deliberately-incomplete artifact is incomplete
+# (tutorial todo!()s, work a later phase delivers) is REJECTED here rather than
+# fixed, because fixing it would contradict the artifact's own contract.
 [[transitions]]
 src = "PHASEGATE"
 on = "below_threshold"
+dst = "ADJUDICATE"
+
+[[transitions]]
+src = "ADJUDICATE"
+on = "valid_remain"
 dst = "REMEDIATE"
+
+# every finding was rejected as invalid, or belongs to a later phase. nothing to
+# fix, so the consistency threshold holds and the phase advances.
+[[transitions]]
+src = "ADJUDICATE"
+on = "all_invalid"
+dst = "VERIFY"
+
+[[transitions]]
+src = "ADJUDICATE"
+on = "deferred"
+dst = "VERIFY"
 
 [[transitions]]
 src = "REMEDIATE"
@@ -400,6 +463,12 @@ dst = "VERIFY"
 
 # soundness loop: a fix routes back through PHASEGATE so consistency is
 # re-checked before re-verifying (nested loops).
+# a verification the author ran on its own work is not one. no verifier report -> loop
+[[transitions]]
+src = "VERIFY"
+on = "unverified"
+dst = "VERIFY"
+
 [[transitions]]
 src = "VERIFY"
 on = "unsound"
@@ -408,7 +477,7 @@ dst = "REMEDIATE"
 [[transitions]]
 src = "VERIFY"
 on = "more_phases"
-dst = "IMPL"
+dst = "DOCTRINE"
 
 [[transitions]]
 src = "VERIFY"
@@ -419,6 +488,11 @@ dst = "STYLE"
 src = "STYLE"
 on = "styled"
 dst = "RECORD"
+
+[[transitions]]
+src = "STYLE"
+on = "unstyled"
+dst = "STYLE"
 
 [[transitions]]
 src = "RECORD"

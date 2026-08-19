@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.9"
+# requires-python = ">=3.12"
 # dependencies = []
 # ///
 """brain-walk: step the deterministic execution flow, one state at a time.
@@ -15,70 +15,73 @@ step, it must query this file. it shares the State/Transition datatypes with
 brain-flow via brainlib (one definition, written by flow, read by walk). it
 reads only flow.json; the owner of a state returns the outcome event, this
 walker only says where each event leads. that keeps sequence (the flow) and
-knowledge (the graph) separate.
+knowledge (the graph) separate
 
 Author: aav
 """
 # --------------------------------------------------
+# local
+# --------------------------------------------------
+from brainlib import Args, Flag, Layout, State, Transition, load_json
+
+# --------------------------------------------------
 # external
 # --------------------------------------------------
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-
-from brainlib import State, Transition, load_json
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# the built flow this walker reads; never re-derives it from flow.toml
-FLOW = (Path(__file__).resolve().parent / "../brain/flow/flow.json").resolve()
+# this tool's own name, for its messages; derived so a rename cannot desync them
+TOOL = Path(__file__).stem
+# every path this tool touches, resolved once by the shared discovery
+LAYOUT = Layout.discover()
 
-# --------------------------------------------------
-# types
-# --------------------------------------------------
 @dataclass
 class Flow:
     """the built execution flow, indexed for deterministic stepping."""
 
-    states: dict = field(default_factory=dict)
-    transitions: list = field(default_factory=list)
+    states: dict[str, State] = field(default_factory=dict)
+    transitions: list[Transition] = field(default_factory=list)
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path: Path) -> "Flow":
         """load flow.json into typed states (by id) and transitions.
 
         # Arguments
-        * `path` - the flow.json path.
+        * `path` - the flow.json path
 
         # Returns
-        a Flow holding shared State / Transition objects.
+        a Flow holding shared State / Transition objects
         """
         data = load_json(path, "brain-flow")
         states = {s["id"]: State.from_dict(s) for s in data["states"]}
         transitions = [Transition.from_dict(t) for t in data["transitions"]]
         return cls(states=states, transitions=transitions)
 
-    def exits(self, state_id):
+    def exits(self, state_id: str) -> list[Transition]:
         """the transitions leaving a state, in stable order.
 
         # Arguments
-        * `state_id` - the source state.
+        * `state_id` - the source state
 
         # Returns
-        the list of outgoing Transitions.
+        the list of outgoing Transitions
         """
         return [t for t in self.transitions if t.src == state_id]
 
-    def step(self, state_id, event):
+    def step(self, state_id: str, event: str) -> Transition | None:
         """resolve the single next transition for a state and outcome event.
 
         # Arguments
-        * `state_id` - the current state.
-        * `event` - the outcome event the owner returned.
+        * `state_id` - the current state
+        * `event` - the outcome event the owner returned
 
         # Returns
-        the matching Transition, or None if no exit matches (e.g. a terminal).
+        the matching Transition, or None if no exit matches (e.g. a terminal)
         """
         for t in self.exits(state_id):
             if t.on == event:
@@ -86,41 +89,177 @@ class Flow:
         return None
 
 
-# --------------------------------------------------
-# entrypoint
-# --------------------------------------------------
-def main():
+# owners that must NOT produce a load directive
+#   `-`                  a state with no owner
+#   brain-recall         a SCRIPT interface by design: `recall = true` runs
+#                        bin/brain-recall.py rather than loading a skill
+#   the four ENTRY skills is already in context whenever its own region is being
+#                        walked - it is the caller - so directing it to load
+#                        itself is noise at best and re-entry at worst
+NOT_LOADABLE = {
+    "-",
+    "brain-recall",
+    "brain-meta-recall",
+    "brain-plan",
+    "brain-execute",
+    "brain-review",
+    "brain-self-refine",
+}
+
+
+def owner_call(base: str) -> str:
+    """the literal call for one owner, resolved against the filesystem.
+
+    an owner is an AGENT if an agent file defines it and a SKILL if a skill
+    directory does; the name is not the discriminator. a hardcoded whitelist got
+    this wrong the moment a new brain agent was added - `brain-learner` is an
+    agent, and a name-prefix rule announced it as a skill, which would have
+    loaded the end-of-run learner into the very context it exists to be free of
+
+    # Arguments
+
+    * `base` - the bare owner name, lens suffix already stripped
+
+    # Returns
+
+    the directive line naming the tool call to make
+
+    # Example
+
+        >>> owner_call("aav-style-docs")
+        "  DISPATCH ITS OWNER:  Agent(subagent_type='aav-style-docs')"
+    """
+    agent = next(LAYOUT.agents.rglob(f"{base}.md"), None)
+    if agent is not None:
+        # agents under agents/brain/ are the brain's own, dispatched for a CLEARED
+        # context (P03/P04); the rest carry a spec slice too large to inline
+        cold = " COLD" if agent.parent.name == "brain" else ""
+        return f"  DISPATCH ITS OWNER{cold}:  Agent(subagent_type={base!r})"
+    if (LAYOUT.skills / base / "SKILL.md").is_file():
+        return f"  LOAD ITS OWNER FIRST:  Skill({base})"
+    return f"  DISPATCH ITS OWNER:  Agent(subagent_type={base!r})"
+
+
+def owner_directive(owner: str) -> list[str]:
+    """the literal call that must be made before a state's work begins.
+
+    Naming an owner is not an instruction, and measurement says so: the one skill
+    whose handoff carries a literal `Skill(...)` line loads reliably, while owners
+    announced only as `owner=<name>` were loaded 4-24% of the time and their state's
+    work got hand-rolled inline instead. So the directive is emitted, not implied
+
+    # Arguments
+    * `owner` - the state's `owner` field, which may carry a `:lens` suffix or be a
+      `a+b` composite of several owners
+
+    # Returns
+    the directive lines to print under the state, or an empty list when the state's
+    owner is the entry itself or a script
+    """
+    out: list[str] = []
+    for part in owner.split("+"):
+        base = part.split(":")[0].strip()
+        if not base or base in NOT_LOADABLE:
+            continue
+        out.append(owner_call(base))
+    if out:
+        out.append("  ^ the literal tool call, not a Read. do NOT do this state's work inline.")
+    return out
+
+
+def recall_directive(binds: Sequence[str], *, recall: bool) -> list[str]:
+    """the literal recall command for a state that declares `recall = true`.
+
+    Emitted for the same reason `owner_directive` is: a bare `recall=True` is a
+    FLAG, and a flag is not an instruction. Measured over one build session -
+    `recall = true` states were entered eight times during execution and
+    `brain-recall.py` ran zero times, so principle-10 ("report only at gates")
+    was never in context and the phase boundaries turned into status reports
+    The owner line, which carries a literal call, is obeyed
+
+    # Arguments
+    * `binds` - the state's context tags, rendered as `--binds` arguments so the
+      cards a scored query ranks off the bottom still reach the owner
+    * `recall` - the state's `recall` field, passed by keyword so the call site
+      reads as a condition rather than a bare True (FBT001)
+
+    # Returns
+    the directive lines to print under the state, empty when recall is false
+    """
+    if not recall:
+        return []
+    bound = "".join(f" --binds {context}" for context in binds)
+    return [
+        f'  RECALL FIRST:  python3 $AAV_BRAIN/bin/brain-recall.py "<active task>"{bound}',
+        "  ^ run it before this state's work; the cards it returns ARE the method.",
+    ]
+
+
+def main() -> None:
     """describe a state, or resolve its next step for an outcome event."""
-    args = sys.argv[1:]
-    state_id = args[args.index("--state") + 1] if "--state" in args else ""
-    event = args[args.index("--on") + 1] if "--on" in args else ""
+    # --------------------------------------------------
+    # parse
+    # --------------------------------------------------
+    args = Args.from_argv()
+    if unknown := args.unknown(Flag.STATE, Flag.ON):
+        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    state_id, event = args.value(Flag.STATE), args.value(Flag.ON)
     if not state_id:
         sys.exit("usage: brain-walk.py --state <ID> [--on <event>]")
-    flow = Flow.load(FLOW)
+    # --------------------------------------------------
+    # resolve the state against the built flow
+    # --------------------------------------------------
+    flow = Flow.load(LAYOUT.flow_json)
     if state_id not in flow.states:
-        sys.exit(f"brain-walk: unknown state {state_id}")
+        sys.exit(f"{TOOL}: unknown state {state_id}")
     state = flow.states[state_id]
     # --------------------------------------------------
-    # no event: describe the state and the events it accepts
+    # describe, or advance on the outcome event
     # --------------------------------------------------
     if not event:
-        print(f"{state.id} [{state.kind}] owner={state.owner} recall={state.recall}")
-        print(f"  {state.doc}")
-        for t in flow.exits(state_id):
-            mark = " *BOUNDARY*" if t.boundary else ""
-            print(f"  on {t.on:<14} -> {t.dst}{mark}")
-        if state.terminal:
-            print("  (terminal)")
+        describe(flow, state)
         return
-    # --------------------------------------------------
-    # event given: resolve the next state deterministically
-    # --------------------------------------------------
-    transition = flow.step(state_id, event)
+    advance(flow, state, event)
+
+
+def describe(flow: Flow, state: State) -> None:
+    """print a state, its directives, and every event it accepts.
+
+    # Arguments
+    * `flow` - the loaded flow
+    * `state` - the state to describe
+    """
+    print(f"{state.id} [{state.kind}] owner={state.owner} recall={state.recall}")
+    print(f"  {state.doc}")
+    for line in recall_directive(state.binds, recall=state.recall):
+        print(line)
+    for line in owner_directive(state.owner):
+        print(line)
+    for transition in flow.exits(state.id):
+        mark = " *BOUNDARY*" if transition.boundary else ""
+        print(f"  on {transition.on:<14} -> {transition.dst}{mark}")
+    if state.terminal:
+        print("  (terminal)")
+
+
+def advance(flow: Flow, state: State, event: str) -> None:
+    """resolve one outcome event to the next state and print it.
+
+    # Arguments
+    * `flow` - the loaded flow
+    * `state` - the current state
+    * `event` - the outcome event the owner returned
+    """
+    transition = flow.step(state.id, event)
     if transition is None:
-        sys.exit(f"brain-walk: no transition from {state_id} on '{event}'")
+        sys.exit(f"{TOOL}: no transition from {state.id} on '{event}'")
     nxt = flow.states[transition.dst]
     print(f"{state.id} --{event}--> {nxt.id} [{nxt.kind}] owner={nxt.owner} recall={nxt.recall}")
     print(f"  {nxt.doc}")
+    for line in recall_directive(nxt.binds, recall=nxt.recall):
+        print(line)
+    for line in owner_directive(nxt.owner):
+        print(line)
 
 
 if __name__ == "__main__":
