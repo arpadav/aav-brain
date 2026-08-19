@@ -1,0 +1,94 @@
+# ruff config for the brain's python tooling (bin/).
+#
+# pinned on purpose: with no config, ruff enables ~413 rules by default and that
+# set moves between releases, so "run ruff" was not a reproducible check. this
+# file is the baseline `bin/` is kept clean against.
+#
+# target-version tracks the `# requires-python = ">=3.12"` header the scripts
+# carry for `uv run`. line-length 120 fits the existing code (longest line 128,
+# only two over 120) without reflowing every signature.
+#
+# ruff is one of four checkers; bin/brain-lint.py runs every one that is
+# installed. ruff owns lint and idiom, and cannot see types - a bare `dict`
+# annotation is invisible to all 956 of its rules, which is why ty, mypy and
+# basedpyright carry their own pinned configs beside this one.
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+# everything, then subtract. an ignored rule is a decision with a reason on the
+# line above it, not an unexamined default
+select = ["ALL"]
+ignore = [
+    # --------------------------------------------------
+    # prose form these docstrings deliberately do not take
+    # --------------------------------------------------
+    # D401 wants an imperative mood and D403 a capitalised first word; the
+    # docstrings here are lowercase and declarative because everything else he
+    # writes is (P16), and 141 of the 143 pydocstyle hits are these two alone.
+    # the REST of pydocstyle stays on, so every module/class/function is still
+    # required to carry a docstring at all
+    "D401",
+    "D403",
+    # --------------------------------------------------
+    # the scripts are CLIs
+    # --------------------------------------------------
+    # T201 bans `print`, which IS the output of every tool in bin/
+    "T201",
+    # --------------------------------------------------
+    # exception ergonomics that cost more than they return
+    # --------------------------------------------------
+    # TRY003 wants a bespoke exception class per message and EM101/EM102 want
+    # the message bound to a name before the raise. both trade a readable
+    # one-line raise for ceremony a CLI never uses (P14)
+    "TRY003",
+    "EM101",
+    "EM102",
+    # --------------------------------------------------
+    # false positives on the separator idiom
+    # --------------------------------------------------
+    # ERA001 reads a separator LABEL as commented-out code - all five hits are
+    # the line `# helpers (pure)`, where `(pure)` parses as a call. the
+    # separators are the most load-bearing convention in this codebase, so the
+    # rule loses
+    "ERA001",
+    # --------------------------------------------------
+    # a syntax generation he did not adopt
+    # --------------------------------------------------
+    # FA100/FA102 push `from __future__ import annotations` so `Union[a, b]` can
+    # be written `a | b` on a py39 target. adding that import to every file was
+    # offered and not chosen; the annotations here use builtin generics plus
+    # typing.Union, which is valid py39 without it
+    "FA100",
+    "FA102",
+    # --------------------------------------------------
+    # formatter conflicts
+    # --------------------------------------------------
+    # both fight any formatter over the same bytes; ruff itself recommends
+    # disabling them when a formatter runs
+    "COM812",
+    "ISC001",
+]
+
+[lint.isort]
+# brainlib is the shared library every script imports; classify it as
+# first-party so it sorts into its own group
+known-first-party = ["brainlib"]
+# aav-style-imports orders the groups local -> external, so the first-party
+# section leads. isort's default puts the stdlib first, which inverts it
+section-order = ["first-party", "future", "standard-library", "third-party", "local-folder"]
+# each group carries its own separator comment, which is the blank line isort
+# would otherwise insert
+lines-after-imports = 1
+
+[lint.pydocstyle]
+# the docstrings use `# Arguments` / `# Returns` sections, not numpy or google
+convention = "pep257"
+
+[lint.pylint]
+# a record reader is a chain of early-return guards - "not an assistant turn",
+# "no text", "an interruption marker", "noise" - and each guard returning None
+# on its own line is the readable form. the default 6 forces those back into
+# nested conditionals, which is worse
+max-returns = 8

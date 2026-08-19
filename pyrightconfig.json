@@ -1,0 +1,41 @@
+{
+  // basedpyright config for the brain's python tooling (bin/).
+  //
+  // pinned like ruff.toml, ty.toml and mypy.ini. typeCheckingMode selects a
+  // whole rule set in one word and the default one moves between releases, so
+  // an unpinned run is not a reproducible check. "all" is basedpyright's
+  // maximum: every report* rule on, including reportAny and reportExplicitAny.
+  //
+  // an entry below "all" is a documented exception, never an unexamined default.
+  "include": ["bin"],
+  "pythonVersion": "3.12",
+
+  // the scripts are not a package: each inserts its own dir on sys.path to
+  // import the shared brainlib, so a checker has to be told the same thing
+  "extraPaths": ["bin"],
+  "typeCheckingMode": "all",
+
+  // every tool in bin/ is a CLI whose print/write/append calls return a value
+  // nobody wants; requiring each to be bound or cast is ceremony, not safety
+  "reportUnusedCallResult": "none",
+
+  // basedpyright extras beyond pyright's strict mode. json.loads IS Any, and
+  // every tool here reads a committed json artifact, so these two fire on the
+  // boundary rather than on a defect. reportMissingTypeArgument and the
+  // reportUnknown* family stay on - those are the ones that catch a bare `dict`
+  "reportAny": "none",
+  "reportExplicitAny": "none",
+
+  // wrapping a long regex across lines as adjacent literals is how python does
+  // it, and the classifier patterns in brain-extract.py have no other shape
+  // that fits the 120-column limit
+  "reportImplicitStringConcatenation": "none",
+
+  // @override lands in typing at 3.12 and these scripts declare
+  // `dependencies = []`, so requiring it means adding typing_extensions to
+  // stdlib-only tools. mypy's explicit-override is off for the same reason
+  "reportImplicitOverride": "none",
+
+  // the stdlib modules these scripts import ship no stubs of their own
+  "reportMissingTypeStubs": "none"
+}

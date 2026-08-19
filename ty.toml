@@ -1,0 +1,57 @@
+# ty config for the brain's python tooling (bin/).
+#
+# pinned for the same reason ruff.toml is: ty ships 126 rules, of which 10 are
+# off and 23 are warnings by default, and that split moves between releases. a
+# default run is therefore not a reproducible check. every rule below is one ty
+# does NOT enforce on its own - promoting all 33 to `error` is the whole config.
+#
+# missing-type-argument is the one that started this: `nodes: dict` passes a
+# default ty run and fails this one, because a bare generic is an unchecked
+# blank cheque for whatever ends up inside it.
+
+[environment]
+# tracks the `# requires-python = ">=3.12"` header the scripts carry for `uv run`
+python-version = "3.12"
+# the scripts are not a package: each inserts its own dir on sys.path to import
+# the shared brainlib, so a checker has to be told the same thing
+extra-paths = ["bin"]
+
+[rules]
+ambiguous-protocol-member = "error"
+blanket-ignore-comment = "error"
+deprecated = "error"
+division-by-zero = "error"
+experimental-syntax = "error"
+ignore-comment-unknown-rule = "error"
+ineffective-final = "error"
+invalid-enum-member-annotation = "error"
+invalid-ignore-comment = "error"
+invalid-legacy-positional-parameter = "error"
+invalid-named-tuple-override = "error"
+mismatched-type-name = "error"
+# @override lands in typing at 3.12 and these scripts declare `dependencies = []`,
+# so requiring it means adding typing_extensions to stdlib-only tools
+missing-override-decorator = "ignore"
+missing-type-argument = "error"
+possibly-missing-attribute = "error"
+possibly-missing-implicit-call = "error"
+possibly-missing-import = "error"
+possibly-missing-submodule = "error"
+possibly-unresolved-reference = "error"
+pydantic-discarded-extra-argument = "error"
+redundant-cast = "error"
+redundant-final-classvar = "error"
+subclass-of-dataclass-with-order = "error"
+undefined-reveal = "error"
+unresolved-global = "error"
+# fires wherever a return value is not fully inferable, which here is the raw
+# transcript json and re.Match.group() - the same boundary mypy and basedpyright
+# are configured to allow Any at
+unsound-return-statement = "ignore"
+unsound-yield = "error"
+unsupported-base = "error"
+unsupported-dynamic-base = "error"
+unused-awaitable = "error"
+unused-ignore-comment = "error"
+unused-type-ignore-comment = "error"
+useless-overload-body = "error"
