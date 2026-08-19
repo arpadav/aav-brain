@@ -24,7 +24,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Layout, State, Transition, read_text
+from brainlib import Args, Artifact, Exit, Flag, Layout, Mode, State, Transition, read_text
 
 # --------------------------------------------------
 # external
@@ -63,8 +63,13 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE"   # paste the output
+python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
+
+`$MODE` is `--self-refine` for the self-refine entry and EMPTY for every other.
+it is not cosmetic: a guarded edge resolves differently by mode, so a walk that
+drops it takes the build branch. set it once at the entry and pass it on every
+walk call - the engine forwards it verbatim and never infers it.
 
 **you may not proceed until that output is in the transcript.** it names the
 state's owner and its transitions; if it is absent, the walk did not happen.
@@ -225,18 +230,31 @@ class FlowBuilder(Artifact):
         return [f"expected exactly 1 boundary transition, found {len(boundaries)}"]
 
     def determinism_warnings(self) -> list[str]:
-        """(src, on) must be unique, or step() is not a function.
+        """(src, on, mode) must resolve to exactly one edge, or step() is not a function.
+
+        guarded siblings are legal - that is what lets one tree be walked
+        differently in a refine run - but only when their guards PARTITION the
+        modes. two edges both admitting the same mode is the ambiguity the
+        guard exists to avoid, and keying on (src, on, guard) alone would let it
+        through: `""` and `"self_refine"` are distinct guards that both admit a
+        refine walk
 
         # Returns
-        one warning per duplicated (src, on) pair
+        one warning per (src, on) pair that resolves to two edges in some mode
         """
         out: list[str] = []
-        seen: set[tuple[str, str]] = set()
+        by_key: dict[tuple[str, str], list[Transition]] = {}
         for t in self.transitions:
-            key = (t.src, t.on)
-            if key in seen:
-                out.append(f"duplicate transition ({t.src}, {t.on}) - step is ambiguous")
-            seen.add(key)
+            by_key.setdefault((t.src, t.on), []).append(t)
+        for (src, on), edges in sorted(by_key.items()):
+            if len(edges) == 1:
+                continue
+            for mode in Mode:
+                taken = [t for t in edges if mode.satisfies(t.guard)]
+                if len(taken) > 1:
+                    guards = ", ".join(repr(t.guard) for t in taken)
+                    out.append(f"transition ({src}, {on}) resolves to {len(taken)} edges "
+                               f"in mode {mode.value} (guards: {guards}) - step is ambiguous")
         return out
 
     def exit_warnings(self) -> list[str]:
@@ -421,7 +439,10 @@ class FlowBuilder(Artifact):
         lines.append("")
         for t in sorted(self.transitions, key=lambda t: (t.src, t.on, t.dst)):
             mark = " *boundary*" if t.boundary else ""
-            lines.append(f"    {node_id(t.src)} --> {node_id(t.dst)}: {t.on}{mark}")
+            # the guard rides the edge label, so which mode may take it is legible
+            # in the picture rather than only in flow.toml
+            gate = f" [{t.guard}]" if t.guard else ""
+            lines.append(f"    {node_id(t.src)} --> {node_id(t.dst)}: {t.on}{gate}{mark}")
         lines.extend(f"    {node_id(s.id)} --> [*]" for s in self.states if s.terminal)
         lines.append("```")
         return "\n".join(lines) + "\n"

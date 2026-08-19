@@ -15,7 +15,8 @@ contents:
 - pure helpers: clip, parse_frontmatter, iso_now, read_text, write_text
 - the card vocabulary: Kind (rank + neo4j label) and Confidence
 - the process surface: Env (every environment variable read), Flag (every
-  command-line flag accepted), Args (one argv parse), Exit (every status code)
+  command-line flag accepted), Args (one argv parse), Exit (every status code),
+  Mode (which region of the flow a walk traverses, and what a guard admits)
 - the layouts: Layout and DataLayout, the ONE place a path inside the brain is
   spelled. every directory and file name appears exactly once, as a property
 - the knowledge datatypes: Node, Edge
@@ -191,6 +192,7 @@ class Flag(StrEnum):
     PRINCIPLE = "--principle"
     PROJECT = "--project"
     REJECT = "--reject"
+    SELF_REFINE = "--self-refine"
     SESSION = "--session"
     SINCE = "--since"
     SKILL = "--skill"
@@ -199,6 +201,67 @@ class Flag(StrEnum):
     STATE = "--state"
     SUPERSEDES = "--supersedes"
     TELLS = "--tells"
+
+
+class Mode(StrEnum):
+    """which region of the one flow a walk is traversing.
+
+    a transition may carry a guard naming a mode, so the same (state, event)
+    can lead somewhere different in a refine run than in a build. the mode is a
+    DECLARED input to the walk, never ambient state - `brain-walk --state X
+    --on E --self-refine` stays a pure function of its arguments (P30).
+    """
+
+    BUILD = "build"
+    SELF_REFINE = "self_refine"
+
+    @classmethod
+    def of(cls, *, self_refine: bool) -> "Mode":
+        """the mode a walk is in.
+
+        # Arguments
+
+        * `self_refine` - true when the caller is brain-self-refine
+
+        # Returns
+
+        the matching mode; BUILD when the flag is absent, which is the default
+        every other entry gets
+
+        # Example
+
+            >>> Mode.of(self_refine=True), Mode.of(self_refine=False)
+            (<Mode.SELF_REFINE: 'self_refine'>, <Mode.BUILD: 'build'>)
+        """
+        return cls.SELF_REFINE if self_refine else cls.BUILD
+
+    def satisfies(self, guard: str) -> bool:
+        """whether a transition's guard admits this mode.
+
+        an empty guard admits every mode; `self_refine` admits only that mode;
+        `!self_refine` admits every other
+
+        # Arguments
+
+        * `guard` - the transition's guard string
+
+        # Returns
+
+        true when the guarded edge is available in this mode
+
+        # Example
+
+            >>> Mode.BUILD.satisfies(""), Mode.BUILD.satisfies("!self_refine")
+            (True, True)
+            >>> Mode.BUILD.satisfies("self_refine")
+            False
+            >>> Mode.SELF_REFINE.satisfies("self_refine")
+            True
+        """
+        if not guard:
+            return True
+        negated = guard.startswith("!")
+        return (guard.lstrip("!") == self.value) != negated
 
 
 class Exit(IntEnum):

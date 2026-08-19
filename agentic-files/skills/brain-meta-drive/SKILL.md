@@ -15,8 +15,13 @@ the caller (`brain-plan` @RECON, `brain-execute` @IMPL, `brain-review` @REVIEW, 
 @SR_SCAN) has ALREADY:
 - reconstructed its region's state (execute: the plan in plans/ + git; self-refine: selection-state in
   the transcript + decisions.jsonl). **the engine reconstructs nothing.**
-- set `$STATE` = its entry node and `$REGIME` = ask-first | execute-through (read it from the entry, do
-  NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it).
+- set `$STATE` = its entry node, `$REGIME` = ask-first | execute-through (read it from the entry, do
+  NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it),
+  and `$MODE` = `--self-refine` for the refine entry, EMPTY for every other.
+
+**forward `$MODE` verbatim on every walk call; never infer it.** a guarded transition resolves by
+mode, so the same (state, event) leads somewhere different in a refine run - `VERIFY --more_phases-->
+DOCTRINE` exists only when the flag is absent. dropping it silently takes the build branch.
 
 ## setup (run first - discover the brain, no hardcoded path)
 the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH, so they

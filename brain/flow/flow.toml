@@ -253,20 +253,6 @@ owner = "brain-self-refine"
 recall = true
 doc = "make ONLY the selected edits, each through the right meta-skill (curate/style/direct)"
 
-[[states]]
-id = "SR_GATE"
-kind = "gate"
-owner = "brain-self-refine"
-recall = false
-doc = "rebuild what the edit touched; brain-graph/flow/cards --check must pass before logging"
-
-[[states]]
-id = "SR_LOG"
-kind = "work"
-owner = "brain-meta-curate"
-recall = false
-doc = "log each chosen decision to the trace so the next self-refine sees it"
-
 # --------------------------------------------------
 # transitions
 # --------------------------------------------------
@@ -478,6 +464,7 @@ dst = "REMEDIATE"
 src = "VERIFY"
 on = "more_phases"
 dst = "DOCTRINE"
+guard = "!self_refine"
 
 [[transitions]]
 src = "VERIFY"
@@ -533,22 +520,12 @@ src = "SR_ASK"
 on = "none_selected"
 dst = "DONE"
 
+# the refine branch rejoins the shared tail here. SR_GATE was VERIFY under
+# another name and SR_LOG was CURATE under another name, so both are gone and
+# the edit rides VERIFY -> STYLE -> RECORD -> CURATE -> DONE like any other
+# work. this is what puts the style gate and the verifier in front of brain
+# code edited by a refine run, which they never were
 [[transitions]]
 src = "SR_EDIT"
 on = "edited"
-dst = "SR_GATE"
-
-[[transitions]]
-src = "SR_GATE"
-on = "green"
-dst = "SR_LOG"
-
-[[transitions]]
-src = "SR_GATE"
-on = "red"
-dst = "SR_EDIT"
-
-[[transitions]]
-src = "SR_LOG"
-on = "logged"
-dst = "DONE"
+dst = "VERIFY"

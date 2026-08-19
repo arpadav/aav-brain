@@ -54,8 +54,6 @@ stateDiagram-v2
     state "SR_FINDINGS [work] read the trace + structural smells; GENERATE the questions from the brain (recall-driven, never a frozen list)" as SR_FINDINGS
     state "SR_ASK [gate] present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped" as SR_ASK
     state "SR_EDIT [work] make ONLY the selected edits, each through the right meta-skill (curate/style/direct)" as SR_EDIT
-    state "SR_GATE [gate] rebuild what the edit touched; brain-graph/flow/cards --check must pass before logging" as SR_GATE
-    state "SR_LOG [work] log each chosen decision to the trace so the next self-refine sees it" as SR_LOG
 
     ADJUDICATE --> VERIFY: all_invalid
     ADJUDICATE --> VERIFY: deferred
@@ -94,16 +92,13 @@ stateDiagram-v2
     SEMANTIC --> HIERARCHY: placement_ok
     SR_ASK --> DONE: none_selected
     SR_ASK --> SR_EDIT: selected
-    SR_EDIT --> SR_GATE: edited
+    SR_EDIT --> VERIFY: edited
     SR_FINDINGS --> SR_ASK: found
-    SR_GATE --> SR_LOG: green
-    SR_GATE --> SR_EDIT: red
-    SR_LOG --> DONE: logged
     SR_SCAN --> SR_FINDINGS: scanned
     STYLE_GATE --> RECORD: styled
     STYLE_GATE --> STYLE_GATE: unstyled
     VERIFY --> STYLE_GATE: last_phase
-    VERIFY --> DOCTRINE: more_phases
+    VERIFY --> DOCTRINE: more_phases [!self_refine]
     VERIFY --> REMEDIATE: unsound
     VERIFY --> VERIFY: unverified
     WOULDIWRITE --> SEMANTIC: all_pass
@@ -151,8 +146,6 @@ flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask 
 | SR_FINDINGS | work |  |  | brain-self-refine | true |
 | SR_ASK | gate |  |  | brain-self-refine | false |
 | SR_EDIT | work |  |  | brain-self-refine | true |
-| SR_GATE | gate |  |  | brain-self-refine | false |
-| SR_LOG | work |  |  | brain-meta-curate | false |
 
 ## 3. how brain-meta-drive steps it
 

@@ -34,12 +34,23 @@ the same refresh belongs after any long run, for the same reason: the window
 closes on its own schedule, not yours.
 
 ## entry - hand the walk to the engine
-brain-self-refine is the self-refine ENTRY: set `$STATE` = `SR_SCAN` and `$REGIME` = `ask-first`, then
-load `brain-meta-drive` to walk the region SR_SCAN -> SR_FINDINGS -> SR_ASK -> SR_EDIT -> SR_GATE ->
-SR_LOG -> DONE. the trampoline is the engine's; the steps below are this skill's per-state work
-(0-1=SR_SCAN, 2-3=SR_FINDINGS, 4=SR_ASK, 5=SR_EDIT+SR_GATE, log=SR_LOG). ask-first throughout - SR_ASK
-blocks on his selection (a pre-sanction ASK gate, never auto-applied). step 0 is the ONE exception and
-needs no consent: it only preserves and merges evidence, never edits the brain.
+brain-self-refine is the self-refine ENTRY: set `$STATE` = `SR_SCAN`, `$REGIME` = `ask-first` and
+`$MODE` = `--self-refine`, then load `brain-meta-drive` to walk
+
+    SR_SCAN -> SR_FINDINGS -> SR_ASK -> SR_EDIT -> VERIFY -> STYLE -> RECORD -> CURATE -> DONE
+
+only the first four are refine-specific; from SR_EDIT it rejoins the SHARED tail every build uses.
+that is deliberate - SR_EDIT writes code, and before the fold a refine run reached neither the style
+gate nor the verifier, so brain scripts edited here were gated only when someone remembered to do it
+by hand. `SR_GATE` and `SR_LOG` are gone: they were VERIFY and CURATE under other names.
+
+`$MODE` is what makes the shared tail behave: `VERIFY --more_phases--> DOCTRINE` is guarded
+`!self_refine`, because a refine run has no phases. drop the flag and the walk takes the build branch.
+
+the trampoline is the engine's; the steps below are this skill's per-state work
+(0-1=SR_SCAN, 2-3=SR_FINDINGS, 4=SR_ASK, 5=SR_EDIT, then the shared tail). ask-first throughout -
+SR_ASK blocks on his selection (a pre-sanction ASK gate, never auto-applied). step 0 is the ONE
+exception and needs no consent: it only preserves and merges evidence, never edits the brain.
 
 <!-- GENERATED: handoff (brain-flow.py) - do not hand-edit -->
 
@@ -47,8 +58,13 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE"   # paste the output
+python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
+
+`$MODE` is `--self-refine` for the self-refine entry and EMPTY for every other.
+it is not cosmetic: a guarded edge resolves differently by mode, so a walk that
+drops it takes the build branch. set it once at the entry and pass it on every
+walk call - the engine forwards it verbatim and never infers it.
 
 **you may not proceed until that output is in the transcript.** it names the
 state's owner and its transitions; if it is absent, the walk did not happen.
@@ -121,8 +137,8 @@ valid. the brain proposes the questions; arpad owns the answers.
 only AFTER he selects + annotates:
 - for each chosen item, make the brain edit through the right skill (brain-meta-curate for cards/INDEX,
   brain-meta-style for prose/idiom, direct edits to flow.toml / bin scripts), honoring his note.
-- rebuild what the edit touches and gate it: `brain-graph.py`, `brain-flow.py`, `brain-cards.py
-  --check` must pass before you're done.
+- rebuild what the edit touches. the gating is VERIFY's job now, not this skill's: emit `edited`
+  and let the walk carry you into VERIFY (drift gates + `brain-lint.py`), STYLE, RECORD and CURATE.
 - log each decision to the trace so the NEXT self-refine sees it:
   ```bash
   python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-self-refine --decision "<what>" --chosen "<what won>" \

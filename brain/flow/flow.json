@@ -342,28 +342,6 @@
       "regime": "",
       "binds": [],
       "doc": "make ONLY the selected edits, each through the right meta-skill (curate/style/direct)"
-    },
-    {
-      "id": "SR_GATE",
-      "kind": "gate",
-      "owner": "brain-self-refine",
-      "recall": false,
-      "terminal": false,
-      "entry": false,
-      "regime": "",
-      "binds": [],
-      "doc": "rebuild what the edit touched; brain-graph/flow/cards --check must pass before logging"
-    },
-    {
-      "id": "SR_LOG",
-      "kind": "work",
-      "owner": "brain-meta-curate",
-      "recall": false,
-      "terminal": false,
-      "entry": false,
-      "regime": "",
-      "binds": [],
-      "doc": "log each chosen decision to the trace so the next self-refine sees it"
     }
   ],
   "transitions": [
@@ -628,7 +606,7 @@
     },
     {
       "src": "SR_EDIT",
-      "dst": "SR_GATE",
+      "dst": "VERIFY",
       "on": "edited",
       "guard": "",
       "boundary": false
@@ -637,27 +615,6 @@
       "src": "SR_FINDINGS",
       "dst": "SR_ASK",
       "on": "found",
-      "guard": "",
-      "boundary": false
-    },
-    {
-      "src": "SR_GATE",
-      "dst": "SR_LOG",
-      "on": "green",
-      "guard": "",
-      "boundary": false
-    },
-    {
-      "src": "SR_GATE",
-      "dst": "SR_EDIT",
-      "on": "red",
-      "guard": "",
-      "boundary": false
-    },
-    {
-      "src": "SR_LOG",
-      "dst": "DONE",
-      "on": "logged",
       "guard": "",
       "boundary": false
     },
@@ -693,7 +650,7 @@
       "src": "VERIFY",
       "dst": "DOCTRINE",
       "on": "more_phases",
-      "guard": "",
+      "guard": "!self_refine",
       "boundary": false
     },
     {

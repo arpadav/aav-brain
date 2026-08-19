@@ -22,7 +22,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Flag, Layout, State, Transition, load_json
+from brainlib import Args, Flag, Layout, Mode, State, Transition, load_json
 
 # --------------------------------------------------
 # external
@@ -62,28 +62,31 @@ class Flow:
         transitions = [Transition.from_dict(t) for t in data["transitions"]]
         return cls(states=states, transitions=transitions)
 
-    def exits(self, state_id: str) -> list[Transition]:
-        """the transitions leaving a state, in stable order.
+    def exits(self, state_id: str, mode: Mode = Mode.BUILD) -> list[Transition]:
+        """the transitions leaving a state in a given mode, in stable order.
 
         # Arguments
         * `state_id` - the source state
+        * `mode` - the walk's declared mode; a guarded edge this mode does not
+          satisfy is not an exit at all, and is omitted rather than listed
 
         # Returns
-        the list of outgoing Transitions
+        the list of outgoing Transitions available in this mode
         """
-        return [t for t in self.transitions if t.src == state_id]
+        return [t for t in self.transitions if t.src == state_id and mode.satisfies(t.guard)]
 
-    def step(self, state_id: str, event: str) -> Transition | None:
-        """resolve the single next transition for a state and outcome event.
+    def step(self, state_id: str, event: str, mode: Mode = Mode.BUILD) -> Transition | None:
+        """resolve the single next transition for a state, event and mode.
 
         # Arguments
         * `state_id` - the current state
         * `event` - the outcome event the owner returned
+        * `mode` - the walk's declared mode, which decides between guarded siblings
 
         # Returns
         the matching Transition, or None if no exit matches (e.g. a terminal)
         """
-        for t in self.exits(state_id):
+        for t in self.exits(state_id, mode):
             if t.on == event:
                 return t
         return None
@@ -201,11 +204,12 @@ def main() -> None:
     # parse
     # --------------------------------------------------
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.STATE, Flag.ON):
+    if unknown := args.unknown(Flag.STATE, Flag.ON, Flag.SELF_REFINE):
         sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
     state_id, event = args.value(Flag.STATE), args.value(Flag.ON)
+    mode = Mode.of(self_refine=args.has(Flag.SELF_REFINE))
     if not state_id:
-        sys.exit("usage: brain-walk.py --state <ID> [--on <event>]")
+        sys.exit("usage: brain-walk.py --state <ID> [--on <event>] [--self-refine]")
     # --------------------------------------------------
     # resolve the state against the built flow
     # --------------------------------------------------
@@ -217,17 +221,18 @@ def main() -> None:
     # describe, or advance on the outcome event
     # --------------------------------------------------
     if not event:
-        describe(flow, state)
+        describe(flow, state, mode)
         return
-    advance(flow, state, event)
+    advance(flow, state, event, mode)
 
 
-def describe(flow: Flow, state: State) -> None:
-    """print a state, its directives, and every event it accepts.
+def describe(flow: Flow, state: State, mode: Mode = Mode.BUILD) -> None:
+    """print a state, its directives, and every event it accepts in this mode.
 
     # Arguments
     * `flow` - the loaded flow
     * `state` - the state to describe
+    * `mode` - the walk's declared mode; guarded exits it cannot take are not listed
     """
     print(f"{state.id} [{state.kind}] owner={state.owner} recall={state.recall}")
     print(f"  {state.doc}")
@@ -235,24 +240,29 @@ def describe(flow: Flow, state: State) -> None:
         print(line)
     for line in owner_directive(state.owner):
         print(line)
-    for transition in flow.exits(state.id):
+    for transition in flow.exits(state.id, mode):
         mark = " *BOUNDARY*" if transition.boundary else ""
         print(f"  on {transition.on:<14} -> {transition.dst}{mark}")
     if state.terminal:
         print("  (terminal)")
 
 
-def advance(flow: Flow, state: State, event: str) -> None:
+def advance(flow: Flow, state: State, event: str, mode: Mode = Mode.BUILD) -> None:
     """resolve one outcome event to the next state and print it.
 
     # Arguments
     * `flow` - the loaded flow
     * `state` - the current state
     * `event` - the outcome event the owner returned
+    * `mode` - the walk's declared mode, which decides between guarded siblings
+
+    # Raises
+    `SystemExit` when no exit matches - naming the mode, because an edge that
+    exists in the other one is the likeliest reason a walk stalls here
     """
-    transition = flow.step(state.id, event)
+    transition = flow.step(state.id, event, mode)
     if transition is None:
-        sys.exit(f"{TOOL}: no transition from {state.id} on '{event}'")
+        sys.exit(f"{TOOL}: no exit from {state.id} on '{event}' in {mode.value} mode")
     nxt = flow.states[transition.dst]
     print(f"{state.id} --{event}--> {nxt.id} [{nxt.kind}] owner={nxt.owner} recall={nxt.recall}")
     print(f"  {nxt.doc}")
