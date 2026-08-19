@@ -1,6 +1,6 @@
 ---
 name: brain-meta-drive
-description: "INTERNAL ENGINE - not user-callable. The shared flow-traversal trampoline the four entry skills (plan/review/execute/self-refine) load to walk flow.json from their entry node to a terminal. It steps brain-walk, dispatches each state's owner (a brain-meta-* skill or a cold agent), recalls per state, and handles the threshold gate-loops. It does NOT reconstruct state (the entry does that) and has NO user trigger of its own."
+description: "The shared flow-traversal engine. INVOKED ONLY BY THE FOUR ENTRY SKILLS - brain-plan, brain-execute, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.json from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
 ---
 
 # brain-meta-drive: the shared flow-traversal engine
@@ -39,9 +39,23 @@ step=$(python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE")     # the state's 
 - if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/brain-recall.py "<active task>"` FIRST to load
   the relevant cards. this is the ONLY call into the graph (context); the graph never decides the next
   step.
-- run the owner - a `brain-meta-*` skill you LOAD, or one of the two cold AGENTS (`brain-verifier` /
-  `brain-review-gate`) you DISPATCH - which does the work and yields an OUTCOME EVENT (e.g.
-  `threshold_met` / `below_threshold` / `unsound` / `set_grew` / `drafted`).
+- **LOAD THE OWNER. this is the step that gets skipped.** `brain-walk.py` prints the literal call
+  under every state that has one:
+  ```
+  LOAD ITS OWNER FIRST:  Skill(brain-meta-style)
+  ```
+  make that call. **you may not do a state's work until its owner is in context** - the same bar the
+  walk output itself is held to. "run the owner" does NOT mean "do the state's work yourself": the
+  owner skill IS how that state is done, and hand-rolling it inline discards the encoded method while
+  looking, in the transcript, like the state ran.
+  this is measured, not theoretical: `brain-meta-style` was named as owner 49 times and loaded twice
+  (4%), `brain-meta-author-prompt` 19 times and loaded once (5%). the ONE owner that carries a literal
+  call in its handoff - this engine - loads every time. a name is not an instruction.
+  the two cold AGENTS (`brain-verifier` / `brain-review-gate`) are DISPATCHED instead, and the walk
+  says so. a state owned by the entry itself, or by `brain-recall` (a script), prints no directive -
+  those are the only states you act on directly.
+- the owner returns an OUTCOME EVENT (`threshold_met` / `below_threshold` / `unsound` / `set_grew` /
+  `drafted`, ...).
 - get the next state from the data, never from your own judgement:
 ```bash
 python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" --on "$EVENT"
@@ -75,7 +89,49 @@ bag-of-skills composition (P18).
 only at gates, and only what he cant see himself: verdicts, blockers, the single next action. no diff
 recaps. lowercase, terse, ends on the next action.
 
+## the review barrier - a review's input tree is FROZEN
+a review is a measurement, and a measurement of a moving target is noise. two rules, both hard:
+
+1. **while ANY review agent is live, dispatch nothing that mutates the tree** - no worker, no edit, no
+   `Write`/`Edit` by you. not "mostly nothing": nothing. a writer dispatched 29s after a background
+   `brain-review-gate` once made it report a red suite that was green, and it then attributed the
+   breakage to the diff under review. every finding downstream of that was suspect.
+2. **N reviewers dispatched => BARRIER.** ALL N must return before ADJUDICATE or REMEDIATE begins. a
+   partial set is NOT a converged set: fixing on `[1, N-1]` mutates the tree reviewer N is still
+   reading, and its findings arrive describing a file that no longer exists. wait, converge, adjudicate,
+   THEN fix.
+
+the same exclusion covers writers: **no two mutating agents on an overlapping file set**. serialise
+them, or give each `isolation: "worktree"`. two implementers on one crate 33s apart once forced the
+second to verify itself against a hand-built mirror, because the crate did not compile mid-flight.
+
+if this costs wall-clock, it costs wall-clock. a fast wrong answer is what this engine exists to
+prevent (P04).
+
+## findings are evidence, not verdicts (the ADJUDICATE state)
+`PHASEGATE --below_threshold-->` lands on **ADJUDICATE**, never straight on REMEDIATE. classify every
+finding against the artifact's stated contract before any of it becomes work:
+
+| verdict | meaning | action |
+|---|---|---|
+| valid | a real defect | -> REMEDIATE |
+| invalid | the finding contradicts the artifact's contract | REJECT + log the reason |
+| deferred | real, but a later phase delivers it | REJECT for this phase + log |
+
+the two classes that MUST be rejected, because "fixing" them cannot terminate:
+- **deliberate incompleteness.** a tutorial whose deliverable IS `todo!()`, a lab that ships red on
+  purpose, a scaffold carrying `[NEEDS INPUT]` markers. "this is unimplemented" is a DESCRIPTION of a
+  working artifact, not a finding. fixing it destroys the thing.
+- **out-of-phase work.** a multiphase plan is phased on purpose; a reviewer asking phase N to contain
+  phase N+1's deliverable is asking you to abandon the phasing.
+
+log every rejection so the next pass inherits it instead of re-litigating:
+`brain-trace.py --skill <entry> --decision "<finding>" --chosen "rejected" --reject "<finding>=<why>"`.
+a reviewer that self-reports uncertainty, or that you catch fabricating, is discounted wholesale -
+verify its claims yourself before any of them become work (P04, P08).
+
 ## hard rules
 never assume post-sanction (decision he'd want = ask; mechanical detail = proceed). never fabricate.
 never commit/push/bump versions unless told. never trample his manual edits. channel intensity into
-named constraints, never abuse sub-agents.
+named constraints, never abuse sub-agents. FREEZE the tree under a live review and BARRIER on all N.
+adjudicate before you remediate.

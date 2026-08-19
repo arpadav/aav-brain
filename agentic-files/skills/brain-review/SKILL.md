@@ -30,6 +30,32 @@ the SHARED `PHASEGATE -> REMEDIATE -> VERIFY` loop: converge the findings, fix e
 re-review, verify, to a terminal. the review region adds NO new transitions on those shared states - it
 just enters them.
 
+<!-- GENERATED: handoff (brain-flow.py) - do not hand-edit -->
+
+this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
+mandatory - a summary of what the engine does is NOT a substitute for running it:
+
+```bash
+python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE"   # paste the output
+```
+
+**you may not proceed until that output is in the transcript.** it names the
+state's owner and its transitions; if it is absent, the walk did not happen.
+then, and only then:
+
+```
+Skill(brain-meta-drive)          # the literal tool call, not a Read
+```
+
+the engine steps `flow.json`, recalls per state, dispatches each owner, and
+loops the gates to a terminal. you do not re-implement that loop here.
+
+every state the engine reaches prints its own directive the same way - a
+`Skill(...)` or `Agent(...)` line under the state. make that call before doing
+the state's work; the owner skill IS the method, and hand-rolling it inline
+looks identical in the transcript while discarding it.
+<!-- END GENERATED: handoff -->
+
 ## 2b. the would-arpad pass (a SUPERPOSITION on the cold gate, P29)
 the cold gate above is only HALF of a brain review. it has no brain memory by design. so, INDEPENDENTLY
 and after it, run a second brain-guided pass on the same diff - this is the superposition, not a

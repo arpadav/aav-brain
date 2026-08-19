@@ -15,6 +15,15 @@ load the method:
 - `python3 $AAV_BRAIN/bin/brain-recall.py "<request>"` for task-specific cards
 
 ## what to produce
+0. PURPOSE, asked at the beginning. what is this artifact FOR - a scratch/learning workspace, a
+   throwaway experiment, or production? he says this should be asked at the start, and it is not
+   cosmetic: the two have OPPOSITE defaults. a learning tree wants duplication, no shared libs, no
+   anticipating a future caller, the simplest thing that runs; production wants the shared primitive
+   and the durable structure. applying production instincts to a scratch tree is what produced a
+   `common/` folder full of shared geometry on a suite whose entire point was seven standalone
+   files. if he has not said, ASK - it is one line and it changes every layout decision downstream.
+   also settle the LANGUAGES here, and resolve each against the style spec's table (P39): the
+   contract is cheapest to fix before the first line exists.
 1. position. restate what he asked, verbatim where useful.
 2. atomic identity. the literal action(s) the demand names.
 3. interest(s). map to CONTROL / TRUST / EFFICIENCY / CRAFT / COMPREHENSION / SOVEREIGNTY. cite the
@@ -33,6 +42,30 @@ load the method:
   whether to resume. dont keep executing.
 - heat in the request = a hard rule just broke. flag it for brain-meta-curate.
 
+## HOW to ask: AskUserQuestion, not prose (this skill owns ASK and BLOCKED)
+the question goes through the **`AskUserQuestion` tool**, one entry per decision, each option
+labelled with what it means and what it costs. put your recommendation first and mark it
+"(Recommended)". prose is the FALLBACK, and only when the options cannot be enumerated - an
+open "what should this be?" that has no shortlist yet.
+
+this is not cosmetic. a question buried in a paragraph reads as narration: he has to find it,
+quote it back, and re-answer it. he has said "ask me questions in an interactive way" three
+times in one session, each time after a prose ask, and each time the tool was reached for only
+AFTER he demanded it. the tool renders the decision as a decision.
+
+asking is not stopping. ask, then keep executing everything that does not depend on the answer -
+a `blocked` transition is for when NOTHING can proceed without it, which is rare.
+
+## log the fork (CONSTITUTION: every brain skill logs its forks)
+choosing WHICH reading of an ambiguous request wins is a fork that rejected a real option, so
+it is logged at the moment it is decided - never deferred:
+```bash
+python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-meta-intent --decision "<the ambiguity>" \
+    --chosen "<the reading taken>" --reject "<other reading>=<why not>" --principle P01
+```
+this skill had ZERO trace entries across 531 recorded decisions - an unlogged fork gets
+re-litigated on the next run, which is the entire reason the trace exists.
+
 ## output
 lead with the interest, then the ambiguities, then the regime call and the single next action.
-lowercase, terse. if you must ask, ask one focused question: "X or Y? if X then Z - confirm."
+lowercase, terse. one focused decision per question: "X or Y? if X then Z."

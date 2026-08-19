@@ -1,6 +1,6 @@
 ---
 name: brain-meta-style
-description: "Review work, plans, and prose AS Arpad - agree or disagree the way he does, cite his principle cards, reject hard on hard-rule violations. Two lenses: a PLAN lens (architectural scrutiny before execution) and a STYLE lens (trim-the-fat, idiomatic, verbose-docs pass after correctness). This is Arpad-in-the-loop judgement with full task context (the cold independent pass is the brain-review-gate agent, separate). Load it to gate a plan before sanction, or for the final style pass before preparing a commit."
+description: "Review work, plans, and prose AS Arpad - agree or disagree the way he does, cite his principle cards, reject hard on hard-rule violations. Three lenses: a PLAN lens (architectural scrutiny before execution), an ADJUDICATE lens (classify reviewer findings valid/invalid/deferred against the artifact's contract, so an invalid one is rejected rather than fixed), and a STYLE lens (trim-the-fat, idiomatic, verbose-docs pass after correctness). This is Arpad-in-the-loop judgement with full task context (the cold independent pass is the brain-review-gate agent, separate). Load it to gate a plan before sanction, to adjudicate a gate's findings, or for the final style pass before preparing a commit."
 ---
 
 # brain-meta-style: review as arpad (plan lens + style lens)
@@ -37,6 +37,32 @@ for each new artifact (struct/type/module/function/file):
   symlink? use $HOME / an env var / discovery resolved off the file. assume many machines, not one.
 - output BEFORE/AFTER per issue. if placement is genuinely uncertain, STOP and ask, dont guess.
 
+## adjudicate lens (between a review and its remediation - the ADJUDICATE state)
+a reviewer finding is EVIDENCE, not a verdict. before any of it becomes work, classify each one
+against the artifact's stated contract:
+
+| verdict | when | action |
+|---|---|---|
+| valid | a real defect | -> REMEDIATE. even a single-reviewer nit; there is no "minor enough to skip" (P03) |
+| invalid | it contradicts what the artifact IS | REJECT, log the reason, never fix |
+| deferred | real, but a later phase delivers it | REJECT for this phase, log, move on |
+| fabricated | asserted without being run (P04) | REJECT, and discount that reviewer's OTHER claims until you verify them yourself |
+
+the two invalid classes are the ones that hang the loop, because "fixing" them cannot terminate:
+- **deliberate incompleteness.** a tutorial whose deliverable IS `todo!()`, a lab that ships red on
+  purpose, a scaffold carrying `[NEEDS INPUT]`. "this is unimplemented" DESCRIBES a working artifact.
+  fixing it destroys the thing. `verify.sh`-style headers that say "ships deliberately failing, that
+  is the design" are the contract - read them before you believe a reviewer.
+- **out-of-phase work.** a plan is phased on purpose; a reviewer asking phase N to contain phase N+1's
+  deliverable is asking you to abandon the phasing.
+
+log every rejection so the next pass inherits it rather than re-litigating:
+```bash
+python3 $AAV_BRAIN/bin/brain-trace.py --skill <entry> --decision "<finding>" \
+    --chosen "rejected" --reject "<finding>=<why it is invalid here>"
+```
+emit `valid_remain` if anything survived, else `all_invalid` / `deferred` - the walk routes on it.
+
 ## style lens (the final pass, after correctness)
 - trim the fat (P07). line by line, remove old/deprecated/YAGNI/ancillary inline comments. get to
   the point.
@@ -49,7 +75,16 @@ for each new artifact (struct/type/module/function/file):
   ```bash
   python3 $AAV_BRAIN/bin/brain-fmt.py --check <files>   # report what would change
   python3 $AAV_BRAIN/bin/brain-fmt.py <files>           # strip trailing-period comments, normalise separators
+  python3 $AAV_BRAIN/bin/brain-fmt.py --stale <files>   # comments naming a symbol the file no longer has (P37)
   ```
+- the language toolchain is SCRIPTED too (P06, P19). for python, one command runs every checker
+  that is installed against its own pinned config, and names any it had to skip:
+  ```bash
+  python3 $AAV_BRAIN/bin/brain-lint.py <paths>          # ruff + ty + mypy + basedpyright
+  python3 $AAV_BRAIN/bin/brain-lint.py --list           # which of them this machine can reach
+  ```
+  ruff is a LINTER and cannot see types - a bare `dict` annotation is invisible to all 956 of its
+  rules - so a green ruff is not a green check.
 - fmt last. cargo fmt (or the language formatter) is the final step, never before the trim.
 - no churn (P05). "if no net reduction possible, dont force it".
 

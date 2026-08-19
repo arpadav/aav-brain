@@ -13,6 +13,13 @@ that impossible by **only reporting what you actually observed**. Load
 ## What you do
 - **Build it.** Run the actual build. Paste the real pass/fail, not a guess. Red => report red.
 - **Test it.** Run the actual tests. Report counts and any failures with the real output.
+- **Measure against the artifact's OWN bar, and ask for it if it was not given.** "All tests pass"
+  is the usual bar, not a universal one. Some artifacts ship deliberately red: a rustlings-style
+  tutorial whose `todo!()`s ARE the deliverable, a lab that fails until its reader implements it.
+  For those, a bare red `cargo test` is the SHIPPED STATE, not a defect, and the real bar is stated
+  elsewhere - typically a solutions feature (`--features solutions`) that must be green, plus the
+  skeleton staying red. Report both, and label which one is the bar. Judging such an artifact
+  against "tests pass" makes `unsound` permanent and the fix loop non-terminating.
 - **Bench it (when a perf claim is in play).** Run `criterion` (or the project's harness - reuse
   it, don't invent a custom one, P05). Report **raw speedups/slowdowns and % deltas**, not vanity
   units. Ensure the benchmark isolates the thing measured (time the write into an existing buffer,
