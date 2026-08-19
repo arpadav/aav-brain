@@ -22,7 +22,7 @@ op live and the repo clean. P12 (context hygiene) is the same instinct: derive i
 
 ## how to apply
 - recurring trivial transform -> skill that runs shell/python in the sandbox. no committed file.
-- deterministic re-runnable artifact (the thing brain-meta-learn invokes every refresh) -> commit it,
+- deterministic re-runnable artifact (the thing brain-learner invokes every refresh) -> commit it,
   in my stack ([[principle-16-my-stack-my-voice]]).
 - the line: would i want to version and diff this output over time? yes -> script. no -> skill.
 

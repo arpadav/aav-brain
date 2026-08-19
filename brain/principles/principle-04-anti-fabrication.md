@@ -34,3 +34,16 @@ is *more valuable* to him than a fake win.
 
 **Anti-pattern.** Confidently reporting a benchmark you reasoned about but didn't run;
 padding a review with invented nits to look thorough; mislabeled chart legends.
+
+## scripted edits fail silently; the edit tool does not
+
+a python/sed string-replacement that does not match its anchor **no-ops and reports success**. that
+is a fabricated result in the most literal sense: the transcript says the change landed and it did
+not. it happened three times in one session - a plan section still describing a deleted `common/`
+header, a kernel launch that never gained its `gridDim.y` (which then reported an 11.7x speedup
+measuring one eighth of the work), and a dict that was left syntactically broken.
+
+use the Edit tool for file changes. it errors on a bad match. reserve scripted replacement for cases
+where Edit genuinely cannot do the job, and grep the result afterwards when you do.
+
+*"why are you editting files via python? its weird"*

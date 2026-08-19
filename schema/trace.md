@@ -19,7 +19,6 @@ shows WHERE it was made (`affects`) so it can be reversed precisely. written + r
   "affects": "<path the call lives at>",   // where a reversal would edit
   "principle": ["P29", "P32"],             // the cards that governed the call
   "confidence": "high",            // high | medium | low
-  "reversible": true,
   "supersedes": ""                  // ts of a prior entry this call overturns ("" if none)
 }
 ```

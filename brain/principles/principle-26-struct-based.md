@@ -5,6 +5,7 @@ rule: prefer struct/class-based implementations over modules of standalone funct
 interest: [intent-craft]
 confidence: very-high
 evidence_count: 12
+binds: [code]
 tells: ["no standalone functions, use unit structs or traits", "math/state logic must be in named structs with impl, never inlined or as free functions", "i like struct-based implementations more than standalone functions"]
 ---
 

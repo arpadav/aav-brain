@@ -2,7 +2,7 @@
 
 the queryable store. tiered after memgpt/letta: a small always-loaded core, a larger retrieved
 corpus, a deterministic graph over that corpus, and evidence derived from raw transcripts. query it
-with [[../bin/brain-recall]] (graph traversal) or the brain-meta-recall skill.
+with [[../bin/brain-recall]] (graph traversal).
 
 ## tier 1: core (always loaded when the brain acts)
 - [[CONSTITUTION]] : prime rule, who i am, the operating loop, the hard rules, voice.
@@ -40,6 +40,15 @@ with [[../bin/brain-recall]] (graph traversal) or the brain-meta-recall skill.
 - [[principles/principle-30-deterministic-flow]] : follow flow.json (sequence), separate from graph.json (context)
 - [[principles/principle-31-libraryfy-shared]] : library-fy shared datatypes/helpers; never redefine a struct twice
 - [[principles/principle-32-portability]] : discover the root, never hardcode a path or assume a fixed layout
+- [[principles/principle-33-git-is-not-a-blocker]] : git is his; never perform it, never gate work on repo state
+- [[principles/principle-34-untrusted-input]] : filenames, plans and caches are attacker-controlled; neutralise at the boundary
+- [[principles/principle-35-gates-are-agent-side]] : "don't pause" means don't ask him; it never means skip the gate
+- [[principles/principle-36-verify-with-stderr-visible]] : a verification that hides stderr or reads $? after a pipe is not one
+- [[principles/principle-37-comment-the-artifact-not-the-edit]] : a comment describes the code as it now stands, never the edit that produced it
+- [[principles/principle-38-a-non-answer-is-not-consent]] : a question he declined is unanswered, never assent - re-ask it, never resolve it with the brain's own lean
+- [[principles/principle-39-style-contract]] : resolve each language's style before writing it; the STYLE gate proves the result rather than asserting it
+- [[principles/principle-40-idiom-needs-exemplars]] : "be idiomatic" changes nothing; every idiom rule carries a before/after pair and the writer is shown the pairs
+- [[principles/principle-41-rigor-scales-with-purpose]] : scratch skips idiom, tutorial adheres lightly, production is exhaustive - purpose is asked, never inferred
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises

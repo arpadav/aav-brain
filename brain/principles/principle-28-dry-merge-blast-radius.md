@@ -5,6 +5,7 @@ rule: merge DRY-violating structs/files even when it touches many files and peri
 interest: [intent-craft]
 confidence: very-high
 evidence_count: 4
+binds: [code]
 tells: ["2 structs ... identical purposes ... i want to merge", "touches many more files and peripherals", "do NOT be dissuaded by a large amount of work", "real reason BESIDES programming laziness", "it should ALWAYS be changed"]
 ---
 

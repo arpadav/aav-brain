@@ -59,3 +59,16 @@ DON'T:
 - process: *"no do the triple review first, then fix, then the fmt and style."*
 - honesty demand: *"you are comparing to format! i wanted it compared to format! and write!
   and writeln!. no bullshit, dont fake results, just say how it is if slower."*
+
+## the terminal report on a verified run
+
+when a sanctioned run reaches the flow's terminal AND everything is fixed, formatted, style-checked
+and reviewer-checked, the report is **one line naming where to look** - nothing else. no recap of
+what was built, no list of findings fixed, no next-action prompt.
+
+> *"when everything is DONE and fixed and formatted and checked, style checked, semantic architecture
+> reviewer checked, you shouldnt say ANYTHING other than \"all done, see: 0.0.0.0:9975\""*
+
+the recap has zero information he cannot get from the artifact itself, and on a clean run there is no
+verdict to report. this is the END of a run only - mid-run gate reports still carry verdicts,
+blockers and the single next action ([[../principles/principle-10-autonomy-after-sanction]]).

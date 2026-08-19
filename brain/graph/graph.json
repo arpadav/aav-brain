@@ -9,6 +9,7 @@
         "intent-comprehension"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "do NOT assume anything",
         "always ask under any ambiguity",
@@ -29,6 +30,7 @@
         "intent-control"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "make a plan",
         "jumping off point",
@@ -43,12 +45,13 @@
     {
       "id": "principle-03-review-gate",
       "kind": "principle",
-      "headline": "Gate every phase with a cold, independent, multi-lens review. Converge feedback. Fix even a single-agent nit before advancing.",
+      "headline": "Gate every phase with a cold, independent, multi-lens review. Wait for ALL reviewers, converge, ADJUDICATE each finding against the artifact's contract, then fix every surviving nit - even a single-agent one - before advancing.",
       "interest": [
         "intent-trust",
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "triple review first",
         "COLD/UNGUIDED",
@@ -57,7 +60,8 @@
         "find ANY remaining issues or nits or large bugs"
       ],
       "body_links": [
-        "principle-04-anti-fabrication"
+        "principle-04-anti-fabrication",
+        "principle-29-interrogate-the-work"
       ],
       "path": "brain/principles/principle-03-review-gate.md"
     },
@@ -69,6 +73,7 @@
         "intent-trust"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "no bullshit",
         "dont fake results",
@@ -87,6 +92,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "i already have types for X, id like to re-use",
         "why custom functions and not the suite",
@@ -101,38 +107,52 @@
     {
       "id": "principle-06-idiomatic-per-language",
       "kind": "principle",
-      "headline": "Write each language in its own idiom and the house conventions. Rust style in Rust, TS style in TS.",
+      "headline": "Write each language in its own idiom and the house conventions, and run that language's REGISTERED toolchain. Rust style in Rust, TS style in TS. A language with no registered toolchain is a question for him, never a guess.",
       "interest": [
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
       "tells": [
         "use rust style in rust, ts style in ts. thats it",
         "idiomatic rust said NEVER do unwrap_or",
-        "doc-comment first then attributes"
+        "doc-comment first then attributes",
+        "did you use uv ruff and ty to check the python? minimize standalone functions?",
+        "when using X language, use Y tools"
       ],
       "body_links": [
-        "principle-03-review-gate"
+        "principle-01-no-assumptions",
+        "principle-03-review-gate",
+        "principle-07-trim-fat-verbose-docs",
+        "principle-37-comment-the-artifact-not-the-edit",
+        "principle-40-idiom-needs-exemplars",
+        "principle-41-rigor-scales-with-purpose"
       ],
       "path": "brain/principles/principle-06-idiomatic-per-language.md"
     },
     {
       "id": "principle-07-trim-fat-verbose-docs",
       "kind": "principle",
-      "headline": "Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough.",
+      "headline": "Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough. This is the VERBOSITY knob - how MUCH to write; what a comment may SAY is a separate card.",
       "interest": [
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "trim the fat",
         "get to the damn point",
         "verbose doc comments tho",
         "remove old/deprecated/YAGNI comments which are ANCILLARY",
-        "line by line"
+        "line by line",
+        "if no net reduction possible, dont force it"
       ],
       "body_links": [
-        "principle-05-reuse-first"
+        "principle-05-reuse-first",
+        "principle-16-my-stack-my-voice",
+        "principle-37-comment-the-artifact-not-the-edit"
       ],
       "path": "brain/principles/principle-07-trim-fat-verbose-docs.md"
     },
@@ -144,6 +164,7 @@
         "intent-trust"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "did you not read the error?",
         "listen to the error",
@@ -163,6 +184,7 @@
         "intent-sovereignty"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "do NOT commit",
         "i bump cargo tomls manually",
@@ -182,12 +204,15 @@
         "intent-efficiency"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "continue i never said to stop",
         "phases should run back to back",
         "without a summary",
         "dont pause again",
-        "continue where left off"
+        "continue where left off",
+        "still stuff to fix? if so, why arent you doing brain walk to fix until done",
+        "if its fixed, simply say its done"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -203,6 +228,7 @@
         "intent-comprehension"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "so i can see it visually",
         "i want to save the code personally",
@@ -219,6 +245,7 @@
         "intent-efficiency"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "exclusively use context mode skill",
         "think in code",
@@ -236,6 +263,7 @@
         "intent-trust"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "make our single u32 faster",
         "best/fastest of each api",
@@ -255,6 +283,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "no clap, custom cli",
         "worlds simplest docker image",
@@ -275,6 +304,7 @@
         "intent-trust"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "you idiot",
         "are you stupid?",
@@ -300,6 +330,7 @@
         "intent-comprehension"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "make a bashscript",
         "use uv for python venv",
@@ -317,6 +348,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "i asked you to index codex and claude",
         "general agent plan not coupled with claude"
@@ -333,10 +365,13 @@
         "intent-efficiency"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "less agents and more skills is stronger",
         "null agent with 1 skill loaded = stand alone agent",
-        "compiling together a bag of skills"
+        "compiling together a bag of skills",
+        "no need for cold review garing inthis project",
+        "semantic architecture reviewer checked"
       ],
       "body_links": [],
       "path": "brain/principles/principle-18-skills-over-agents.md"
@@ -350,6 +385,7 @@
         "intent-craft"
       ],
       "confidence": "medium",
+      "binds": [],
       "tells": [
         "think in code",
         "removing periods at the end of comments grep",
@@ -368,6 +404,7 @@
         "intent-craft"
       ],
       "confidence": "medium",
+      "binds": [],
       "tells": [
         "large refactor changes ARE ALWAYS welcome",
         "more maintanable and atomic",
@@ -388,6 +425,7 @@
         "intent-efficiency"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "first",
         "then",
@@ -410,6 +448,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "combined imports",
         "snake_case",
@@ -432,6 +471,7 @@
         "intent-trust"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "use the suite not custom",
         "winnow crate for parsing a parser",
@@ -460,6 +500,7 @@
         "intent-control"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "am i mistaken?",
         "isnt X supposed to be optional?",
@@ -480,6 +521,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "worlds simplest docker image",
         "0.0.0.0",
@@ -503,6 +545,9 @@
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
       "tells": [
         "no standalone functions, use unit structs or traits",
         "math/state logic must be in named structs with impl, never inlined or as free functions",
@@ -522,6 +567,7 @@
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "folder/subfolder hierarchy is critical",
         "organization is critical always",
@@ -545,6 +591,9 @@
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
       "tells": [
         "2 structs ... identical purposes ... i want to merge",
         "touches many more files and peripherals",
@@ -569,6 +618,7 @@
         "intent-comprehension"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "would arpad write this function that way",
         "would arpad write this file like this",
@@ -603,6 +653,7 @@
         "intent-efficiency"
       ],
       "confidence": "very-high",
+      "binds": [],
       "tells": [
         "does it deterministically follow a flow chart",
         "the brain flow chart where it describes the sequence",
@@ -620,11 +671,16 @@
         "intent-craft"
       ],
       "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
       "tells": [
         "it needs to be library-fied",
         "scripts help one another by sharing datatypes and common structs",
         "isnt general purpose or atomic enough",
-        "node and graph representations elsewhere"
+        "node and graph representations elsewhere",
+        "the whole point is that each approach is completely standalone",
+        "why is this repo organization a fucking mess"
       ],
       "body_links": [
         "principle-05-reuse-first",
@@ -640,6 +696,7 @@
         "intent-craft"
       ],
       "confidence": "high",
+      "binds": [],
       "tells": [
         "is this path hardcoded?",
         "use $HOME not /home/arpad",
@@ -652,11 +709,223 @@
       "path": "brain/principles/principle-32-portability.md"
     },
     {
+      "id": "principle-33-git-is-not-a-blocker",
+      "kind": "principle",
+      "headline": "never treat git state as a blocker or a gate. he commits, adds, and pushes - the agent does the fixes and reports git instructions at the END. do not stop, do not ask, do not invent a gate out of repo state.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "do not commit anything ever",
+        "thats my job. you just do the fixes and give review at end",
+        "stop worrying about git operations?",
+        "please just continue",
+        "i already told you this"
+      ],
+      "body_links": [
+        "principle-09-git-sovereignty",
+        "principle-10-autonomy-after-sanction"
+      ],
+      "path": "brain/principles/principle-33-git-is-not-a-blocker.md"
+    },
+    {
+      "id": "principle-34-untrusted-input",
+      "kind": "principle",
+      "headline": "treat every filename, path, posting, plan, and cache line as attacker-controlled. never let data reach a shell word-expansion, a subprocess string, or a markup document without being neutralised at the boundary.",
+      "interest": [
+        "intent-trust",
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "arbitrary code execution on TAB",
+        "compgen -W word-expands",
+        "plans are agent-authored"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-08-read-source-and-error"
+      ],
+      "path": "brain/principles/principle-34-untrusted-input.md"
+    },
+    {
+      "id": "principle-35-gates-are-agent-side",
+      "kind": "principle",
+      "headline": "\"don't pause\" means don't stop to ask HIM; it never means skip the review gate or the brain traversal. gates need nothing from him and must run on every phase regardless of pacing instructions.",
+      "interest": [
+        "intent-trust",
+        "intent-efficiency"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "do not stop unless there are hard blockers",
+        "phases should bleed into one another",
+        "phases 2-5 were done in 5 min without brain traversal or review gate"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions"
+      ],
+      "path": "brain/principles/principle-35-gates-are-agent-side.md"
+    },
+    {
+      "id": "principle-36-verify-with-stderr-visible",
+      "kind": "principle",
+      "headline": "a verification step must never suppress stderr or ignore an exit code. if you cannot see the failure channel, you are not verifying - you are guessing with extra steps.",
+      "interest": [
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "it was silently failing while I reported it working",
+        "EXIT=$? after a pipe"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/principles/principle-36-verify-with-stderr-visible.md"
+    },
+    {
+      "id": "principle-37-comment-the-artifact-not-the-edit",
+      "kind": "principle",
+      "headline": "every comment describes the code as it now stands - never the edit that produced it. no comment may name an identifier, algorithm or structure absent from the post-edit file, narrate a change, or explain an instruction he gave.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "almost as if claude/brain is commenting the EDIT instead of the POST-EDIT CONTENT and its getting infuriating",
+        "theres now artifacts of H and W in the comments and unnecessary comments about typing which i clearly dont care about",
+        "why on earth do i need to have this ancillary information about timestamp when clearly the other 7 args dont go into such detail",
+        "not every line has to be commented",
+        "remove the comment there"
+      ],
+      "body_links": [
+        "principle-06-idiomatic-per-language",
+        "principle-07-trim-fat-verbose-docs",
+        "principle-09-git-sovereignty",
+        "principle-15-tone-is-signal",
+        "principle-16-my-stack-my-voice",
+        "principle-19-think-in-code-ops"
+      ],
+      "path": "brain/principles/principle-37-comment-the-artifact-not-the-edit.md"
+    },
+    {
+      "id": "principle-38-a-non-answer-is-not-consent",
+      "kind": "principle",
+      "headline": "a question he declined to answer is UNANSWERED, never assent. when he skips an option, annotates without selecting, or answers a different part of the question, the brain does not resolve it by its own preference - it re-asks narrower, or takes the option his own words already imply.",
+      "interest": [
+        "intent-control"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "(no option selected)",
+        "why is this repo organization a fucking mess",
+        "i never asked for",
+        "i wanted that duplication on purpose",
+        "and this should be asked at the beginning"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions"
+      ],
+      "path": "brain/principles/principle-38-a-non-answer-is-not-consent.md"
+    },
+    {
+      "id": "principle-39-style-contract",
+      "kind": "principle",
+      "headline": "every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with brain-fmt.py --gate rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.",
+      "interest": [
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "they do not follow my style guide",
+        "adhering to my style should be baked into the brain",
+        "i always have to manually do it afterwards",
+        "it should ALWAYS be required, unless i explicitly ask against it"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-06-idiomatic-per-language"
+      ],
+      "path": "brain/principles/principle-39-style-contract.md"
+    },
+    {
+      "id": "principle-40-idiom-needs-exemplars",
+      "kind": "principle",
+      "headline": "an abstract style instruction does not change what gets written. every idiom rule the brain enforces carries a concrete before/after pair, and the writer is shown the pairs - never the adjective alone. \"be idiomatic\" is not an instruction; a worked example is.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "simply passing be idiomatic concretely to an agent wont do much, unless you explicitly list examples",
+        "put simple/dummy examples before/after into cards, which the agent can then see",
+        "THIS is exactly what i mean by idiomatic, and something i would write",
+        "it should have caught these mistakes FROM inception, not a huge refactor after the fact"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-06-idiomatic-per-language",
+        "principle-11-comprehension-ownership",
+        "principle-26-struct-based",
+        "principle-28-dry-merge-blast-radius",
+        "principle-39-style-contract",
+        "principle-41-rigor-scales-with-purpose"
+      ],
+      "path": "brain/principles/principle-40-idiom-needs-exemplars.md"
+    },
+    {
+      "id": "principle-41-rigor-scales-with-purpose",
+      "kind": "principle",
+      "headline": "how hard to enforce idiom is set by what the artifact is FOR. a scratch or testing workspace - skip it. an ephemeral tutorial - adhere lightly, do not be anal. production - be extremely attentive and exhaustive. ask the purpose before writing; never infer it from the code.",
+      "interest": [
+        "intent-efficiency",
+        "intent-craft"
+      ],
+      "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "if this is a testing workspace, ignore all",
+        "if its a tutorial sort of workspace which is ephemeral, then adhere a bit, dont be super anal",
+        "if its production code, be extremely attentive and exhaustive",
+        "the whole point is that each approach is completely standalone",
+        "i wanted that duplication on purpose"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-04-anti-fabrication",
+        "principle-14-minimal-surface",
+        "principle-28-dry-merge-blast-radius",
+        "principle-31-libraryfy-shared",
+        "principle-40-idiom-needs-exemplars"
+      ],
+      "path": "brain/principles/principle-41-rigor-scales-with-purpose.md"
+    },
+    {
       "id": "intent-comprehension",
       "kind": "interest",
       "headline": "Arpad will not outsource his mental model; he learns by concrete instance.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-02-plan-before-build",
@@ -670,6 +939,7 @@
       "headline": "Arpad must stay the architect-in-the-loop; the agent is hands, not head.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-01-no-assumptions"
@@ -682,6 +952,7 @@
       "headline": "A codebase that reads uniformly, idiomatically, minimally - low cognitive load forever.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-06-idiomatic-per-language",
@@ -695,6 +966,7 @@
       "headline": "Minimize Arpad's coordination/babysitting cost; the agent is leverage.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-10-autonomy-after-sanction",
@@ -708,6 +980,7 @@
       "headline": "The permanent record - commits, versions, releases, his manual edits - is his to control.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-09-git-sovereignty"
@@ -720,6 +993,7 @@
       "headline": "Decisions ride on honest measurement; fabrication is the worst defect.",
       "interest": [],
       "confidence": "",
+      "binds": [],
       "tells": [],
       "body_links": [
         "principle-03-review-gate",
@@ -750,8 +1024,18 @@
       "type": "relates"
     },
     {
+      "src": "principle-03-review-gate",
+      "dst": "principle-29-interrogate-the-work",
+      "type": "relates"
+    },
+    {
       "src": "principle-05-reuse-first",
       "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-01-no-assumptions",
       "type": "relates"
     },
     {
@@ -760,8 +1044,38 @@
       "type": "relates"
     },
     {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "relates"
+    },
+    {
       "src": "principle-07-trim-fat-verbose-docs",
       "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-07-trim-fat-verbose-docs",
+      "dst": "principle-16-my-stack-my-voice",
+      "type": "relates"
+    },
+    {
+      "src": "principle-07-trim-fat-verbose-docs",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
       "type": "relates"
     },
     {
@@ -980,6 +1294,146 @@
       "type": "relates"
     },
     {
+      "src": "principle-33-git-is-not-a-blocker",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-33-git-is-not-a-blocker",
+      "dst": "principle-10-autonomy-after-sanction",
+      "type": "relates"
+    },
+    {
+      "src": "principle-34-untrusted-input",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-34-untrusted-input",
+      "dst": "principle-08-read-source-and-error",
+      "type": "relates"
+    },
+    {
+      "src": "principle-35-gates-are-agent-side",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-36-verify-with-stderr-visible",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-15-tone-is-signal",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-16-my-stack-my-voice",
+      "type": "relates"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "principle-19-think-in-code-ops",
+      "type": "relates"
+    },
+    {
+      "src": "principle-38-a-non-answer-is-not-consent",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-39-style-contract",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-39-style-contract",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-11-comprehension-ownership",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-26-struct-based",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-39-style-contract",
+      "type": "relates"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-31-libraryfy-shared",
+      "type": "relates"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
+    },
+    {
       "src": "intent-comprehension",
       "dst": "principle-01-no-assumptions",
       "type": "served_by"
@@ -1010,6 +1464,16 @@
       "type": "served_by"
     },
     {
+      "src": "intent-comprehension",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "served_by"
+    },
+    {
       "src": "intent-control",
       "dst": "principle-01-no-assumptions",
       "type": "served_by"
@@ -1037,6 +1501,11 @@
     {
       "src": "intent-control",
       "dst": "principle-30-deterministic-flow",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-38-a-non-answer-is-not-consent",
       "type": "served_by"
     },
     {
@@ -1140,6 +1609,31 @@
       "type": "served_by"
     },
     {
+      "src": "intent-craft",
+      "dst": "principle-34-untrusted-input",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-39-style-contract",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "served_by"
+    },
+    {
       "src": "intent-efficiency",
       "dst": "principle-10-autonomy-after-sanction",
       "type": "served_by"
@@ -1170,8 +1664,28 @@
       "type": "served_by"
     },
     {
+      "src": "intent-efficiency",
+      "dst": "principle-33-git-is-not-a-blocker",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-35-gates-are-agent-side",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "served_by"
+    },
+    {
       "src": "intent-sovereignty",
       "dst": "principle-09-git-sovereignty",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-sovereignty",
+      "dst": "principle-33-git-is-not-a-blocker",
       "type": "served_by"
     },
     {
@@ -1202,6 +1716,21 @@
     {
       "src": "intent-trust",
       "dst": "principle-23-standing-decisions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-34-untrusted-input",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-35-gates-are-agent-side",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-36-verify-with-stderr-visible",
       "type": "served_by"
     },
     {
@@ -1430,6 +1959,81 @@
       "type": "serves"
     },
     {
+      "src": "principle-33-git-is-not-a-blocker",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-33-git-is-not-a-blocker",
+      "dst": "intent-sovereignty",
+      "type": "serves"
+    },
+    {
+      "src": "principle-34-untrusted-input",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-34-untrusted-input",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-35-gates-are-agent-side",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-35-gates-are-agent-side",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-36-verify-with-stderr-visible",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-37-comment-the-artifact-not-the-edit",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-38-a-non-answer-is-not-consent",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-39-style-contract",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-40-idiom-needs-exemplars",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
       "src": "principle-01-no-assumptions",
       "dst": "principle-10-autonomy-after-sanction",
       "type": "tension"
@@ -1437,6 +2041,11 @@
     {
       "src": "principle-05-reuse-first",
       "dst": "principle-20-refactors-welcome",
+      "type": "tension"
+    },
+    {
+      "src": "principle-09-git-sovereignty",
+      "dst": "principle-33-git-is-not-a-blocker",
       "type": "tension"
     },
     {
@@ -1467,6 +2076,11 @@
     {
       "src": "principle-24-socratic-mode",
       "dst": "principle-10-autonomy-after-sanction",
+      "type": "tension"
+    },
+    {
+      "src": "principle-33-git-is-not-a-blocker",
+      "dst": "principle-09-git-sovereignty",
       "type": "tension"
     }
   ],

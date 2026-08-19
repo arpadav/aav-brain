@@ -15,6 +15,12 @@ interest: [intent-x, intent-y]     # which interest(s) this serves (principle on
 # inverse of serves, so each principle declares its interests once (no drift).
 confidence: very-high | high | medium     # how strong the evidence is
 evidence_count: <int>              # rough count of corpus occurrences
+binds: [code, python]              # OPTIONAL. contexts where this card loads REGARDLESS of score.
+                                   # scoring is word-overlap between the task and the card, so a rule
+                                   # phrased as a correction ("merge DRY-violating structs") scores 0
+                                   # against a task phrased as a request ("write python scripts") and
+                                   # never reaches the writer. a bind is that floor: `code` for any
+                                   # code-writing task, plus a language tag for per-language extras.
 tells: ["verbatim phrase", ...]    # exact phrases that signal this card; used by brain-recall matching
 ---
 ```
