@@ -30,16 +30,15 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
     skills/            the 12 skills (universal SKILL.md across claude / codex / ~/.agents)
-    agents/            categorized: brain/  general/  lang/rust/  custom/
+    agents/            categorized: brain/  general/  lang/rust/  style/  custom/
   bin/                 all tooling: brain-find, -recall, -cards, -graph, -flow, -trace, -walk,
                        -fmt, -extract, compile (brainlib is the shared lib)
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
                        lives in a separate private repo, never here; the scripts write to it via
                        the XDG symlink ~/.local/share/aav-brain -> logs/ (brainlib.find_data).
-  docs/                FINGERPRINT, INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
+  docs/                INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
   schema/              the card / flow / trace schemas
-  plans/               worked plans (brain-plan writes here)
 ```
 
 ## quickstart
@@ -73,6 +72,6 @@ call it directly.
 6. tooling in my stack & voice. rust/bash, never node/mjs. general agent brain, not claude-coupled.
 7. learn continuously. every interruption and "no" updates a card.
 
-see ARCHITECTURE.md for the design and docs/FINGERPRINT.md for the evidence. built by mining every
+see ARCHITECTURE.md for the design. built by mining every
 human turn across 45 claude projects + the full codex history. re-run brain-extract.py to keep it
 current.

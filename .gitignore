@@ -1,5 +1,11 @@
 __pycache__/
 *.pyc
+
+# tool caches. they each write a self-ignoring .gitignore, so this is belt-and-braces
+# rather than load-bearing - but relying on a tool to ignore itself is not portable (P32)
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# compiled agent output, rebuilt by compile.py
 .generated/
-brain/evidence/
-brain/trace/

@@ -58,11 +58,19 @@ brain-recall to load context; the graph never calls the flow. both are byte-iden
 `--check`-guarded (`brain-graph.py --check`, `brain-flow.py --check`). file-first, zero servers. neo4j
 is an optional export only; see schema/optional-graph.md.
 
+## scope: what is and is not the brain
+
+the brain is `brain/` (the cards, graph and flow) plus the scripts in `bin/`. `agentic-files/` is a
+SEPARATE entity that merely hosts some brain skills and agents alongside unrelated ones used on other
+machines and in other projects. do not audit, prune, or reason about what lives there as if it were
+brain territory - an agent with zero dispatches in this repo's transcripts may be in daily use
+elsewhere.
+
 ## 2. the acting suite (in agentic-files/)
 
 skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FOUR
 user-callable ENTRY skills + eight `brain-meta-*` machinery skills + the agents (categorized under
-`agentic-files/agents/{brain,general,lang/rust,custom}`). you only ever call the four entries; the
+`agentic-files/agents/{brain,general,lang/rust,style,custom}`). you only ever call the four entries; the
 `brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
 claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
@@ -83,13 +91,12 @@ the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directl
 | brain-meta-* | role |
 |---|---|
 | brain-meta-drive | the shared traversal ENGINE: steps flow.json, dispatches each owner, loops the gates. all 4 entries traverse with this one trampoline (P31) |
-| brain-meta-recall | retrieval: EXECUTE brain-recall.py over the graph (the skill; brain-recall.py is the script) |
 | brain-meta-intent | position -> interest; surface ambiguity; ask-first before sanction |
 | brain-meta-author-prompt | write worker prompts in my voice + intent |
 | brain-meta-style | review as me (plan lens + style lens), cite cards; runs brain-fmt.py |
 | brain-meta-curate | self-editing memory: corrections -> update the store; consults the trace |
 | brain-meta-commit | prepare the git record, never publish it |
-| brain-meta-learn | re-extract + curate; calls brain-extract.py |
+| brain-learner (agent) | dispatched at DONE: re-extract + curate + rebuild + PRUNE; calls brain-extract.py |
 
 agents (cold dispatch, separate window - a distinct category, NOT `brain-meta-*`):
 | agent | role |
@@ -121,7 +128,7 @@ follows the flowchart because it must query flow.json to take a step (P30).
 
 the flow is MULTI-ENTRY: one graph, four start nodes, regime read FROM the entry (not inferred from
 crossing SANCTION - review and self-refine reach a terminal without it). reconstruction is per-entry
-(execute rebuilds from plans/+git; self-refine from its selection-state), the engine reconstructs
+(execute rebuilds from the sanctioned plan + git; self-refine from its selection-state), the engine reconstructs
 nothing. owners are the brain-meta-* skills / cold agents: brain-meta-author-prompt writes the worker
 prompt; the brain-verifier + brain-review-gate agents gate cold; brain-meta-style does the style pass;
 brain-meta-commit prepares the record; brain-meta-curate learns. the critics are cold and independent
