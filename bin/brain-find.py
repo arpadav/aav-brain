@@ -30,7 +30,6 @@ from brainlib import Args, Env, Flag, Layout
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import sys
 from pathlib import Path
 
 # --------------------------------------------------
@@ -49,8 +48,7 @@ def main() -> None:
     # ask one question
     # --------------------------------------------------
     selectors = {Flag.AGENTS: layout.agents, Flag.SKILLS: layout.skills, Flag.BIN: layout.bin}
-    if unknown := args.unknown(Flag.EXPORT, *selectors):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.EXPORT, *selectors)
     for flag, path in selectors.items():
         if args.has(flag):
             print(path)

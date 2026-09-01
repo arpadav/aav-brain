@@ -1,6 +1,6 @@
 ---
 name: "aav-rust-perf"
-description: "Rust PERFORMANCE & OPTIMIZATION review — an ORTHOGONAL scan, not an idiomatic-style pass. Use ONLY when the user explicitly asks for a performance/optimization review (it is deliberately NOT part of 'dispatch the idiomatic rust agents'). Focuses on allocation and clone cost, iterator laziness and collect-churn, bounds-check elision, static vs dynamic dispatch cost, copying vs borrowing, and hot-path algorithmic complexity. Reviews for SPEED, not for idiom."
+description: "Rust PERFORMANCE & OPTIMIZATION review - an ORTHOGONAL scan, not an idiomatic pass. Use ONLY on an explicit performance request (deliberately NOT part of 'dispatch the idiomatic rust agents'). Allocation and clone cost, iterator laziness, bounds-check elision, dispatch cost, hot-path complexity."
 model: inherit
 color: purple
 memory: user

@@ -65,8 +65,24 @@ can trust it without reading every line."*
   of an 8-phase plan, must say so, or the reviewer's default prior fires and it blocks on a
   property the artifact has on purpose ([[principle-29-interrogate-the-work]]).
 
+- **The gate's jurisdiction is the change, not the tree.** A finding about pre-existing
+  content in a file the change never authored is out of scope for that change's gate -
+  real, worth its own pass, and not a reason to block this one. Text the change DID
+  author is in scope even if the words were inherited: re-typing a stale claim into a
+  new doc block makes it yours.
+- **Bound the loop, or it does not converge.** `open_nits == 0` terminates for correctness,
+  which is finite; it does not terminate for consistency, because a cosmetic lens can always
+  find another column to align. Cap the rounds up front, take the correctness class, reject
+  the cosmetic class wholesale with a logged reason, and stop. A gate whose mechanical prover
+  contradicts the repo's house convention is unreachable by construction - substitute a
+  measurement that fits the repo and log the substitution, never loop on it.
+- **Scope discipline is what keeps the round count down** ([[principle-45-scope-is-the-ask]]).
+  The gate reviews whatever surface you hand it; widen the diff and you commission findings
+  about work nobody asked for.
+
 **Anti-pattern.** Skipping the gate, a warm/guided review that only confirms your own
 work, or dropping a single-reviewer nit because "it's minor." **And the inverse, which is
 just as bad:** treating every finding as golden and remediating an invalid one. "This is
 incomplete" against a deliberately-incomplete artifact is a loop that cannot terminate -
-fixing it destroys the thing the artifact was.
+fixing it destroys the thing the artifact was. **And its cousin:** letting a consistency
+lens set the exit condition, so the gate re-blocks on nits about nits.

@@ -22,7 +22,20 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Edge, Frontmatter, Kind, Layout, Node, kind_rank, parse_frontmatter, read_text
+from brainlib import (
+    Args,
+    Artifact,
+    Edge,
+    Flag,
+    Frontmatter,
+    Kind,
+    Layout,
+    Node,
+    Rel,
+    kind_rank,
+    parse_frontmatter,
+    read_text,
+)
 
 # --------------------------------------------------
 # external
@@ -35,13 +48,13 @@ from pathlib import Path
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
+# this tool's own name, for its messages; derived so a rename cannot desync them
+TOOL = Path(__file__).stem
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 # the card directories scanned into nodes, with their node kind. voice
 # docs are retrieved by name, not graph traversal, so they are not nodes
-CARD_DIRS = [(LAYOUT.principles, "principle"), (LAYOUT.intents, "interest")]
-# neo4j relationship names for the cypher export; the node labels come from Kind
-RELS: dict[str, str] = {"serves": "SERVES", "served_by": "SERVED_BY", "relates": "RELATES", "tension": "TENSION"}
+CARD_DIRS = [(LAYOUT.principles, Kind.PRINCIPLE), (LAYOUT.intents, Kind.INTEREST)]
 
 def scalar(front: Frontmatter, key: str, default: str = "") -> str:
     """one frontmatter field as a string.
@@ -163,11 +176,11 @@ class GraphBuilder(Artifact):
         edges: set[Edge] = set()
         warnings: list[str] = []
         for node in self.nodes.values():
-            if node.kind != "principle":
+            if node.kind != Kind.PRINCIPLE:
                 continue
             for interest in node.interest:
-                edges.add(Edge("serves", node.id, interest))
-                edges.add(Edge("served_by", interest, node.id))
+                edges.add(Edge(Rel.SERVES, node.id, interest))
+                edges.add(Edge(Rel.SERVED_BY, interest, node.id))
                 if interest not in self.nodes:
                     warnings.append(f"{node.id} serves unknown interest {interest}")
         return edges, warnings
@@ -181,12 +194,12 @@ class GraphBuilder(Artifact):
         edges: set[Edge] = set()
         warnings: list[str] = []
         for node in self.nodes.values():
-            if node.kind != "principle":
+            if node.kind != Kind.PRINCIPLE:
                 continue
             for other in node.body_links:
                 if other == node.id:
                     continue
-                edges.add(Edge("relates", node.id, other))
+                edges.add(Edge(Rel.RELATES, node.id, other))
                 if other not in self.nodes:
                     warnings.append(f"{node.id} relates to unknown card {other}")
         return edges, warnings
@@ -201,8 +214,8 @@ class GraphBuilder(Artifact):
         warnings: list[str] = []
         for node in self.nodes.values():
             for other in node.tension:
-                edges.add(Edge("tension", node.id, other))
-                edges.add(Edge("tension", other, node.id))
+                edges.add(Edge(Rel.TENSION, node.id, other))
+                edges.add(Edge(Rel.TENSION, other, node.id))
                 if other not in self.nodes:
                     warnings.append(f"{node.id} tensions with unknown card {other}")
         return edges, warnings
@@ -278,7 +291,7 @@ class GraphBuilder(Artifact):
         # relationship creates, in the same stable edge order
         # --------------------------------------------------
         lines.extend(f"MATCH (a {{id:'{edge.src}'}}),(b {{id:'{edge.dst}'}}) "
-                     f"CREATE (a)-[:{RELS.get(edge.type, 'LINK')}]->(b);"
+                     f"CREATE (a)-[:{edge.type.label}]->(b);"
                      for edge in self.edges)
         return "\n".join(lines) + "\n"
 
@@ -304,8 +317,10 @@ class GraphBuilder(Artifact):
 
 def main() -> None:
     """build the graph, then either write it or check it against disk."""
+    args = Args.from_argv()
+    args.gate(TOOL, __doc__, Flag.CHECK)
     builder = GraphBuilder(out_dir=LAYOUT.graph_dir, store=LAYOUT.store).load().build()
-    builder.run(Args.from_argv(), "brain-graph")
+    builder.run(args, TOOL)
 
 
 if __name__ == "__main__":

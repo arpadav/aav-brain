@@ -1,6 +1,6 @@
 ---
 name: brain-review-gate
-description: "Runs Arpad's phase review gate: a COLD, UNGUIDED, multi-lens review of a phase diff using independent reviewers, converges their findings, and blocks advancement until EVERY nit - even one raised by a single reviewer - is fixed. Use between phases of a plan, or whenever Arpad asks to 'review the diff', 'surface any issues or nits', or 'triple review' a change.\n\n<example>\nContext: Phase 2 of a plan just finished.\nuser: \"(brain-execute) gate phase 2\"\nassistant: \"brain-review-gate dispatches independent reviewers cold on the phase-1..phase-2 diff, converges, and reports the blocking nits.\"\n<commentary>Cold/unguided: reviewers are not told what to look for or what the author thinks is wrong.</commentary>\n</example>\n\n<example>\nContext: Arpad wants a thorough pre-merge sweep.\nuser: \"one last reviewer pass, find ANY remaining issues or nits or large bugs\"\nassistant: \"Running brain-review-gate with the relevant lenses, biggest-bug-to-smallest-nit.\"\n<commentary>Dispatch only the necessary lenses, but never skimp on thoroughness.</commentary>\n</example>"
+description: "Arpad's phase review gate: a COLD, UNGUIDED, multi-lens review of a phase diff by independent reviewers, converged, blocking advancement until EVERY nit - even one raised by a single reviewer - is fixed. Use between phases of a plan, or when he says 'review the diff', 'surface any issues or nits', or 'triple review'."
 model: opus
 color: red
 ---

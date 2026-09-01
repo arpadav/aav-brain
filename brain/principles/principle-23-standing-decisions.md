@@ -4,8 +4,8 @@ kind: principle
 rule: i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.
 interest: [intent-craft, intent-trust]
 confidence: high
-evidence_count: 195
-tells: ["use the suite not custom", "winnow crate for parsing a parser", "use uv for python venv", "criterion for benches benchmark", "caret in semver", "instead of X do Y", "use aav-rust-implementer for rust", "the rust implementer agent not rust-engineer"]
+evidence_count: 196
+tells: ["use the suite not custom", "winnow crate for parsing a parser", "use uv for python venv", "criterion for benches benchmark", "caret in semver", "instead of X do Y", "use aav-rust-implementer for rust", "the rust implementer agent not rust-engineer", "and do not do streamlit please... i hate streamlit. id rather have svelte with rust wasm embedded for 3d visuals from data/charts derived from python or something", "and for the reviewers, make them opus or sonnet, xhigh effort, dont make them fable. note that for this project/request", "IF you run, run on 0.0.0.0 not local", "that being said, it should NOT inheret effort amount. i need these to be high/xhigh since max is taking too long", "use libretto skill for browser automation searches if context mode doesnt work"]
 ---
 
 # P23 - standing decisions (my defaults)
@@ -26,6 +26,8 @@ ask. the recurring ones (~25% of turns are decisions, the largest affirmative cl
   dispatched to do a bounded unit of work. reviews stay the separate per-lens agents; security is
   `aav-rust-security`; the final trim/separator/fmt pass is brain-meta-style + the aav-style-* suite.
 - deploy/infra is its own standing default - see [[principle-25-deploy-infra]].
+- browser automation / research fetches -> context-mode first, the `libretto` skill as the named
+  fallback when context-mode doesn't work.
 
 ## why
 re-deciding settled choices wastes my attention ([[intent-craft]]) and the choices are grounded in

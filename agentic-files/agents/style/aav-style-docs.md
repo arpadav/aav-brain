@@ -1,6 +1,6 @@
 ---
 name: "aav-style-docs"
-description: "DOCUMENTATION lens of the aav-style fleet (docs, separators, imports, items) — invoke directly or alongside the sibling lenses. LANGUAGE-INDEPENDENT: the same doc contract rendered as Rust `///`, a Python docstring, a TSDoc block or a Bash header. Owns one atomic slice of Arpad's style spec: documentation content and verbosity — file-doc comments, doc comments on every public/internal item, verbose function doc structure (# Arguments / # Returns / # Example, with # Safety only when unsafe/panicking), impl-block doc comments, and constant/static doc comments. Assumes code arrives under-documented and makes the documentation granular, multi-line, and thorough. Does NOT touch comment separators, imports, or item attributes — those are other lenses."
+description: "DOCUMENTATION lens of the aav-style fleet (docs, separators, imports, items); language-independent. Owns documentation content and verbosity: file docs, doc comments on every public/internal item, verbose function doc structure, impl-block and constant docs. Assumes code arrives under-documented. Not separators, imports, or attributes - those are sibling lenses."
 color: green
 model: sonnet
 memory: user

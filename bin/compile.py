@@ -28,7 +28,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Layout, read_text
+from brainlib import Args, Artifact, Flag, Layout, read_text
 
 # --------------------------------------------------
 # external
@@ -53,7 +53,10 @@ LAYOUT = Layout.discover()
 # the cards that bind with no skill loaded, and the always-read file they land in
 # home is discovered, never spelled out (P32); a surface whose file is absent is
 # skipped rather than created, so this never invents config for a tool he doesn't run
-PREAMBLE_CARDS = ("principle-37-comment-the-artifact-not-the-edit",)
+PREAMBLE_CARDS = (
+    "principle-37-comment-the-artifact-not-the-edit",
+    "principle-43-report-state-not-changelog",
+)
 PREAMBLE_DIR = Path.home() / ".claude"
 PREAMBLE_FILE = PREAMBLE_DIR / "CLAUDE.md"
 # only the span between these two lines belongs to the build; every other byte of
@@ -308,10 +311,12 @@ class Preamble(Artifact):
 
 def main() -> None:
     """compile the codex agents and the global preamble, or check both."""
+    args = Args.from_argv()
+    args.gate(TOOL, __doc__, Flag.CHECK)
     Artifact.run_all([
         Compiler(out_dir=LAYOUT.codex_agents, agents_dir=LAYOUT.agents),
         Preamble(out_dir=PREAMBLE_DIR, cards_dir=LAYOUT.principles, cards=PREAMBLE_CARDS),
-    ], Args.from_argv(), "compile")
+    ], args, TOOL)
 
 
 if __name__ == "__main__":

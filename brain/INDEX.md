@@ -49,6 +49,14 @@ with [[../bin/brain-recall]] (graph traversal).
 - [[principles/principle-39-style-contract]] : resolve each language's style before writing it; the STYLE gate proves the result rather than asserting it
 - [[principles/principle-40-idiom-needs-exemplars]] : "be idiomatic" changes nothing; every idiom rule carries a before/after pair and the writer is shown the pairs
 - [[principles/principle-41-rigor-scales-with-purpose]] : scratch skips idiom, tutorial adheres lightly, production is exhaustive - purpose is asked, never inferred
+- [[principles/principle-42-plain-english-questions]] : current flow is X, proposed flow(s) and options are Y, in plain english - never syntax or jargon
+- [[principles/principle-43-report-state-not-changelog]] : done or not done and what is left - never a tour of what was fixed; usage is a one-liner
+- [[principles/principle-44-build-from-nothing-to-something]] : he learns by building a ladder atomically, each step from the last one's output, interactive and self-checking - never by memorizing a finished artifact
+- [[principles/principle-45-scope-is-the-ask]] : a change does what was asked and stops; adjacent cleanup nobody asked for is what turns a two-step task into a review loop
+- [[principles/principle-46-stay-in-the-working-folder]] : the folder he named is the whole world of a task; toolchain caches may be read, his other repos and files never - ask first
+- [[principles/principle-47-copy-raw-fetches-into-the-repo]] : every fetched page lands in the repo's source corpus as it is fetched and the citing row names the copy; an uncopied fetch does not exist
+- [[principles/principle-48-look-at-the-rendered-output]] : green checks are not a pass - rasterise/screenshot and read the pdf, chart, page or app before calling it done, with a scripted audit of what an eye misses
+- [[principles/principle-49-his-interactive-app-shape]] : 3d stage first, click a point for its page on a stack, sliders for what matters, questionnaire-first persisted settings, receipt totals, 90's page + harsh retro scene, touch on his surface pro and phone, settings/filters relay live to every surface at once
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises

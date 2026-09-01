@@ -240,8 +240,7 @@ CHECKERS = (
 def main() -> None:
     """run the suite, or list what is reachable."""
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.LIST):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.LIST)
     if args.has(Flag.LIST):
         for checker in CHECKERS:
             command = checker.command()

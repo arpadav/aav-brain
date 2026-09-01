@@ -37,18 +37,25 @@ closes on its own schedule, not yours.
 brain-self-refine is the self-refine ENTRY: set `$STATE` = `SR_SCAN`, `$REGIME` = `ask-first` and
 `$MODE` = `--self-refine`, then load `brain-meta-drive` to walk
 
-    SR_SCAN -> SR_FINDINGS -> SR_ASK -> SR_EDIT -> VERIFY -> STYLE -> RECORD -> CURATE -> DONE
+    SR_SCAN -> SR_FINDINGS -> SR_ASK -> EDIT -> VERIFY -> STYLE -> RECORD -> CURATE -> DONE
 
-only the first four are refine-specific; from SR_EDIT it rejoins the SHARED tail every build uses.
-that is deliberate - SR_EDIT writes code, and before the fold a refine run reached neither the style
+only the first three are refine-specific; from EDIT it rejoins the SHARED tail every build uses.
+that is deliberate - EDIT writes code, and before the fold a refine run reached neither the style
 gate nor the verifier, so brain scripts edited here were gated only when someone remembered to do it
 by hand. `SR_GATE` and `SR_LOG` are gone: they were VERIFY and CURATE under other names.
 
-`$MODE` is what makes the shared tail behave: `VERIFY --more_phases--> DOCTRINE` is guarded
-`!self_refine`, because a refine run has no phases. drop the flag and the walk takes the build branch.
+`EDIT` is SHARED, not refine-owned: `brain-edit` enters the same state directly for a small
+follow-up change to a previous build. same act, same rails, one state. its outbound event is the
+rigor dial, and only two of its three edges are open here: a refine run emits `edited` and rides
+VERIFY, or `gated` for a cold pass first. `unchecked` is guarded to brain-edit.
+
+`$MODE` is what makes the shared tail behave: `VERIFY --more_phases--> DOCTRINE` is guarded `build`,
+because a refine run has no phases. drop the flag and the walk takes the build branch. `EDIT
+--unchecked--> STYLE` is guarded `edit` for the same reason in reverse: a refine run has just
+written brain code, so skipping the verifier is not one of its options.
 
 the trampoline is the engine's; the steps below are this skill's per-state work
-(0-1=SR_SCAN, 2-3=SR_FINDINGS, 4=SR_ASK, 5=SR_EDIT, then the shared tail). ask-first throughout -
+(0-1=SR_SCAN, 2-3=SR_FINDINGS, 4=SR_ASK, 5=EDIT, then the shared tail). ask-first throughout -
 SR_ASK blocks on his selection (a pre-sanction ASK gate, never auto-applied). step 0 is the ONE
 exception and needs no consent: it only preserves and merges evidence, never edits the brain.
 
@@ -61,10 +68,12 @@ mandatory - a summary of what the engine does is NOT a substitute for running it
 python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
-`$MODE` is `--self-refine` for the self-refine entry and EMPTY for every other.
-it is not cosmetic: a guarded edge resolves differently by mode, so a walk that
-drops it takes the build branch. set it once at the entry and pass it on every
-walk call - the engine forwards it verbatim and never infers it.
+`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
+and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
+differently by mode, so a walk that drops it takes the build branch and a
+phase-less run can be sent back to DOCTRINE for a phase that does not exist.
+set it once at the entry and pass it on every walk call - the engine forwards
+it verbatim and never infers it.
 
 **you may not proceed until that output is in the transcript.** it names the
 state's owner and its transitions; if it is absent, the walk did not happen.
@@ -94,14 +103,18 @@ python3 $AAV_BRAIN/bin/brain-lint.py             # every installed python checke
 python3 $AAV_BRAIN/bin/brain-fmt.py --stale $AAV_BRAIN/bin/*.py   # comments naming a symbol the file lost (P37)
 python3 $AAV_BRAIN/bin/brain-trace.py --against        # decisions that rejected an option
 python3 $AAV_BRAIN/bin/brain-trace.py --low-confidence # decisions worth revisiting
+python3 $AAV_BRAIN/bin/brain-trace.py --stale-candidates # entries whose affects resolves to nothing
 grep -rn -- '/home/[a-z]\|-home-[a-z]' "$AAV_BRAIN/bin" "$AAV_BRAIN/agentic-files"  # hardcoded paths incl hyphen-encoded form (P32)
 find "$AAV_BRAIN/agentic-files" -type l -lname '*../*'          # layout-baking symlinks: the P32 costume case grep cannot see
 # traceability (CONSTITUTION rule): skills that have NEVER logged a fork. judge which gaps are real -
 # retrieval/util skills (brain-find) legitimately have none; decision-making
-# entries + meta (plan, execute, review, self-refine, meta-intent, meta-curate, meta-commit,
+# entries + meta (plan, execute, edit, review, self-refine, meta-intent, meta-curate, meta-commit,
 # meta-author-prompt) with zero entries is a violation. the sed GRANDFATHERS pre-rename tags so a
-# skill that logged under its OLD name isn't falsely flagged after the brain-meta-* rename.
-comm -13 <(python3 $AAV_BRAIN/bin/brain-trace.py --against | grep -oE '\[brain-[a-z-]+\]' | tr -d '[]' \
+# skill that logged under its OLD name isn't falsely flagged after the brain-meta-* rename. --pruned
+# is unioned in because a PRUNED entry still proves the skill logged a fork - reading only --against
+# would report a CONSTITUTION violation the moment a skill's last entry was pruned.
+comm -13 <({ python3 $AAV_BRAIN/bin/brain-trace.py --against; python3 $AAV_BRAIN/bin/brain-trace.py --pruned; } \
+  | grep -oE '\[brain-[a-z-]+\]' | tr -d '[]' \
   | sed -E 's/^brain-(intent|recall|style|curate|commit|author-prompt|learn)$/brain-meta-\1/; s/^brain-continue$/brain-meta-drive/' \
   | sort -u) \
   <(ls "$AAV_BRAIN/agentic-files/skills" | sort -u)
@@ -116,6 +129,23 @@ for every decided-AGAINST entry, ask: do the `--reject` reasons still hold?
 - no longer hold -> the finding is "revise": the entry's `affects` pointer says exactly WHERE to change
   the card / graph link / flow / prompt. that precision is why the trace exists.
 - genuinely unsure -> that becomes a QUESTION for arpad, not a silent edit.
+
+### pruning the trace - ONLY here, and only by marking
+this is the one session that may make the brain forget. an entry about an architecture the brain has
+since left is read by every `--against` sweep from now on and costs judgement every time.
+`--stale-candidates` narrows the trace to entries whose `affects` resolves to nothing; that is a
+SHORTLIST TO READ, never a verdict. the tool cannot tell stale from elsewhere - `plans/01-scaffold.md`
+is a live file in the repo that run happened in - so it tags each entry `this repo` / a repo name /
+`unattributed`, and judging it is the work. an `unattributed` entry predates the `repo` field and can
+only be judged by reading what it decided.
+
+each prune is a FINDING for step 4, never a silent edit. only what he selects gets:
+```bash
+python3 $AAV_BRAIN/bin/brain-trace.py --prune <ts>   # marks stale; every reader skips it
+```
+the line stays on disk. `brain-learner` reverses it with `--restore <ts>` when a later run shows the
+topic is live again, and a restore PINS the entry against any future prune. cards and docs have no
+such staging - they are versioned, so git is their undo.
 
 ## 3. generate the questions - ASK THE BRAIN, do not hardcode them (point 7, the hard rule)
 do NOT ship a fixed checklist. for each finding (and for the store as a whole), pull the cards it
@@ -139,11 +169,18 @@ only AFTER he selects + annotates:
   brain-meta-style for prose/idiom, direct edits to flow.toml / bin scripts), honoring his note.
 - rebuild what the edit touches. the gating is VERIFY's job now, not this skill's: emit `edited`
   and let the walk carry you into VERIFY (drift gates + `brain-lint.py`), STYLE, RECORD and CURATE.
+- for each PRUNE he approved, mark it here. this is the only step that applies one, and a prune
+  surfaced in step 2 but never run is a finding he approved and did not get:
+  ```bash
+  python3 $AAV_BRAIN/bin/brain-trace.py --prune '<ts>' --prune '<ts>'
+  ```
 - log each decision to the trace so the NEXT self-refine sees it:
   ```bash
-  python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-self-refine --decision "<what>" --chosen "<what won>" \
-    --reject "<option>=<why>" --affects "<path>" --principle P29
+  python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-self-refine --decision '<what>' --chosen '<what won>' \
+    --reject '<option>=<why>' --affects '<path>' --principle P29
   ```
+  SINGLE-quote every value: a decision text carrying a backtick or `$(...)` is data, and a
+  double-quoted shell argument evaluates it before the tool sees it.
 
 ## hard rules
 - findings + questions to him, implementation after. never present a built solution as the question.
@@ -153,5 +190,7 @@ only AFTER he selects + annotates:
 - the scan is scripted and the gates must pass; never hand-wave drift.
 
 ## output
-the findings+questions list (step 4), then - after he chooses - a terse changelog of the edits made,
-each tied to the trace entry that records it. lowercase, terse.
+the findings+questions list (step 4), then - after he chooses - STATE, not a changelog (P43): is it
+done, and what is left. he reads the diff for what changed. name a blocker first if one is open, and
+say which prunes were applied, since those are the one edit git does not show as a diff. lowercase,
+terse.

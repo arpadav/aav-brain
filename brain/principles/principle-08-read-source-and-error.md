@@ -4,8 +4,8 @@ kind: principle
 rule: Read the actual error and the actual source before acting. Ground in primary sources, not guesses.
 interest: [intent-trust]
 confidence: high
-evidence_count: 7
-tells: ["did you not read the error?", "listen to the error", "read ~/.cargo source", "dont research - temp add to cargo toml and build"]
+evidence_count: 8
+tells: ["did you not read the error?", "listen to the error", "read ~/.cargo source", "dont research - temp add to cargo toml and build", "ask the agent why its using context7 for docs? shouldnt it just download the lib stored locally in cache and see the source instead?"]
 ---
 
 # P08 - Read the error and the source first
@@ -26,6 +26,10 @@ patience for fixes that ignore the error message sitting right there.
   "listen to the error: use the mcp context-mode."
 - Verify versions/API shape against the source, not memory ("syn 2.0 confirmed,
   ParseNestedMeta.input is public" - that's the standard of proof he wants).
+- this isn't rust-specific: whatever the language, an installed dependency's real API sits in the
+  local cache (node_modules, site-packages, ~/.cargo) once it's fetched - point an agent there before
+  reaching for a live docs tool. "ask the agent why its using context7 for docs? shouldnt it just
+  download the lib stored locally in cache and see the source instead?"
 
 **Anti-pattern that draws maximum heat.** Re-running the same failing command without
 reading why it failed; setting a config value the error explicitly told you was wrong.

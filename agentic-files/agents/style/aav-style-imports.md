@@ -1,6 +1,6 @@
 ---
 name: "aav-style-imports"
-description: "FILE LAYOUT & IMPORTS lens of the aav-style fleet (docs, separators, imports, items) — invoke directly or alongside the sibling lenses. LANGUAGE-INDEPENDENT: the grouping and ordering rules apply to `use`, `import`, `#include` or `source` alike; impl-block ordering and Cargo.toml ordering are marked Rust-only. Owns one atomic slice of Arpad's style spec: where things live at file scope and in what order — import grouping (mods → re-exports → local → external), merging same-package imports, classifying workspace/first-party packages as local not external, the constants/statics sections, impl-block ordering, and manifest dependency ordering. Does NOT write doc comments, format the separator lines themselves, or move attributes — those are other lenses."
+description: "FILE LAYOUT & IMPORTS lens of the aav-style fleet (docs, separators, imports, items); language-independent. Owns what lives at file scope and in what order: import grouping and merging, local-vs-external classification, constants/statics sections, impl-block ordering, manifest dependency ordering. Not doc text, separators, or attributes - those are sibling lenses."
 color: green
 model: sonnet
 memory: user

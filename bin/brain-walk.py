@@ -22,7 +22,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Flag, Layout, Mode, State, Transition, load_json
+from brainlib import Args, Entry, Exit, Flag, Layout, Mode, State, Transition, load_json
 
 # --------------------------------------------------
 # external
@@ -96,18 +96,10 @@ class Flow:
 #   `-`                  a state with no owner
 #   brain-recall         a SCRIPT interface by design: `recall = true` runs
 #                        bin/brain-recall.py rather than loading a skill
-#   the four ENTRY skills is already in context whenever its own region is being
+#   an ENTRY skill       already in context whenever its own region is being
 #                        walked - it is the caller - so directing it to load
 #                        itself is noise at best and re-entry at worst
-NOT_LOADABLE = {
-    "-",
-    "brain-recall",
-    "brain-meta-recall",
-    "brain-plan",
-    "brain-execute",
-    "brain-review",
-    "brain-self-refine",
-}
+NOT_LOADABLE = {"-", "brain-recall", "brain-meta-recall", *Entry}
 
 
 def owner_call(base: str) -> str:
@@ -204,10 +196,9 @@ def main() -> None:
     # parse
     # --------------------------------------------------
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.STATE, Flag.ON, Flag.SELF_REFINE):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.STATE, Flag.ON, Flag.SELF_REFINE, Flag.EDIT)
     state_id, event = args.value(Flag.STATE), args.value(Flag.ON)
-    mode = Mode.of(self_refine=args.has(Flag.SELF_REFINE))
+    mode = Mode.of(self_refine=args.has(Flag.SELF_REFINE), edit=args.has(Flag.EDIT))
     if not state_id:
         sys.exit("usage: brain-walk.py --state <ID> [--on <event>] [--self-refine]")
     # --------------------------------------------------
@@ -215,7 +206,8 @@ def main() -> None:
     # --------------------------------------------------
     flow = Flow.load(LAYOUT.flow_json)
     if state_id not in flow.states:
-        sys.exit(f"{TOOL}: unknown state {state_id}")
+        print(f"{TOOL}: unknown state {state_id}", file=sys.stderr)
+        sys.exit(Exit.USAGE)
     state = flow.states[state_id]
     # --------------------------------------------------
     # describe, or advance on the outcome event
@@ -262,7 +254,8 @@ def advance(flow: Flow, state: State, event: str, mode: Mode = Mode.BUILD) -> No
     """
     transition = flow.step(state.id, event, mode)
     if transition is None:
-        sys.exit(f"{TOOL}: no exit from {state.id} on '{event}' in {mode.value} mode")
+        print(f"{TOOL}: no exit from {state.id} on '{event}' in {mode.value} mode", file=sys.stderr)
+        sys.exit(Exit.USAGE)
     nxt = flow.states[transition.dst]
     print(f"{state.id} --{event}--> {nxt.id} [{nxt.kind}] owner={nxt.owner} recall={nxt.recall}")
     print(f"  {nxt.doc}")

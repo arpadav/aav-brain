@@ -36,7 +36,18 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import ENCODING, DataLayout, Env, Flag, Ledger, MergeCount, clip, find_archive, iso_now, write_text
+from brainlib import (
+    ENCODING,
+    DataLayout,
+    Env,
+    Flag,
+    Ledger,
+    MergeCount,
+    clip,
+    find_archive,
+    iso_now,
+    write_text,
+)
 
 # --------------------------------------------------
 # external
@@ -49,6 +60,7 @@ import shutil
 from collections import Counter
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -133,20 +145,90 @@ def short_proj(name: str) -> str:
                 .replace(f"{home}-", "")[:28]) or name
 
 
+class Signal(StrEnum):
+    """every label the extractor can put on a human turn, named once.
+
+    a turn carries several of these at once (the classes) and exactly one as its
+    primary bucket. the vocabulary was spelled as bare strings at each of the
+    four sites that use it - the pattern table, the priority order, the
+    classifier's extra tests and the view writer - so a new label read as a
+    typo at three of them and the set could only be recovered by grep
+
+    # Example
+
+        >>> Signal.bucket({Signal.QUESTION, Signal.HEAT}, Signal.PLAIN)
+        <Signal.HEAT: 'heat'>
+    """
+
+    HEAT = "heat"
+    REJECTION = "rejection"
+    APPROVAL = "approval"
+    INTERRUPTION = "interruption"
+    PLAN = "plan"
+    BUILD = "build"
+    DECISION = "decision"
+    QUESTION = "question"
+    DEPLOY = "deploy"
+    NAMING = "naming"
+    SEQUENCING = "sequencing"
+    EMPHASIS = "emphasis"
+    DIRECTIVE = "directive"
+    PLAIN = "plain"
+
+    @classmethod
+    def priority(cls) -> tuple["Signal", ...]:
+        """the primary-bucket order: the first of these a turn qualifies for wins.
+
+        the vetoes lead and are never length-gated. the labels absent here are
+        classes a turn can carry but never its bucket, and the two fallbacks are
+        chosen by turn length rather than by qualifying
+
+        # Returns
+
+        the bucket-eligible labels, most significant first
+
+        # Example
+
+            >>> Signal.priority()[0]
+            <Signal.HEAT: 'heat'>
+        """
+        return (cls.HEAT, cls.REJECTION, cls.APPROVAL, cls.INTERRUPTION,
+                cls.PLAN, cls.BUILD, cls.DECISION, cls.QUESTION)
+
+    @classmethod
+    def bucket(cls, classes: "Iterable[Signal]", fallback: "Signal") -> "Signal":
+        """the one primary bucket for a turn that carries several classes.
+
+        # Arguments
+
+        * `classes` - every label the turn qualified for
+        * `fallback` - the bucket when none of the priorities apply
+
+        # Returns
+
+        the highest-priority label present, else the fallback
+
+        # Example
+
+            >>> Signal.bucket({Signal.BUILD, Signal.REJECTION}, Signal.PLAIN)
+            <Signal.REJECTION: 'rejection'>
+        """
+        held = set(classes)
+        return next((label for label in cls.priority() if label in held), fallback)
+
+
 # a pattern that contributes one label whenever it matches, with no extra
 # condition. the labels needing a second test stay spelled out in classify()
 CLASS_PATTERNS = (
-    (RE_PLAN, "plan"),
-    (RE_BUILD, "build"),
-    (RE_DECIDE, "decision"),
-    (RE_DEPLOY, "deploy"),
-    (RE_NAMING, "naming"),
-    (RE_SEQ, "sequencing"),
-    (RE_CAPS, "emphasis"),
-    (RE_HEAT, "heat"),
+    (RE_PLAN, Signal.PLAN),
+    (RE_BUILD, Signal.BUILD),
+    (RE_DECIDE, Signal.DECISION),
+    (RE_DEPLOY, Signal.DEPLOY),
+    (RE_NAMING, Signal.NAMING),
+    (RE_SEQ, Signal.SEQUENCING),
+    (RE_CAPS, Signal.EMPHASIS),
+    (RE_HEAT, Signal.HEAT),
 )
-# the primary bucket is the first of these a turn qualifies for
-BUCKET_PRIORITY = ("heat", "rejection", "approval", "interruption", "plan", "build", "decision", "question")
 # an approval is a SHORT turn; past this length it is a directive that happens to agree
 SHORT_APPROVAL = 70
 # a turn this long is a directive even when it carries no other signal
@@ -416,23 +498,21 @@ class Corpus:
         length = len(text)
         classes = {label for pattern, label in CLASS_PATTERNS if pattern.search(text)}
         if from_plan:
-            classes.add("plan")
+            classes.add(Signal.PLAN)
         if "?" in text:
-            classes.add("question")
+            classes.add(Signal.QUESTION)
         if RE_NO_START.search(text) or RE_REJECT.search(text):
-            classes.add("rejection")
+            classes.add(Signal.REJECTION)
         if RE_APPROVE.search(text) and length < SHORT_APPROVAL:
-            classes.add("approval")
+            classes.add(Signal.APPROVAL)
         if interrupted:
-            classes.add("interruption")
+            classes.add(Signal.INTERRUPTION)
         # --------------------------------------------------
-        # primary bucket: the first priority that applies. vetoes (heat,
-        # rejection) lead and are never length-gated; directive is the
+        # primary bucket: the priority order lives on Signal; directive is the
         # long-turn fallback
         # --------------------------------------------------
-        fallback = "directive" if length >= LONG_TURN else "plain"
-        bucket = next((b for b in BUCKET_PRIORITY if b in classes), fallback)
-        return bucket, sorted(classes)
+        fallback = Signal.DIRECTIVE if length >= LONG_TURN else Signal.PLAIN
+        return Signal.bucket(classes, fallback), sorted(classes)
 
     def tally(self, text: str) -> None:
         """fold one turn into the tone, sequencing, and verb histograms.
@@ -558,9 +638,9 @@ class Corpus:
         # --------------------------------------------------
         # back-compat views, derived; heat joins the rejection corpus too
         # --------------------------------------------------
-        views = {"rejections.jsonl": ("rejection", "heat"), "heat.jsonl": ("heat",),
-                 "interruptions.jsonl": ("interruption",), "approvals.jsonl": ("approval",),
-                 "directives.jsonl": ("directive",)}
+        views = {"rejections.jsonl": (Signal.REJECTION, Signal.HEAT), "heat.jsonl": (Signal.HEAT,),
+                 "interruptions.jsonl": (Signal.INTERRUPTION,), "approvals.jsonl": (Signal.APPROVAL,),
+                 "directives.jsonl": (Signal.DIRECTIVE,)}
         for name, buckets in views.items():
             Ledger(out / name).write(self._view(p) for p in durable.prompts if p.get("bucket") in buckets)
         # --------------------------------------------------

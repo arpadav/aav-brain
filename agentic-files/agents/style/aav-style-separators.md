@@ -1,6 +1,6 @@
 ---
 name: "aav-style-separators"
-description: "COMMENT SEPARATOR lens of the aav-style fleet (docs, separators, imports, items) — invoke directly or alongside the sibling lenses. LANGUAGE-INDEPENDENT: applies to Rust, Python, C/C++/CUDA, TypeScript, Bash and anything else, using that language's comment marker. Owns one atomic slice of Arpad's style spec: the comment-separator visual structure — exactly-50-hyphen separators, lowercase labels, no-newline-after / flush rules, multi-line wrapping, the no-blank-line-before-first-separator rule, deleting stray global separators after constants/statics, and (most important) granular local comment separators inside function bodies where every logical step gets its own flush separator. Does NOT write doc comments, reorder imports, or move attributes — those are other lenses."
+description: "COMMENT SEPARATOR lens of the aav-style fleet (docs, separators, imports, items); language-independent, using each language's comment marker. Owns separator visual structure: exactly-50-hyphen separators, lowercase labels, flush rules, multi-line wrapping, and granular local separators giving every logical step inside a function body its own. Not doc text, imports, or attributes - those are sibling lenses."
 color: green
 model: sonnet
 memory: user

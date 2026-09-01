@@ -1,6 +1,6 @@
 ---
 name: "aav-idiomatic-rust-flow"
-description: "Idiomatic Rust review — CONTROL FLOW, ERRORS & CONVERSIONS lens. Use when reviewing recently written/modified Rust and you want a focused pass on logical flow: magic values, error/Option handling and ?-discipline, let-else, iterator transforms over manual loops, From/TryFrom conversions, avoiding `as` truncation, and clone-to-please-the-borrow-checker smells. One of the four agents dispatched when the user says 'dispatch the idiomatic rust agents'."
+description: "Idiomatic Rust review - CONTROL FLOW, ERRORS & CONVERSIONS lens: magic values, error/Option handling and ?-discipline, let-else, iterator transforms over manual loops, From/TryFrom, `as` truncation, clone-to-please-the-borrow-checker. One of the four dispatched on 'dispatch the idiomatic rust agents'."
 model: inherit
 color: blue
 memory: user

@@ -1,6 +1,6 @@
 ---
 name: "aav-rust-implementer"
-description: "The single Rust IMPLEMENTER for Arpad's work — writes and modifies Rust that already satisfies the full idiomatic doctrine (the aav-idiomatic-rust api/types/flow/organization lenses) AND the aav-rust-perf performance nits, in one agent. Use when a task needs ONE Rust worker to build/change code (not a review). Dispatched by the brain in place of the generic rust-engineer for any Rust implementation on brain tasks. Reviews remain the separate per-lens agents; security is aav-rust-security; the final trim/separator/fmt pass is brain-meta-style + the aav-style-* suite."
+description: "The single Rust IMPLEMENTER for Arpad's work - writes Rust that already satisfies the full idiomatic doctrine (the api/types/flow/organization lenses) and the aav-rust-perf nits, in one agent. Use when a task needs ONE Rust worker to build or change code, not review it."
 model: inherit
 color: orange
 memory: user

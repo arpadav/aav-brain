@@ -1,6 +1,6 @@
 ---
 name: "aav-style-items"
-description: "ITEM ATTRIBUTES & STRUCTURE lens of the aav-style fleet (docs, separators, imports, items) — invoke directly or alongside the sibling lenses. LANGUAGE-INDEPENDENT: a documented field is a documented field whether it sits in a Rust struct, a Python dataclass or a TypeScript interface. Owns one atomic slice of Arpad's style spec: blank lines between documented struct fields and the tests section. Does NOT write the doc comment text, format separators, reorder imports, or decide inline attributes — those are other lenses."
+description: "ITEM ATTRIBUTES & STRUCTURE lens of the aav-style fleet (docs, separators, imports, items); language-independent. Owns blank lines between documented struct fields and the tests section. Not doc text, separators, or imports - those are sibling lenses."
 color: green
 model: sonnet
 memory: user

@@ -1,6 +1,6 @@
 ---
 name: "aav-idiomatic-rust-types"
-description: "Idiomatic Rust review — TYPE-SYSTEM & STATE MODELING lens. Use when reviewing recently written/modified Rust and you want a focused pass on whether state and behavior are pushed into the type system: enum dispatch over dyn, newtypes over primitive obsession, making illegal states unrepresentable, typestate, sealed traits, and impl-Trait-vs-Box<dyn> returns. One of the four agents dispatched when the user says 'dispatch the idiomatic rust agents'."
+description: "Idiomatic Rust review - TYPE-SYSTEM & STATE MODELING lens: enum dispatch over dyn, newtypes over primitive obsession, illegal states unrepresentable, typestate, sealed traits, impl-Trait vs Box<dyn>. One of the four dispatched on 'dispatch the idiomatic rust agents'."
 model: inherit
 color: cyan
 memory: user

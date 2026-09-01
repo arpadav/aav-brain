@@ -117,8 +117,7 @@ class CardLinter:
 def main() -> None:
     """lint the cards, print structural errors, and gate --check on them."""
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.CHECK):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.CHECK)
     linter = CardLinter(Layout.discover()).run()
     for error in linter.errors:
         print(f"  error: {error}")

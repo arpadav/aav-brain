@@ -20,7 +20,7 @@ cold, refuses to fabricate, stops only on real ambiguity, prepares the commit. i
 ```
 aav-brain/             the one transferable brain (a `brain` submodule of home)
   README.md            you are here
-  ARCHITECTURE.md      the system: memory tiers, the 4 entries + brain-meta-* machinery + agents
+  ARCHITECTURE.md      the system: memory tiers, the 5 entries + brain-meta-* machinery + agents
   brain/               the queryable DOCTRINE store (committed, public knowledge)
     CONSTITUTION.md    tier-1 core: the hard rules + voice (always loaded)
     principles/        atomic principle cards (one belief each)
@@ -29,10 +29,11 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     flow/  graph/      the deterministic flow + the graph derived from the cards
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
-    skills/            the 12 skills (universal SKILL.md across claude / codex / ~/.agents)
+    skills/            the 11 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/  custom/
   bin/                 all tooling: brain-find, -recall, -cards, -graph, -flow, -trace, -walk,
-                       -fmt, -extract, compile (brainlib is the shared lib)
+                       -fmt, -extract, -lint, compile (brainlib is the shared lib)
+  prune.toml           how old a trace entry must be before it is eligible to be judged
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
                        lives in a separate private repo, never here; the scripts write to it via
@@ -54,9 +55,10 @@ python3 bin/brain-recall.py --all
 ```
 
 the acting suite lives in `agentic-files/` (home-manager links it into ~/.claude and ~/.codex). use the
-FOUR entrypoints (the only skills you call):
+entrypoints (the only skills you call):
 - /brain-plan <idea>: plan this new thing (or a change) my way, to sanction.
 - /brain-execute: build a sanctioned plan to DONE - "continue" / "resume" picks it back up.
+- /brain-edit <change>: one small follow-up edit to what that build produced, without replanning it.
 - /brain-review: cold multi-lens review of the current diff.
 - /brain-self-refine: turn the review lens on the brain itself.
 

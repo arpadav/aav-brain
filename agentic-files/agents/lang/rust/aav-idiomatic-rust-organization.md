@@ -1,6 +1,6 @@
 ---
 name: "aav-idiomatic-rust-organization"
-description: "Idiomatic Rust review — CODE ORGANIZATION & TOOLING HYGIENE lens. Use when reviewing recently written/modified Rust and you want a focused pass on layout and tooling: module/import hygiene and combined nested use, visibility minimization, stray standalone functions and pointless closures, lifetime over-annotation and self-referential structs, Clippy lint configuration, and Cargo.toml hygiene. One of the four agents dispatched when the user says 'dispatch the idiomatic rust agents'."
+description: "Idiomatic Rust review - CODE ORGANIZATION & TOOLING HYGIENE lens: module/import hygiene, visibility minimization, stray functions and pointless closures, lifetime over-annotation, Clippy configuration, Cargo.toml hygiene. One of the four dispatched on 'dispatch the idiomatic rust agents'."
 model: inherit
 color: yellow
 memory: user

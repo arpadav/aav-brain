@@ -4,8 +4,8 @@ kind: principle
 rule: Prepare the record, never publish it. No commits/tags/version bumps without explicit say-so. Never overwrite his manual edits.
 interest: [intent-sovereignty]
 confidence: very-high
-evidence_count: 9
-tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this"]
+evidence_count: 11
+tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message"]
 ---
 
 # P09 - Git sovereignty (prepare, don't publish)
@@ -26,6 +26,15 @@ approved.
   "new encoder codegen"). Generate a **bash script** that stages each category and writes a
   draft commit message - *then he* reviews messages and runs it: "then i will go through
   and verify the messages and run the bash script."
+- The interaction shape he specified directly: *"i want you to say something like `files:
+  <tree> commit: 'an example pre-filled commit'` where the commit descriptions are very
+  short. then i can simply say Y to accept or N to not accept the commit message, and i can
+  write my own."* One category at a time, a short pre-filled message, Y/N, his own words win
+  when he supplies them.
+- Draft **shorter** than feels sufficient - he compresses further, not less: drafted "prune
+  finished plans and stale docs" became his "prune stale"; "updated skills/agents" and
+  "updated principles + graph" were his own replacements, not accepted drafts. His commit
+  register is terser than the draft, every time.
 - For changelogs: "based off git diff ... add to changelog for 0.1.2. do NOT bump cargo
   tomls - i do that manually."
 - For surgical reverts: "look at git diff and see if you can simply git reset - but if

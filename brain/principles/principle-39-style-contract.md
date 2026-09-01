@@ -6,7 +6,7 @@ interest: [intent-craft]
 confidence: very-high
 evidence_count: 3
 binds: [code]
-tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it"]
+tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it", "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE"]
 ---
 
 # P39 - the style contract, and the gate that proves it

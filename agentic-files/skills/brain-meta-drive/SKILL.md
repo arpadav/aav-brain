@@ -1,27 +1,30 @@
 ---
 name: brain-meta-drive
-description: "The shared flow-traversal engine. INVOKED ONLY BY THE FOUR ENTRY SKILLS - brain-plan, brain-execute, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.json from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
+description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.json from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
 ---
 
 # brain-meta-drive: the shared flow-traversal engine
 
 every entry skill is thin and ends the same way: *reconstruct my region's state -> set `$STATE` (entry
 node) + `$REGIME` -> load this engine.* brain-meta-drive owns ONLY the walk: it steps `flow.json` from
-`$STATE` to a terminal, running each state's owner. it is the ONE trampoline (P31) - the four entries
+`$STATE` to a terminal, running each state's owner. it is the ONE trampoline (P31) - the entries
 never reimplement it.
 
 ## what calls this (and what they hand you)
-the caller (`brain-plan` @RECON, `brain-execute` @IMPL, `brain-review` @REVIEW, `brain-self-refine`
-@SR_SCAN) has ALREADY:
-- reconstructed its region's state (execute: the plan in plans/ + git; self-refine: selection-state in
-  the transcript + decisions.jsonl). **the engine reconstructs nothing.**
+the caller (`brain-plan` @IDEATION, `brain-execute` @DOCTRINE, `brain-edit` @EDIT, `brain-review` @REVIEW,
+`brain-self-refine` @SR_SCAN) has ALREADY:
+- reconstructed its region's state (execute: the plan in plans/ + git; edit: the last run's commits,
+  diff and trace entries; self-refine: selection-state in the transcript + decisions.jsonl).
+  **the engine reconstructs nothing.**
 - set `$STATE` = its entry node, `$REGIME` = ask-first | execute-through (read it from the entry, do
   NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it),
-  and `$MODE` = `--self-refine` for the refine entry, EMPTY for every other.
+  and `$MODE` = `--self-refine` for the refine entry, `--edit` for brain-edit, EMPTY for the rest.
 
 **forward `$MODE` verbatim on every walk call; never infer it.** a guarded transition resolves by
-mode, so the same (state, event) leads somewhere different in a refine run - `VERIFY --more_phases-->
-DOCTRINE` exists only when the flag is absent. dropping it silently takes the build branch.
+mode, so the same (state, event) leads somewhere different per entry - `VERIFY --more_phases-->
+DOCTRINE` is guarded `build` and exists for neither a refine nor an edit run, both of which are
+phase-less. dropping the flag silently takes the build branch and can send a two-line edit back to
+DOCTRINE for a phase that does not exist.
 
 ## setup (run first - discover the brain, no hardcoded path)
 the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH, so they
@@ -82,7 +85,7 @@ the flow encodes threshold loops; you do not advance a phase until its metric ho
   LOG the plan's decided-against forks to the trace (`brain-trace.py`) per the SANCTION state doc before
   flipping. for entries that never cross it (review, self-refine) the regime stays whatever the entry set.
 - a transition to a `blocked`/ASK state is the only sanctioned pause: cross back and ask via
-  `brain-meta-intent`. post-sanction, never assume - decision he'd want = ask; mechanical detail = proceed.
+  `brain-meta-intent`. post-sanction, never assume - decision he'd want = ask; mechanical detail = proceed. several small details that together decide what USING it feels like are NOT mechanical: ask the experience once, plainly, up front (P42).
 
 ## the two cold agents vs the loaded meta-skills
 `brain-verifier` and `brain-review-gate` are AGENTS on purpose: their value is a fresh, cleared-context
@@ -136,7 +139,7 @@ a reviewer that self-reports uncertainty, or that you catch fabricating, is disc
 verify its claims yourself before any of them become work (P04, P08).
 
 ## hard rules
-never assume post-sanction (decision he'd want = ask; mechanical detail = proceed). never fabricate.
+never assume post-sanction (decision he'd want = ask; mechanical detail = proceed; but the shape of the experience is always worth one plain question - P42). never fabricate.
 never commit/push/bump versions unless told. never trample his manual edits. channel intensity into
 named constraints, never abuse sub-agents. FREEZE the tree under a live review and BARRIER on all N.
 adjudicate before you remediate.

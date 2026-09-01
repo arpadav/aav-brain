@@ -22,10 +22,11 @@ stateDiagram-v2
     [*] --> DOCTRINE
     [*] --> REVIEW
     [*] --> SR_SCAN
+    [*] --> EDIT
 
     state "IDEATION [entry] raw request received (brain-plan entry)" as IDEATION
     state "INTENT [work] position -> interest; surface ambiguity" as INTENT
-    state "ASK [gate] ask the smallest unblocking question; never guess (pre-sanction clarify)" as ASK
+    state "ASK [gate] ask the smallest unblocking question; never guess (pre-sanction clarify). ORDER IS FIXED: the FIRST question is always about the EXPERIENCE - what using the thing is like, how he will interact with it - offered as whole shapes he can pick between (a watch loop that re-runs on save / a page on localhost / a chat drill), never as parameters. only after that are specifics asked, and each carries a RECOMMENDED DEFAULT so the cheap answer is yes. a specific with an obvious default is not worth a question at all - take it and say which you took. measured failure this repairs: a lab count, a file layout and a progress format were each waved through as mechanical detail, and together they WERE the product - he had to redirect three times mid-build. the test is not is this decision small, it is DOES THIS DECIDE WHAT USING IT FEELS LIKE (P42, P44)" as ASK
     state "RECON [work] read fs; seed the relevant-file set from the task" as RECON
     state "EXPAND [work] grep deps/peripherals; ADD newly-implicated files. the set is mutable" as EXPAND
     state "WOULDIWRITE [work] per file in the set: would i (arpad) write it like this? mark the no's" as WOULDIWRITE
@@ -48,12 +49,12 @@ stateDiagram-v2
     state "RECORD [work] categorise by semantics, draft the commit script, stop at the line" as RECORD
     state "CURATE [work] capture every correction/approval/interrupt -> update the store; log the decision trace" as CURATE
     state "BLOCKED [halt] post-sanction ambiguity: stop and ask arpad; resume the blocked state on /continue" as BLOCKED
-    state "DONE [terminal] work complete. DISPATCH brain-learner to mine this conversation for durable signal, and SAY SO in the closing line - e.g. `<brief summary>. everything is done. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything" as DONE
+    state "DONE [terminal] work complete. the closing line reports STATE, NOT A CHANGELOG (P43): is it done yes/no, and what is left. NEVER a tour of what was fixed, measured or rewritten - he reads git diff for that, and a defect that no longer exists is not information. a how-to is ONE LINE per thing, not a section per thing. surface a number only when it changes what he does next. an unresolved blocker IS state and must be said first. measured: 5 of 77 recorded heat events are him saying the brain wrote too much - it is the single most reliable producer of heat in the corpus. then DISPATCH brain-learner to mine this conversation for durable signal, and say so - e.g. `done. <what is left, if anything>. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything" as DONE
     state "REVIEW [entry] brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop" as REVIEW
     state "SR_SCAN [entry] brain-self-refine entry: run the scripted scan (cards/graph/flow/trace/paths/symlinks/traceability)" as SR_SCAN
     state "SR_FINDINGS [work] read the trace + structural smells; GENERATE the questions from the brain (recall-driven, never a frozen list)" as SR_FINDINGS
     state "SR_ASK [gate] present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped" as SR_ASK
-    state "SR_EDIT [work] make ONLY the selected edits, each through the right meta-skill (curate/style/direct)" as SR_EDIT
+    state "EDIT [work] make ONLY the selected/asked-for edit, through the right meta-skill (curate/style/direct). the OUTBOUND EVENT IS THE RIGOR DIAL and it is HIS to set, asked before the edit starts, never inferred from how small the change looks (P41): `edited` -> VERIFY builds and tests it, `gated` -> PHASEGATE puts a cold reviewer on the diff first, `unchecked` -> STYLE skips verification entirely. every one of them still rides STYLE -> RECORD -> CURATE, so a small edit is never outside the ecosystem" as EDIT
 
     ADJUDICATE --> VERIFY: all_invalid
     ADJUDICATE --> VERIFY: deferred
@@ -62,6 +63,10 @@ stateDiagram-v2
     CURATE --> DONE: learned
     DOCTRINE --> IMPL: resolved
     DOCTRINE --> BLOCKED: unresolved
+    EDIT --> BLOCKED: ambiguous
+    EDIT --> VERIFY: edited
+    EDIT --> PHASEGATE: gated
+    EDIT --> STYLE_GATE: unchecked [edit]
     EXPAND --> EXPAND: set_grew
     EXPAND --> WOULDIWRITE: set_stable
     HIERARCHY --> REORG: reshape_needed
@@ -91,14 +96,13 @@ stateDiagram-v2
     SEMANTIC --> RELOCATE: misplacements_found
     SEMANTIC --> HIERARCHY: placement_ok
     SR_ASK --> DONE: none_selected
-    SR_ASK --> SR_EDIT: selected
-    SR_EDIT --> VERIFY: edited
+    SR_ASK --> EDIT: selected
     SR_FINDINGS --> SR_ASK: found
     SR_SCAN --> SR_FINDINGS: scanned
     STYLE_GATE --> RECORD: styled
     STYLE_GATE --> STYLE_GATE: unstyled
     VERIFY --> STYLE_GATE: last_phase
-    VERIFY --> DOCTRINE: more_phases [!self_refine]
+    VERIFY --> DOCTRINE: more_phases [build]
     VERIFY --> REMEDIATE: unsound
     VERIFY --> VERIFY: unverified
     WOULDIWRITE --> SEMANTIC: all_pass
@@ -145,7 +149,7 @@ flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask 
 | SR_SCAN | entry | true | ask-first | brain-self-refine | false |
 | SR_FINDINGS | work |  |  | brain-self-refine | true |
 | SR_ASK | gate |  |  | brain-self-refine | false |
-| SR_EDIT | work |  |  | brain-self-refine | true |
+| EDIT | work | true | execute-through | brain-self-refine+brain-edit | true |
 
 ## 3. how brain-meta-drive steps it
 

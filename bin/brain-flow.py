@@ -24,7 +24,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Layout, Mode, State, Transition, read_text
+from brainlib import Args, Artifact, Entry, Exit, Flag, Layout, Mode, State, Transition, read_text
 
 # --------------------------------------------------
 # external
@@ -42,11 +42,6 @@ from pathlib import Path
 TOOL = Path(__file__).stem
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
-
-# the four entry skills, each of which must hand its walk to brain-meta-drive
-# the handoff below is generated INTO all four from this one definition, so the
-# four copies cannot drift apart
-ENTRY_SKILLS = ("brain-plan", "brain-execute", "brain-review", "brain-self-refine")
 
 # mermaid keywords that cannot be used as a node name; `style` is the one this
 # flow actually collides with, and the collision renders as a parse error
@@ -66,10 +61,12 @@ mandatory - a summary of what the engine does is NOT a substitute for running it
 python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
-`$MODE` is `--self-refine` for the self-refine entry and EMPTY for every other.
-it is not cosmetic: a guarded edge resolves differently by mode, so a walk that
-drops it takes the build branch. set it once at the entry and pass it on every
-walk call - the engine forwards it verbatim and never infers it.
+`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
+and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
+differently by mode, so a walk that drops it takes the build branch and a
+phase-less run can be sent back to DOCTRINE for a phase that does not exist.
+set it once at the entry and pass it on every walk call - the engine forwards
+it verbatim and never infers it.
 
 **you may not proceed until that output is in the transcript.** it names the
 state's owner and its transitions; if it is absent, the walk did not happen.
@@ -476,14 +473,14 @@ class FlowBuilder(Artifact):
         """the handoff block, rendered into every entry skill from one source.
 
         the block is what makes an entry actually reach the engine. rendering
-        all four from one source is what keeps them from drifting apart (P28)
+        rendering them all from one source is what keeps them from drifting apart (P28)
 
         # Returns
         the (path, content) pairs for each entry SKILL.md whose handoff block
         changed, or an empty list when every entry is already current
         """
         out: list[tuple[Path, str]] = []
-        for name in ENTRY_SKILLS:
+        for name in Entry:
             path = LAYOUT.skills / name / "SKILL.md"
             if not path.is_file():
                 continue
@@ -533,8 +530,7 @@ def main() -> None:
     flow.json must never be committed
     """
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.CHECK, Flag.MERMAID):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.CHECK, Flag.MERMAID)
     builder = FlowBuilder.read(LAYOUT.flow_toml, LAYOUT.flow_dir)
     # --------------------------------------------------
     # mermaid mode: emit the doc view from the same data
@@ -551,7 +547,7 @@ def main() -> None:
         for warning in warnings:
             print(f"  warn: {warning}")
         sys.exit(Exit.DRIFT)
-    builder.run(args, "brain-flow")
+    builder.run(args, TOOL)
 
 
 if __name__ == "__main__":

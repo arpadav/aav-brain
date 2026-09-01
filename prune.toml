@@ -1,0 +1,32 @@
+# the prune policy: how OLD a trace entry must be before it is even ELIGIBLE
+# to be judged. authored data, like flow.toml - brainlib reads it, no tool
+# hardcodes a number.
+#
+# eligibility is NOT a verdict. crossing this line only means "old enough to be
+# worth reading"; whether an entry actually goes is a judgement made per entry,
+# against what the brain is today. an entry that is two years old and still
+# describes how the flow works is not stale, and nothing here may prune it.
+#
+# the window scales with how fast this repo is moving, because that is what
+# decides how quickly a decision goes out of date. a stretch of frequent commits
+# means the architecture is being reshaped, so a decision from three weeks ago
+# may already describe something that no longer exists; a quiet stretch means
+# the same three-week-old decision is still current.
+
+[window]
+# the threshold is calibrated against this repo's measured rate, or the fast
+# window is unreachable and the whole mechanism is inert. over its history the
+# 4-week rate runs median 0.5/wk, p90 0.8/wk, peak 3.0/wk - so `busy` sits above
+# the ninetieth percentile and below the peak, which is what makes it fire on a
+# genuine reshaping stretch and stay quiet the rest of the time. re-measure with
+# `git log --format=%cI` before changing it.
+busy_commits_per_week = 2.0
+
+# how far back to measure. long enough to survive one quiet weekend, short
+# enough to still SEE a burst: over an 8-week window this repo's peak flattens
+# to 1.5/wk, which no workable threshold separates from its 0.4/wk median.
+sample_weeks = 4
+
+# the two windows, in days back from now
+fast_days = 21
+slow_days = 60

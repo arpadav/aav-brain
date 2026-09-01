@@ -26,7 +26,8 @@ git is entirely his surface: commits, adds, pushes, remotes, submodule wiring. t
 git operations, not about treating repo state as a precondition for work. inverting it
 into a blocker stalls the build for something he never asked for, and burns the autonomy
 he granted at sanction ([[principle-10-autonomy-after-sanction]]). he is explicit that
-the division of labour is: agent does the fixes, he does the record.
+the division of labour is: agent does the fixes, he does the record. the same shape recurs
+outside git, too - a slow or timing-out sub-task is not a blocker either, same card, generalised.
 
 ## how to apply
 - work straight through irreversible-looking steps that he already sanctioned. if he said

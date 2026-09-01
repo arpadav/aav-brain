@@ -1,6 +1,6 @@
 ---
 name: "aav-idiomatic-rust-api"
-description: "Idiomatic Rust review — ABSTRACTION SURFACE & API PATTERNS lens. Use when reviewing recently written/modified Rust and you want a focused pass on how behavior is exposed and composed: argument borrowing/ownership, builder vs Default, must_use/non_exhaustive/private fields, inline attributes (#[inline] vs #[inline(always)]), trait composition and blanket impls, dispatch macros, RAII guards, and Deref-not-inheritance. One of the four agents dispatched when the user says 'dispatch the idiomatic rust agents'."
+description: "Idiomatic Rust review - ABSTRACTION SURFACE & API PATTERNS lens: how behavior is exposed and composed (argument borrowing, builder vs Default, must_use/non_exhaustive, inline attributes, trait composition, RAII guards, Deref-not-inheritance). One of the four dispatched on 'dispatch the idiomatic rust agents'."
 model: inherit
 color: green
 memory: user

@@ -29,7 +29,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Flag, Layout, Node, kind_rank, load_json
+from brainlib import Args, Exit, Flag, Layout, Node, Rel, kind_rank, load_json
 
 # --------------------------------------------------
 # external
@@ -61,16 +61,16 @@ MIN_N = 8
 MAX_N = 20
 # the edge types a card AUTHORS: [[body links]], `tension:`, `interest:`
 # served_by is the DERIVED inverse and is deliberately excluded - intent-craft
-# alone is served by 21 principles, so closing over it returns the whole store
-# (measured: transitive closure over any 8 cards = all 43)
-REFERENCE_EDGES: set[str] = {"relates", "tension", "serves"}
+# alone is served by 25 principles, so closing over it returns the whole store
+# (measured: transitive closure over any 8 cards = all 50)
+REFERENCE_EDGES: frozenset[Rel] = frozenset({Rel.RELATES, Rel.TENSION, Rel.SERVES})
 
 @dataclass
 class RecallIndex:
     """the built knowledge graph (shared Node objects), indexed for recall."""
 
     nodes: dict[str, Node] = field(default_factory=dict)
-    adjacency: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    adjacency: dict[str, list[tuple[str, Rel]]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path) -> "RecallIndex":
@@ -84,10 +84,17 @@ class RecallIndex:
         """
         data = load_json(path, "brain-graph")
         nodes = {n["id"]: Node.from_dict(n) for n in data["nodes"]}
-        adjacency: dict[str, list[tuple[str, str]]] = {node_id: [] for node_id in nodes}
+        adjacency: dict[str, list[tuple[str, Rel]]] = {node_id: [] for node_id in nodes}
         for edge in data["edges"]:
-            if edge["src"] in adjacency:
-                adjacency[edge["src"]].append((edge["dst"], edge["type"]))
+            if edge["src"] not in adjacency:
+                continue
+            # an edge type outside the vocabulary means graph.json was written by
+            # a different brain-graph than this one; say which, do not traceback
+            try:
+                rel = Rel(edge["type"])
+            except ValueError:
+                sys.exit(f"{TOOL}: graph.json has unknown edge type {edge['type']!r}; re-run brain-graph.py")
+            adjacency[edge["src"]].append((edge["dst"], rel))
         return cls(nodes=nodes, adjacency=adjacency)
 
     def seed(self, tokens: Sequence[str]) -> dict[str, float]:
@@ -214,14 +221,14 @@ class RecallIndex:
         order = sorted(required, key=lambda nid: (-final.get(nid, 0.0), kind_rank(self.nodes[nid].kind), nid))
         return list(window) + order, required
 
-    def neighbors(self, node_id: str) -> list[tuple[str, str]]:
+    def neighbors(self, node_id: str) -> list[tuple[str, Rel]]:
         """the edges leaving one node.
 
         # Arguments
         * `node_id` - the node id
 
         # Returns
-        the adjacency list of (dst, edge-type) for that node
+        the adjacency list of (dst, relationship) for that node
         """
         return self.adjacency.get(node_id, [])
 
@@ -315,9 +322,9 @@ def main() -> None:
     """dispatch the requested recall mode."""
     args = Args.from_argv()
     if not args.tokens:
-        sys.exit('usage: brain-recall.py "<task>" | --tells <s> | --neighbors <id> | --all [-n N]')
-    if unknown := args.unknown(Flag.ALL, Flag.TELLS, Flag.NEIGHBORS, Flag.BINDS):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+        print(f"{TOOL}: needs a task, or a lookup flag; `--help` lists what it accepts", file=sys.stderr)
+        sys.exit(Exit.USAGE)
+    args.gate(TOOL, __doc__, Flag.ALL, Flag.TELLS, Flag.NEIGHBORS, Flag.BINDS)
     index = RecallIndex.load(LAYOUT.graph_json)
     # --------------------------------------------------
     # the three lookup modes, each terminal
@@ -336,7 +343,7 @@ def main() -> None:
     # --------------------------------------------------
     pinned = int(args.value(Flag.N)) if args.has(Flag.N) else None
     contexts = args.values(Flag.BINDS)
-    task = " ".join(args.positional(Flag.N, Flag.BINDS))
+    task = " ".join(args.positional())
     seeds = index.seed(tokenize(task))
     if not seeds:
         print(f"no matching cards for: {task}")

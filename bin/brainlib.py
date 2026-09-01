@@ -13,10 +13,12 @@ library: scripts helping one another by sharing structs, not duplicating them
 
 contents:
 - pure helpers: clip, parse_frontmatter, iso_now, read_text, write_text
-- the card vocabulary: Kind (rank + neo4j label) and Confidence
+- the card vocabulary: Kind (rank + neo4j label), Rel (the closed edge vocabulary,
+  with its neo4j label) and Confidence
 - the process surface: Env (every environment variable read), Flag (every
   command-line flag accepted), Args (one argv parse), Exit (every status code),
-  Mode (which region of the flow a walk traverses, and what a guard admits)
+  Mode (which region of the flow a walk traverses, and what a guard admits),
+  Entry (every skill a walk can start from)
 - the layouts: Layout and DataLayout, the ONE place a path inside the brain is
   spelled. every directory and file name appears exactly once, as a property
 - the knowledge datatypes: Node, Edge
@@ -26,7 +28,11 @@ contents:
   in exactly one place
 - the append-merge ledger: Ledger + MergeCount, the ONE reader and writer for
   every jsonl corpus (evidence and trace alike), so "a log may only ever grow"
-  lives in one place too
+  lives in one place too; `mark` layers a stale/pinned flag over that, which
+  hides a record from readers without deleting it
+- the decision trace: Decision (one logged fork, and how it appends itself) and
+  PrunePolicy (how old an entry must be before it is even eligible to be judged
+  stale, scaled by how fast the repo is moving)
 
 Author: aav
 """
@@ -38,8 +44,11 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
-from collections.abc import Iterable, Sequence
+import tomllib
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from pathlib import Path
@@ -56,6 +65,10 @@ ENCODING = "utf-8"
 # declared to each tool in its own config (ruff target-version, ty python-version,
 # mypy python_version, pyright pythonVersion) and to `uv run` by the script headers
 PYTHON_VERSION = "3.12"
+
+# how long a `git log` measurement may run before the answer is not worth waiting
+# for; the caller falls back to the conservative window rather than hanging
+GIT_TIMEOUT = 10
 
 # a card's yaml header: scalars and lists, keyed by field name. the shape is
 # what `parse_frontmatter` returns and what every card reader consumes
@@ -102,6 +115,42 @@ class Kind(StrEnum):
             'Interest'
         """
         return self.value.capitalize()
+
+
+class Rel(StrEnum):
+    """every derived relationship an edge can carry, named once.
+
+    the graph's edge vocabulary is closed and derived - never authored - so it
+    belongs here rather than in the builder that writes it and again in the
+    reader that traverses it. the neo4j label comes off the member, the way
+    Kind's does, instead of a parallel string-keyed table a fifth relationship
+    would have to be added to twice
+
+    # Example
+
+        >>> Rel.SERVED_BY.label
+        'SERVED_BY'
+    """
+
+    SERVES = "serves"
+    SERVED_BY = "served_by"
+    RELATES = "relates"
+    TENSION = "tension"
+
+    @property
+    def label(self) -> str:
+        """this relationship's neo4j label.
+
+        # Returns
+
+        the upper-cased label
+
+        # Example
+
+            >>> Rel.RELATES.label
+            'RELATES'
+        """
+        return self.value.upper()
 
 
 class Confidence(StrEnum):
@@ -181,6 +230,7 @@ class Flag(StrEnum):
     DECISION = "--decision"
     EXPORT = "--export"
     GATE = "--gate"
+    HELP = "--help"
     LIST = "--list"
     LOW_CONFIDENCE = "--low-confidence"
     MERMAID = "--mermaid"
@@ -191,16 +241,46 @@ class Flag(StrEnum):
     OUT = "--out"
     PRINCIPLE = "--principle"
     PROJECT = "--project"
+    PRUNE = "--prune"
+    PRUNED = "--pruned"
     REJECT = "--reject"
+    RESTORE = "--restore"
+    EDIT = "--edit"
     SELF_REFINE = "--self-refine"
     SESSION = "--session"
     SINCE = "--since"
     SKILL = "--skill"
     SKILLS = "--skills"
     STALE = "--stale"
+    STALE_CANDIDATES = "--stale-candidates"
     STATE = "--state"
     SUPERSEDES = "--supersedes"
     TELLS = "--tells"
+
+    @classmethod
+    def valued(cls) -> frozenset["Flag"]:
+        """every flag whose meaning is the token after it.
+
+        knowing this globally is what lets `Args` tell a FLAG from a flag-shaped
+        VALUE. without it `--decision "--prune vs --delete"` reads as a request
+        to prune, and `--prune --restore TS` reads `--restore` as the timestamp
+        to prune and pins the entry instead
+
+        # Returns
+
+        the value-taking flags; every other member is a bare switch
+
+        # Example
+
+            >>> Flag.DECISION in Flag.valued(), Flag.CHECK in Flag.valued()
+            (True, False)
+        """
+        return frozenset({
+            cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
+            cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.N, cls.NEIGHBORS, cls.ON,
+            cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
+            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TELLS,
+        })
 
 
 class Mode(StrEnum):
@@ -214,26 +294,32 @@ class Mode(StrEnum):
 
     BUILD = "build"
     SELF_REFINE = "self_refine"
+    EDIT = "edit"
 
     @classmethod
-    def of(cls, *, self_refine: bool) -> "Mode":
+    def of(cls, *, self_refine: bool = False, edit: bool = False) -> "Mode":
         """the mode a walk is in.
 
         # Arguments
 
         * `self_refine` - true when the caller is brain-self-refine
+        * `edit` - true when the caller is brain-edit
 
         # Returns
 
-        the matching mode; BUILD when the flag is absent, which is the default
-        every other entry gets
+        the matching mode; BUILD when neither flag is present, which is what a
+        plan or execute run gets. refine and edit are separate because they
+        differ from a build in the same way (no phase list) but from each other
+        in whether verification may be skipped
 
         # Example
 
-            >>> Mode.of(self_refine=True), Mode.of(self_refine=False)
-            (<Mode.SELF_REFINE: 'self_refine'>, <Mode.BUILD: 'build'>)
+            >>> Mode.of(self_refine=True), Mode.of(edit=True), Mode.of()
+            (<Mode.SELF_REFINE: 'self_refine'>, <Mode.EDIT: 'edit'>, <Mode.BUILD: 'build'>)
         """
-        return cls.SELF_REFINE if self_refine else cls.BUILD
+        if self_refine:
+            return cls.SELF_REFINE
+        return cls.EDIT if edit else cls.BUILD
 
     def satisfies(self, guard: str) -> bool:
         """whether a transition's guard admits this mode.
@@ -262,6 +348,25 @@ class Mode(StrEnum):
             return True
         negated = guard.startswith("!")
         return (guard.lstrip("!") == self.value) != negated
+
+
+class Entry(StrEnum):
+    """every skill the user types to START a walk, named once.
+
+    an entry is the one skill in a run that is already in context before the
+    engine moves: it is the caller. two tools need that set and must never
+    disagree on it - brain-flow renders the drive handoff into each entry's
+    SKILL.md, and brain-walk suppresses a load directive for each, since
+    directing an entry to load itself is re-entry. a state's `owner` cannot
+    stand in for the set: an entry state is owned by whatever does its WORK,
+    which is nobody for IDEATION and brain-meta-author-prompt for DOCTRINE
+    """
+
+    PLAN = "brain-plan"
+    EXECUTE = "brain-execute"
+    EDIT = "brain-edit"
+    REVIEW = "brain-review"
+    SELF_REFINE = "brain-self-refine"
 
 
 class Exit(IntEnum):
@@ -301,8 +406,64 @@ class Args:
         """
         return cls(tuple(sys.argv[1:]))
 
+    def flags(self) -> tuple[str, ...]:
+        """the tokens that are FLAGS, with every flag-shaped value removed.
+
+        a value-taking flag claims the token after it, and that token may itself
+        look like a flag - a decision text, a rejected option. it is claimed
+        UNLESS it is an exact member of the vocabulary, because a bare `--prune`
+        sitting where a value belongs is far more likely a missing argument than
+        a decision literally named `--prune`. so `--decision "--prune vs x"`
+        reads as one flag with a value, while `--prune --restore TS` reads as
+        two flags and leaves `--prune` without one
+
+        # Returns
+
+        the flag tokens, in order, values excluded
+
+        # Example
+
+            >>> Args(("--decision", "--prune vs --delete", "--check")).flags()
+            ('--decision', '--check')
+            >>> Args(("--prune", "--restore", "TS")).flags()
+            ('--prune', '--restore')
+        """
+        return tuple(name for name, _ in self.parsed()[0])
+
+    def parsed(self) -> tuple[tuple[tuple[str, str], ...], tuple[str, ...]]:
+        """one walk of argv, split into (flag, value) pairs and positionals.
+
+        every other reader derives from this, so the rule for what counts as a
+        value is applied once rather than re-implemented per accessor
+
+        # Returns
+
+        a (pairs, positionals) tuple; a flag given no value pairs with `""`
+
+        # Example
+
+            >>> Args(("--since", "HEAD", "a.py")).parsed()
+            ((('--since', 'HEAD'),), ('a.py',))
+        """
+        known = {member.value for member in Flag}
+        valued = {member.value for member in Flag.valued()}
+        pairs: list[tuple[str, str]] = []
+        rest: list[str] = []
+        skip = False
+        for index, token in enumerate(self.tokens):
+            if skip:
+                skip = False
+                continue
+            if not token.startswith("-"):
+                rest.append(token)
+                continue
+            following = self.tokens[index + 1] if index + 1 < len(self.tokens) else ""
+            skip = token in valued and bool(following) and following not in known
+            pairs.append((token, following if skip else ""))
+        return tuple(pairs), tuple(rest)
+
     def has(self, flag: Flag) -> bool:
-        """whether a flag is present.
+        """whether a flag is present in FLAG position.
 
         # Arguments
 
@@ -310,9 +471,16 @@ class Args:
 
         # Returns
 
-        true when the flag appears anywhere in the arguments
+        true when the flag appears as a flag, never when it is only a value
+
+        # Example
+
+            >>> Args(("--decision", "--prune vs --delete")).has(Flag.PRUNE)
+            False
+            >>> Args(("--prune", "TS")).has(Flag.PRUNE)
+            True
         """
-        return flag.value in self.tokens
+        return flag.value in self.flags()
 
     def value(self, flag: Flag, default: str = "") -> str:
         """the value following a flag, or a default.
@@ -320,7 +488,7 @@ class Args:
         # Arguments
 
         * `flag` - the flag whose value to read
-        * `default` - returned when the flag is absent or trails the arguments
+        * `default` - returned when the flag is absent or was given no value
 
         # Returns
 
@@ -333,10 +501,7 @@ class Args:
             >>> Args(("--state",)).value(Flag.STATE, "?")
             '?'
         """
-        for index, token in enumerate(self.tokens):
-            if token == flag.value and index + 1 < len(self.tokens):
-                return self.tokens[index + 1]
-        return default
+        return next(iter(self.values(flag)), default)
 
     def values(self, flag: Flag) -> list[str]:
         """every value following each occurrence of a repeatable flag.
@@ -347,23 +512,22 @@ class Args:
 
         # Returns
 
-        one value per occurrence, in argument order
+        one value per occurrence that HAS one, in argument order
 
         # Example
 
             >>> Args(("--principle", "P26", "--principle", "P28")).values(Flag.PRINCIPLE)
             ['P26', 'P28']
+            >>> Args(("--prune", "--restore", "TS")).values(Flag.PRUNE)
+            []
         """
-        return [self.tokens[i + 1] for i, t in enumerate(self.tokens)
-                if t == flag.value and i + 1 < len(self.tokens)]
+        return [value for name, value in self.parsed()[0] if name == flag.value and value]
 
-    def positional(self, *taking: Flag) -> list[str]:
+    def positional(self) -> list[str]:
         """the arguments that are neither a flag nor a flag's value.
 
-        # Arguments
-
-        * `taking` - the flags of this tool that consume a following value, so
-          those values are not mistaken for positional arguments
+        which flags consume a value is known globally, so a caller no longer
+        declares its own set here and cannot disagree with the parse
 
         # Returns
 
@@ -371,20 +535,10 @@ class Args:
 
         # Example
 
-            >>> Args(("--since", "HEAD", "a.py", "b.py")).positional(Flag.SINCE)
+            >>> Args(("--since", "HEAD", "a.py", "b.py")).positional()
             ['a.py', 'b.py']
         """
-        consuming = {flag.value for flag in taking}
-        rest: list[str] = []
-        skip = False
-        for token in self.tokens:
-            if skip:
-                skip = False
-            elif token in consuming:
-                skip = True
-            elif not token.startswith("-"):
-                rest.append(token)
-        return rest
+        return list(self.parsed()[1])
 
     def unknown(self, *accepted: Flag) -> list[str]:
         """the flag-shaped arguments this tool does not accept.
@@ -405,7 +559,55 @@ class Args:
             []
         """
         allowed = {flag.value for flag in accepted}
-        return [t for t in self.tokens if t.startswith("--") and t not in allowed]
+        return [t for t in self.flags() if t.startswith("--") and t not in allowed]
+
+    def starved(self, *flags: Flag) -> list[str]:
+        """the given flags that are present but were handed no value.
+
+        a value-taking flag whose value is missing is a typo, not a request:
+        `--prune --restore TS` means one of the two was meant to carry the
+        timestamp, and doing half of it silently is worse than refusing
+
+        # Arguments
+
+        * `flags` - the value-taking flags to check
+
+        # Returns
+
+        the flags present in flag position with no value, in order
+
+        # Example
+
+            >>> Args(("--prune", "--restore", "TS")).starved(Flag.PRUNE, Flag.RESTORE)
+            ['--prune']
+        """
+        present = self.flags()
+        return [flag.value for flag in flags
+                if flag.value in present and not self.values(flag)]
+
+    def gate(self, tool: str, doc: str | None, *accepted: Flag) -> None:
+        """answer --help from the module docstring, then reject any unrecognised flag.
+
+        one call is the whole command-line contract: the flags passed are both
+        what the tool accepts and what it advertises, and the help text is the
+        docstring the module already carries, so neither can drift from a second
+        copy. every tool gates here rather than only the ones that read a flag -
+        an unrecognised flag left unrejected falls through to the default
+        action, which for a builder is a write to a committed artifact
+
+        # Arguments
+
+        * `tool` - this tool's name, for its messages
+        * `doc` - the calling module's `__doc__`, printed verbatim for --help
+        * `accepted` - every flag this tool understands
+        """
+        if self.has(Flag.HELP):
+            print((doc or f"{tool}: no usage recorded").strip())
+            sys.exit(Exit.OK)
+        if unrecognised := self.unknown(Flag.HELP, *accepted):
+            print(f"{tool}: unknown flag {unrecognised[0]}", file=sys.stderr)
+            print(f"{tool}: `--help` lists what it accepts", file=sys.stderr)
+            sys.exit(Exit.USAGE)
 
 
 def clip(text: str, limit: int) -> str:
@@ -477,7 +679,13 @@ def read_text(path: Path) -> str:
 
 
 def write_text(path: Path, content: str) -> None:
-    """write a text file in the repo's encoding, creating its parents.
+    """write a text file in the repo's encoding, atomically, creating its parents.
+
+    the write lands on a temporary file in the same directory and is renamed
+    over the target, so a reader sees either the whole previous file or the
+    whole new one. a direct write truncates first, and a failure between the
+    truncate and the last byte leaves a corpus that cannot be recovered - the
+    ledger's rewriting paths carry records whose sources have expired
 
     # Arguments
 
@@ -485,7 +693,12 @@ def write_text(path: Path, content: str) -> None:
     * `content` - the text to write
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding=ENCODING)
+    staged = path.with_name(f"{path.name}.tmp{os.getpid()}")
+    try:
+        staged.write_text(content, encoding=ENCODING)
+        staged.replace(path)
+    finally:
+        staged.unlink(missing_ok=True)
 
 
 def parse_frontmatter(text: str) -> Frontmatter:
@@ -571,7 +784,7 @@ class Node:
 class Edge:
     """one derived relationship. field order (type, src, dst) IS the sort order."""
 
-    type: str
+    type: Rel
     src: str
     dst: str
 
@@ -593,7 +806,7 @@ class Edge:
         # Returns
         an Edge
         """
-        return cls(type=data["type"], src=data["src"], dst=data["dst"])
+        return cls(type=Rel(data["type"]), src=data["src"], dst=data["dst"])
 
 
 @dataclass(frozen=True)
@@ -978,6 +1191,16 @@ class Layout:
         return self.root / "docs"
 
     @property
+    def prune_toml(self) -> Path:
+        """the authored prune policy.
+
+        # Returns
+
+        `<root>/prune.toml`
+        """
+        return self.root / "prune.toml"
+
+    @property
     def generated(self) -> Path:
         """the compiled output tree, gitignored.
 
@@ -1121,6 +1344,35 @@ def find_data() -> Path:
     return _xdg_data() / "aav-brain"
 
 
+def find_repo(start: Path | None = None) -> str:
+    """the NAME of the git repository a decision was made in.
+
+    an `affects` path is relative to the repo the run happened in, so without
+    the repo it cannot be resolved later - `plans/01-scaffold.md` reads as
+    deleted from anywhere else, which is indistinguishable from stale. the NAME
+    and not the path: a machine-absolute path in a committed log is the same
+    portability violation anywhere else (P32)
+
+    # Arguments
+
+    * `start` - where to start walking up from; the cwd when omitted
+
+    # Returns
+
+    the repo directory's name, or an empty string outside a repository
+
+    # Example
+
+        >>> find_repo(Path("/"))
+        ''
+    """
+    here = (start or Path.cwd()).resolve()
+    for directory in (here, *here.parents):
+        if (directory / ".git").exists():
+            return directory.name
+    return ""
+
+
 def find_archive() -> Path:
     """the cold store for RAW transcripts, a SIBLING of find_data(), never inside it.
 
@@ -1167,12 +1419,19 @@ class Ledger:
     the sources these records come from expire, so a full rebuild would delete
     evidence that can no longer be re-derived from anywhere; merging on content
     makes a re-run purely additive
+
+    forgetting is therefore a MARK, not a delete: `mark` stamps META fields that
+    readers filter on, so a corpus can drop a record from view and still restore
+    it by clearing the mark. that is the only sanctioned way to shrink a read
     """
 
     path: Path
 
-    # bookkeeping the ledger itself stamps, excluded from a record's identity
-    META: tuple[str, ...] = ("first_seen",)
+    # fields the ledger owns rather than the record: `first_seen` is stamped by a
+    # merge, `stale` and `pinned` by a mark. all three are excluded from identity
+    # because a marked record is the SAME record - in the payload a mark would
+    # dedup as a second row beside the unmarked one
+    META: tuple[str, ...] = ("first_seen", "stale", "pinned")
 
     @staticmethod
     def record_id(record: dict[str, Any]) -> str:
@@ -1257,11 +1516,62 @@ class Ledger:
         self.write(row for _, row in ordered)
         return MergeCount(added, kept, len(merged))
 
+    def mark(self, stamps: Mapping[str, Mapping[str, bool]]) -> int:
+        """stamp bookkeeping fields on the records named by `ts`, keeping every row.
+
+        this is how a corpus forgets without losing anything: a record marked
+        `stale` is skipped by readers but stays on disk, so restoring it is
+        clearing the mark rather than recovering it from somewhere. the fields
+        are META, which is what keeps a mark out of the content id
+
+        # Arguments
+
+        * `stamps` - the fields to set, keyed by the `ts` of the record to set
+          them on. a field set to false is removed rather than written as false,
+          so an unmarked record stays byte-identical to one never marked
+
+        # Returns
+
+        the number of records stamped; a `ts` matching nothing is a no-op
+        """
+        # --------------------------------------------------
+        # walk the RAW lines: a line this reader cannot parse is still a record,
+        # and `read` skipping it must not become `write` dropping it
+        # --------------------------------------------------
+        touched = 0
+        kept: list[str] = []
+        for line in read_text(self.path).splitlines() if self.path.exists() else []:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                kept.append(line)
+                continue
+            fields = stamps.get(str(row.get("ts", "")))
+            if not fields:
+                kept.append(line)
+                continue
+            for name, value in fields.items():
+                if value:
+                    row[name] = True
+                else:
+                    row.pop(name, None)
+            kept.append(json.dumps(row, ensure_ascii=False))
+            touched += 1
+        # --------------------------------------------------
+        # rewrite only when a stamp actually landed
+        # --------------------------------------------------
+        if touched:
+            write_text(self.path, "".join(f"{line}\n" for line in kept))
+        return touched
+
     def write(self, rows: Iterable[dict[str, Any]]) -> Path:
         """overwrite the corpus with `rows`, one json object per line.
 
         for DERIVED files only - a projection whose every row is recomputed from
-        a canonical corpus. anything append-only must go through merge/append
+        a canonical corpus. anything append-only must go through merge/append,
+        or `mark`, which rewrites the same rows it read and adds none
 
         # Arguments
         * `rows` - the records to write
@@ -1274,6 +1584,135 @@ class Ledger:
         return self.path
 
 
+@dataclass(frozen=True)
+class PrunePolicy:
+    """how old a trace entry must be before it is ELIGIBLE to be judged.
+
+    eligibility is an age filter and nothing more. it narrows a several-hundred
+    entry trace to the ones worth reading; deciding that any particular one is
+    actually stale is a judgement made against what the brain is now, entry by
+    entry. a tool that pruned everything past the cutoff would delete the oldest
+    and most load-bearing decisions in the store first
+
+    the window follows commit frequency because that is what sets how fast a
+    decision goes out of date: a repo being reshaped weekly invalidates a
+    three-week-old call, a quiet one does not
+
+    # Example
+
+        policy = PrunePolicy.load(LAYOUT.prune_toml)
+        cutoff = policy.cutoff(rate=policy.commit_rate(LAYOUT.root))
+    """
+
+    busy_commits_per_week: float = 10.0
+    sample_weeks: int = 8
+    fast_days: int = 21
+    slow_days: int = 60
+
+    @classmethod
+    def load(cls, path: Path) -> "PrunePolicy":
+        """read the policy, falling back to the defaults when it is absent.
+
+        # Arguments
+
+        * `path` - the prune.toml path
+
+        # Returns
+
+        the policy; the field defaults when the file is absent, unreadable,
+        malformed or the wrong shape. a broken config must WIDEN the window to
+        the conservative default, never stop the tool - the same file is read
+        beside the path that records decisions
+        """
+        if not path.is_file():
+            return cls()
+        try:
+            window = tomllib.loads(read_text(path)).get("window", {})
+            return cls(
+                busy_commits_per_week=float(window.get("busy_commits_per_week", cls.busy_commits_per_week)),
+                sample_weeks=max(1, int(window.get("sample_weeks", cls.sample_weeks))),
+                fast_days=max(1, int(window.get("fast_days", cls.fast_days))),
+                slow_days=max(1, int(window.get("slow_days", cls.slow_days))),
+            )
+        except (tomllib.TOMLDecodeError, AttributeError, TypeError, ValueError, OSError) as broken:
+            print(f"prune policy unreadable ({broken}); using defaults", file=sys.stderr)
+            return cls()
+
+    def commit_rate(self, repo: Path) -> float:
+        """commits per week in this repo over the sample window.
+
+        # Arguments
+
+        * `repo` - the repository to measure
+
+        # Returns
+
+        the rate; 0.0 when git is unavailable or the repo has no commits in the
+        window, which selects the slow (more conservative) window
+        """
+        git = shutil.which("git")
+        if git is None:
+            return 0.0
+        argv = [git, "-C", str(repo), "log", "--since", f"{self.sample_weeks} weeks ago", "--format=%H"]
+        # GIT_DIR and GIT_WORK_TREE outrank -C, so an inherited environment would
+        # silently measure a DIFFERENT repo than the one asked for
+        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        # argv is this method's own literals plus a discovered repo path; nothing
+        # here is remote input, and shell=False keeps it an exec not a shell (S603)
+        try:
+            done = subprocess.run(argv, capture_output=True, text=True, check=False,  # noqa: S603
+                                  env=env, timeout=GIT_TIMEOUT)
+        except (OSError, subprocess.SubprocessError):
+            return 0.0
+        if done.returncode != 0:
+            return 0.0
+        return len(done.stdout.split()) / self.sample_weeks
+
+    def window_days(self, rate: float) -> int:
+        """the eligibility window for a given commit rate.
+
+        # Arguments
+
+        * `rate` - commits per week
+
+        # Returns
+
+        the short window when the repo is busy, the long one otherwise
+
+        # Example
+
+            >>> policy = PrunePolicy()
+            >>> policy.window_days(25.0), policy.window_days(1.0)
+            (21, 60)
+        """
+        return self.fast_days if rate >= self.busy_commits_per_week else self.slow_days
+
+    def cutoff(self, rate: float, now: datetime.datetime | None = None) -> str:
+        """the iso timestamp an entry must predate to be eligible.
+
+        # Arguments
+
+        * `rate` - commits per week, from `commit_rate`
+        * `now` - the reference time; utc now when omitted
+
+        # Returns
+
+        an iso-8601 utc timestamp, string-comparable against a record's `ts`
+
+        # Example
+
+            >>> at = datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
+            >>> PrunePolicy().cutoff(1.0, at)
+            '2025-12-31T00:00:00.000000Z'
+        """
+        moment = now or datetime.datetime.now(datetime.UTC)
+        back = datetime.timedelta(days=self.window_days(rate))
+        # microseconds, matching iso_now: a record and this cutoff are compared
+        # as STRINGS, and at second precision `.` sorts below `Z`, so a record
+        # stamped inside the cutoff second would read as older than it
+        return (moment - back).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
 @dataclass
 class Decision:
     """one logged decision: what was chosen, what was rejected, what it affects.
@@ -1281,7 +1720,9 @@ class Decision:
     the decided-against entries are the point: a later session that disagrees
     reads `affects` to find exactly where the call was made and reverses it. when
     a call overturns a past one, `supersedes` carries the prior entry's ts so the
-    reversal is machine-readable, not buried in the `decision` prose
+    reversal is machine-readable, not buried in the `decision` prose. `repo`
+    is what makes `affects` resolvable at all: the trace spans every repo the
+    brain works in, and the same relative path means a different file in each
     """
 
     skill: str
@@ -1289,21 +1730,30 @@ class Decision:
     chosen: str
     against: list[dict[str, str]] = field(default_factory=list)
     affects: str = ""
+    repo: str = ""
     principle: list[str] = field(default_factory=list)
     confidence: str = "medium"
     supersedes: str = ""
 
+    def trace(self, ledger: "Ledger | None" = None, session: str = "", ts: str = "") -> Path:
+        """append this decision to the trace; never overwrite.
 
-def trace_decision(decision: "Decision", session: str = "", ts: str = "") -> Path:
-    """append one Decision to the trace (find_data()/trace/decisions.jsonl, OUTSIDE the repo; never overwrite).
+        the ledger defaults to the discovered one rather than a path spelled
+        here, because `DataLayout` owns where the trace lives and a second
+        spelling is a second thing to keep in step
 
-    # Arguments
-    * `decision` - a Decision instance
-    * `session` - the current session id, for transcript correlation
-    * `ts` - an iso utc timestamp; if empty, stamped now
+        # Arguments
 
-    # Returns
-    the resolved path the entry was appended to
-    """
-    entry = {"ts": ts or iso_now(), "session": session, **vars(decision)}
-    return Ledger(find_data() / "trace" / "decisions.jsonl").append(entry)
+        * `ledger` - the corpus to append to; the discovered trace when omitted
+        * `session` - the current session id, for transcript correlation
+        * `ts` - an iso utc timestamp; stamped now when empty
+
+        # Returns
+
+        the resolved path the entry was appended to
+        """
+        target = ledger if ledger is not None else Ledger(DataLayout.discover().decisions)
+        entry = {"ts": ts or iso_now(), "session": session, **vars(self)}
+        # an unset repo means "the repo this ran in", which only this type knows
+        entry["repo"] = entry["repo"] or find_repo()
+        return target.append(entry)

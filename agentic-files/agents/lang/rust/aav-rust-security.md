@@ -1,6 +1,6 @@
 ---
 name: "aav-rust-security"
-description: "Rust SECURITY review — an ORTHOGONAL scan, not an idiomatic-style pass. Use ONLY when the user explicitly asks for a security review (it is deliberately NOT part of 'dispatch the idiomatic rust agents'). Focuses on secret/PII leakage through Debug and Serialize, validating deserialization, constant-time secret comparison, unsafe-block soundness, and input-trust boundaries. Reviews for SAFETY OF SENSITIVE DATA, not for idiom."
+description: "Rust SECURITY review - an ORTHOGONAL scan, not an idiomatic pass. Use ONLY on an explicit security request (deliberately NOT part of 'dispatch the idiomatic rust agents'). Secret/PII leakage through Debug and Serialize, deserialization validation, constant-time comparison, unsafe soundness, input-trust boundaries."
 model: inherit
 color: orange
 memory: user

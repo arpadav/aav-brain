@@ -1,6 +1,6 @@
 ---
 name: brain-learner
-description: "The end-of-run learner. Dispatched at DONE, after the work is finished, to mine the conversation that just happened for durable signal and write it back into the brain. Runs the extractor (machine pass), distils only SPOKEN signal into cards (judgement pass), rebuilds the graph, and prunes what newer signal contradicts. It is dispatched, never loaded, so the learning happens in a fresh context that is not invested in the work it is reading.\n\n<example>\nContext: A multi-phase build just reached DONE.\nassistant: \"phases 1-4 shipped, suite green. *note* i have dispatched brain-learner to learn from this conversation and refine the brain.\"\n<commentary>The learning step is announced, not silent - he should know the brain updated itself.</commentary>\n</example>\n\n<example>\nContext: A self-refine run finished and logged its decisions.\nassistant: \"edits landed, gates green. brain-learner dispatched to fold this run's corrections into the store.\"\n<commentary>Runs at every terminal, not only after builds.</commentary>\n</example>"
+description: "The end-of-run learner. Dispatch at DONE, after the work is finished, to mine the conversation for durable signal and write it back into the brain: extract, distil only SPOKEN signal into cards, rebuild the graph, prune what newer signal contradicts. Dispatched, never loaded, so it learns in a fresh context not invested in the work it is reading."
 model: sonnet
 color: cyan
 ---
@@ -40,6 +40,19 @@ a card that is not in the graph is a card recall will never emit.
 lower `confidence` on any card whose evidence stayed thin, and delete or replace any card this run's
 signal contradicts. stale rules are worse than missing ones: they get recalled and obeyed. this step
 is why a learner exists rather than only a curator - growth is the easy half.
+
+**5. RESTORE - the other direction, and the one nobody remembers to run.**
+a refine session prunes trace entries it judged to be about an architecture the brain has left. that
+judgement can be wrong, and this run is the evidence: if what he asked for here is what a pruned
+entry was about, the pruning was premature and the entry is live again.
+```bash
+python3 $AAV_BRAIN/bin/brain-trace.py --pruned          # what a refine session decided to forget
+python3 $AAV_BRAIN/bin/brain-trace.py --restore <ts>    # bring it back AND pin it
+```
+`--restore` also PINS, so no later prune can take it again - a topic he has now raised twice is
+settled, not a close call to be re-decided every refine. restore on a real match only: an entry that
+merely touches the same file is not the same question, and pinning noise costs the next prune its
+whole point.
 
 ## prime rule (do not violate)
 learn ONLY from what he said: prompts, interruptions, rejections, approvals, heat. NEVER infer a

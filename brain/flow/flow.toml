@@ -35,7 +35,7 @@ id = "ASK"
 kind = "gate"
 owner = "brain-meta-intent"
 recall = true
-doc = "ask the smallest unblocking question; never guess (pre-sanction clarify)"
+doc = "ask the smallest unblocking question; never guess (pre-sanction clarify). ORDER IS FIXED: the FIRST question is always about the EXPERIENCE - what using the thing is like, how he will interact with it - offered as whole shapes he can pick between (a watch loop that re-runs on save / a page on localhost / a chat drill), never as parameters. only after that are specifics asked, and each carries a RECOMMENDED DEFAULT so the cheap answer is yes. a specific with an obvious default is not worth a question at all - take it and say which you took. measured failure this repairs: a lab count, a file layout and a progress format were each waved through as mechanical detail, and together they WERE the product - he had to redirect three times mid-build. the test is not is this decision small, it is DOES THIS DECIDE WHAT USING IT FEELS LIKE (P42, P44)"
 
 [[states]]
 id = "RECON"
@@ -202,7 +202,7 @@ kind = "terminal"
 owner = "brain-learner"
 recall = false
 terminal = true
-doc = "work complete. DISPATCH brain-learner to mine this conversation for durable signal, and SAY SO in the closing line - e.g. `<brief summary>. everything is done. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything"
+doc = "work complete. the closing line reports STATE, NOT A CHANGELOG (P43): is it done yes/no, and what is left. NEVER a tour of what was fixed, measured or rewritten - he reads git diff for that, and a defect that no longer exists is not information. a how-to is ONE LINE per thing, not a section per thing. surface a number only when it changes what he does next. an unresolved blocker IS state and must be said first. measured: 5 of 77 recorded heat events are him saying the brain wrote too much - it is the single most reliable producer of heat in the corpus. then DISPATCH brain-learner to mine this conversation for durable signal, and say so - e.g. `done. <what is left, if anything>. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything"
 
 # --------------------------------------------------
 # review region (brain-review entry): cold multi-lens review of the current
@@ -246,12 +246,22 @@ owner = "brain-self-refine"
 recall = false
 doc = "present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped"
 
+# --------------------------------------------------
+# the small-edit state, SHARED by two entries. brain-self-refine reaches it
+# from SR_ASK carrying his selection; brain-edit ENTERS here directly for a
+# follow-up change to work a previous run already planned and built. one state,
+# because the two are the same act: write a small edit, then rejoin the shared
+# tail (P31). it is NOT a plan - nothing here re-derives a phase list or
+# crosses SANCTION.
+# --------------------------------------------------
 [[states]]
-id = "SR_EDIT"
+id = "EDIT"
 kind = "work"
-owner = "brain-self-refine"
+owner = "brain-self-refine+brain-edit"
 recall = true
-doc = "make ONLY the selected edits, each through the right meta-skill (curate/style/direct)"
+entry = true
+regime = "execute-through"
+doc = "make ONLY the selected/asked-for edit, through the right meta-skill (curate/style/direct). the OUTBOUND EVENT IS THE RIGOR DIAL and it is HIS to set, asked before the edit starts, never inferred from how small the change looks (P41): `edited` -> VERIFY builds and tests it, `gated` -> PHASEGATE puts a cold reviewer on the diff first, `unchecked` -> STYLE skips verification entirely. every one of them still rides STYLE -> RECORD -> CURATE, so a small edit is never outside the ecosystem"
 
 # --------------------------------------------------
 # transitions
@@ -464,7 +474,7 @@ dst = "REMEDIATE"
 src = "VERIFY"
 on = "more_phases"
 dst = "DOCTRINE"
-guard = "!self_refine"
+guard = "build"
 
 [[transitions]]
 src = "VERIFY"
@@ -513,19 +523,45 @@ dst = "SR_ASK"
 [[transitions]]
 src = "SR_ASK"
 on = "selected"
-dst = "SR_EDIT"
+dst = "EDIT"
 
 [[transitions]]
 src = "SR_ASK"
 on = "none_selected"
 dst = "DONE"
 
-# the refine branch rejoins the shared tail here. SR_GATE was VERIFY under
-# another name and SR_LOG was CURATE under another name, so both are gone and
-# the edit rides VERIFY -> STYLE -> RECORD -> CURATE -> DONE like any other
+# EDIT rejoins the shared tail here, on one of three edges. SR_GATE was VERIFY
+# under another name and SR_LOG was CURATE under another name, so both are gone
+# and the edit rides VERIFY -> STYLE -> RECORD -> CURATE -> DONE like any other
 # work. this is what puts the style gate and the verifier in front of brain
 # code edited by a refine run, which they never were
 [[transitions]]
-src = "SR_EDIT"
+src = "EDIT"
 on = "edited"
 dst = "VERIFY"
+
+# the heavy dial: a cold reviewer reads the diff before anything is trusted.
+# PHASEGATE carries its own ADJUDICATE -> REMEDIATE loop and lands on VERIFY,
+# so this is a strict superset of `edited`, not a detour around it
+[[transitions]]
+src = "EDIT"
+on = "gated"
+dst = "PHASEGATE"
+
+# post-sanction ambiguity stops here, exactly as it does in IMPL. without this
+# an edit run that hits a real question has no sanctioned pause and must guess
+[[transitions]]
+src = "EDIT"
+on = "ambiguous"
+dst = "BLOCKED"
+
+# the light dial: no build, no test, no reviewer - for a change whose artifact
+# does not warrant it (P41). it still gets STYLE, RECORD and CURATE, because
+# the point of routing a small edit through the flow at all is that the brain
+# still learns from it. guarded to the edit mode: a refine run has just written
+# brain code and rides VERIFY, which is the hole folding SR_EDIT in closed
+[[transitions]]
+src = "EDIT"
+on = "unchecked"
+dst = "STYLE"
+guard = "edit"

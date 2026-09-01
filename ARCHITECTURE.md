@@ -68,9 +68,9 @@ elsewhere.
 
 ## 2. the acting suite (in agentic-files/)
 
-skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FOUR
-user-callable ENTRY skills + eight `brain-meta-*` machinery skills + the agents (categorized under
-`agentic-files/agents/{brain,general,lang/rust,style,custom}`). you only ever call the four entries; the
+skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FIVE
+user-callable ENTRY skills + six `brain-meta-*` machinery skills + the agents (categorized under
+`agentic-files/agents/{brain,general,lang/rust,style,custom}`). you only ever call the entries; the
 `brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
 claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
@@ -79,18 +79,19 @@ running a script keeps its code out of context and is deterministic. the discove
 (`eval "$(brain-find --export)"`, brain-find on PATH) sets `$AAV_BRAIN` with no hardcoded path on any
 machine; the skill then invokes `$AAV_BRAIN/bin/<script>.py` - no layout-assuming per-skill symlink (P32).
 
-the 4 ENTRIES (call these) - each enters the unified flow at its own node and walks to a terminal:
+the 5 ENTRIES (call these) - each enters the unified flow at its own node and walks to a terminal:
 | entry | enters flow at | what it does |
 |---|---|---|
 | brain-plan | IDEATION | small+verbose plan with a worked example, traced through it (PLANPROBE), to plans/. also new-project kickoff (interrogate the spec first). |
-| brain-execute | IMPL | build a sanctioned plan to DONE; "continue" / "resume" re-invokes it and rebuilds state |
+| brain-execute | DOCTRINE | build a sanctioned plan to DONE; "continue" / "resume" re-invokes it and rebuilds state |
+| brain-edit | EDIT | a small follow-up change to what a previous run built, without replanning; he sets the rigor |
 | brain-review | REVIEW | cold multi-lens review of the current diff, into the shared gate loop |
 | brain-self-refine | SR_SCAN | turn the review lens on the brain itself; findings+questions, then edit |
 
 the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directly):
 | brain-meta-* | role |
 |---|---|
-| brain-meta-drive | the shared traversal ENGINE: steps flow.json, dispatches each owner, loops the gates. all 4 entries traverse with this one trampoline (P31) |
+| brain-meta-drive | the shared traversal ENGINE: steps flow.json, dispatches each owner, loops the gates. every entry traverses with this one trampoline (P31) |
 | brain-meta-intent | position -> interest; surface ambiguity; ask-first before sanction |
 | brain-meta-author-prompt | write worker prompts in my voice + intent |
 | brain-meta-style | review as me (plan lens + style lens), cite cards; runs brain-fmt.py |
@@ -106,14 +107,15 @@ agents (cold dispatch, separate window - a distinct category, NOT `brain-meta-*`
 
 ## 3. the control loop (entry + shared engine, a trampoline over the flow)
 
-the four entries are THIN: each reconstructs its region's state, sets a start node + a regime, and hands
+the entries are THIN: each reconstructs its region's state, sets a start node + a regime, and hands
 the walk to the ONE shared engine, brain-meta-drive (P31). the engine does not invent the sequence - it
 STEPS the flow deterministically: each iteration asks brain-walk for the current state (owner + recall
 flag), runs the owner, and feeds the outcome event back to brain-walk for the next state. the brain
 follows the flowchart because it must query flow.json to take a step (P30).
 
 ```
-   <entry> = brain-plan@IDEATION | brain-execute@IMPL | brain-review@REVIEW | brain-self-refine@SR_SCAN
+   <entry> = brain-plan@IDEATION | brain-execute@DOCTRINE | brain-edit@EDIT
+           | brain-review@REVIEW  | brain-self-refine@SR_SCAN
      state, regime := reconstruct THIS region's state; set the entry node + ask-first|execute-through
      load brain-meta-drive, run it from <state>:
 
@@ -126,7 +128,7 @@ follows the flowchart because it must query flow.json to take a step (P30).
      until terminal; stop+ask on BLOCKED/ASK
 ```
 
-the flow is MULTI-ENTRY: one graph, four start nodes, regime read FROM the entry (not inferred from
+the flow is MULTI-ENTRY: one graph, five start nodes, regime read FROM the entry (not inferred from
 crossing SANCTION - review and self-refine reach a terminal without it). reconstruction is per-entry
 (execute rebuilds from the sanctioned plan + git; self-refine from its selection-state), the engine reconstructs
 nothing. owners are the brain-meta-* skills / cold agents: brain-meta-author-prompt writes the worker
@@ -157,11 +159,12 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
   conventions, never a specific project (the semantic-architecture reviewer discovers the repo's
   crates/CLAUDE.md instead of hardcoding them; no machine-specific paths, P32).
 - the store is plain markdown + the brainlib library + the tools (extract, graph, recall, flow, walk,
-  fmt, cards, trace, find, compile), all importing brainlib. no services to start.
+  fmt, cards, trace, find, lint, compile), all importing brainlib. no services to start.
 
 ## 6. how to use it
-see README.md for the quickstart. the four entrypoints (the only skills you call):
+see README.md for the quickstart. the entrypoints (the only skills you call):
 - /brain-plan <idea>: plan this new thing (or a change) my way, to sanction.
 - /brain-execute: build a sanctioned plan to DONE - and "continue" / "resume" picks it back up.
+- /brain-edit <change>: one small follow-up edit to what that build produced, without replanning it.
 - /brain-review: cold multi-lens review of the current diff.
 - /brain-self-refine: turn the review lens on the brain itself.

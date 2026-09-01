@@ -61,7 +61,8 @@
       ],
       "body_links": [
         "principle-04-anti-fabrication",
-        "principle-29-interrogate-the-work"
+        "principle-29-interrogate-the-work",
+        "principle-45-scope-is-the-ask"
       ],
       "path": "brain/principles/principle-03-review-gate.md"
     },
@@ -127,6 +128,7 @@
         "principle-03-review-gate",
         "principle-07-trim-fat-verbose-docs",
         "principle-37-comment-the-artifact-not-the-edit",
+        "principle-39-style-contract",
         "principle-40-idiom-needs-exemplars",
         "principle-41-rigor-scales-with-purpose"
       ],
@@ -169,7 +171,8 @@
         "did you not read the error?",
         "listen to the error",
         "read ~/.cargo source",
-        "dont research - temp add to cargo toml and build"
+        "dont research - temp add to cargo toml and build",
+        "ask the agent why its using context7 for docs? shouldnt it just download the lib stored locally in cache and see the source instead?"
       ],
       "body_links": [
         "principle-15-tone-is-signal"
@@ -189,7 +192,9 @@
         "do NOT commit",
         "i bump cargo tomls manually",
         "i will go through and verify the messages",
-        "im the one who editted this"
+        "im the one who editted this",
+        "files: <tree> commit: 'an example pre-filled commit'",
+        "then i can simply say Y to accept or N to not accept the commit message"
       ],
       "body_links": [
         "principle-15-tone-is-signal"
@@ -201,7 +206,8 @@
       "kind": "principle",
       "headline": "Once a plan is blessed, run phases back-to-back with no needless pauses or summaries. Report only at gates.",
       "interest": [
-        "intent-efficiency"
+        "intent-efficiency",
+        "intent-trust"
       ],
       "confidence": "very-high",
       "binds": [],
@@ -212,11 +218,17 @@
         "dont pause again",
         "continue where left off",
         "still stuff to fix? if so, why arent you doing brain walk to fix until done",
-        "if its fixed, simply say its done"
+        "if its fixed, simply say its done",
+        "why is this taking a long time? like everything is timing out. just move on and fix later",
+        "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context",
+        "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete"
       ],
       "body_links": [
         "principle-01-no-assumptions",
-        "principle-03-review-gate"
+        "principle-03-review-gate",
+        "principle-33-git-is-not-a-blocker",
+        "principle-42-plain-english-questions",
+        "principle-43-report-state-not-changelog"
       ],
       "path": "brain/principles/principle-10-autonomy-after-sanction.md"
     },
@@ -480,7 +492,12 @@
         "caret in semver",
         "instead of X do Y",
         "use aav-rust-implementer for rust",
-        "the rust implementer agent not rust-engineer"
+        "the rust implementer agent not rust-engineer",
+        "and do not do streamlit please... i hate streamlit. id rather have svelte with rust wasm embedded for 3d visuals from data/charts derived from python or something",
+        "and for the reviewers, make them opus or sonnet, xhigh effort, dont make them fable. note that for this project/request",
+        "IF you run, run on 0.0.0.0 not local",
+        "that being said, it should NOT inheret effort amount. i need these to be high/xhigh since max is taking too long",
+        "use libretto skill for browser automation searches if context mode doesnt work"
       ],
       "body_links": [
         "principle-05-reuse-first",
@@ -631,7 +648,8 @@
         "is this coupling necessary",
         "does this belong to that parent or is it independent",
         "decouple, find what is purely independent",
-        "cut the fat even more"
+        "cut the fat even more",
+        "even when you believe you are done, ask yourself 'is there more i can include'"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -853,7 +871,8 @@
         "they do not follow my style guide",
         "adhering to my style should be baked into the brain",
         "i always have to manually do it afterwards",
-        "it should ALWAYS be required, unless i explicitly ask against it"
+        "it should ALWAYS be required, unless i explicitly ask against it",
+        "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE"
       ],
       "body_links": [
         "principle-04-anti-fabrication",
@@ -918,6 +937,211 @@
         "principle-40-idiom-needs-exemplars"
       ],
       "path": "brain/principles/principle-41-rigor-scales-with-purpose.md"
+    },
+    {
+      "id": "principle-42-plain-english-questions",
+      "kind": "principle",
+      "headline": "when the brain puts a choice to him, it is plain english - current flow is X, proposed flow(s) and options are Y - never syntax, jargon, or an unexplained term. one question at a time, built up from nothing, not a battery of technical options he has to reverse-engineer. ASK ABOUT THE EXPERIENCE FIRST - how he will interact with the thing - and only then specifics, each carrying a recommended default.",
+      "interest": [
+        "intent-comprehension",
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "use natural language and plain english, not syntax, just talk about",
+        "i dont even understand the last question and its options. what do you mean by floor?",
+        "in simple terms + english + natural language, just explain the current workflow vs the proposed ones",
+        "dont use literal code snippets unless asked, just use plain natural language",
+        "im not paying attention, so use plain english and build-up my knowledge one step at a time",
+        "dont be so menial and meticulous: you are overthinking. i dont give a fuck about specifics, i care about functionality",
+        "you need to ask me about HOW the user experience will be, how i want to interact with it, and then it should be catered to that. from THERE you can ask specifics, with recommended defaults",
+        "figure it out, find some yourself by reading existing files",
+        "dont literally do EXACTLY 30, that number was an example. please YOU figure out how much is appropriate",
+        "and ask me about styling before applying your own. i want it similar to ... where its simple 90's look and cool visuals, but at the same time i want it interactive. retro",
+        "all i see is left column confusing knobs and buttons which are not user friendly at all, the middle area is blank (completely white), the right area is also blank (but grey) with some text, etc. i assume the final passes fix all this junk?"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-24-socratic-mode",
+        "principle-41-rigor-scales-with-purpose"
+      ],
+      "path": "brain/principles/principle-42-plain-english-questions.md"
+    },
+    {
+      "id": "principle-43-report-state-not-changelog",
+      "kind": "principle",
+      "headline": "when work finishes, report STATE - is it done, what is left - not a tour of what was fixed. he reads the diff for the changelog. a how-to gets a one-liner, not a section. the fix that no longer matters is not news.",
+      "interest": [
+        "intent-efficiency",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "why the fuck would i care about some bug that no longer exists? i can see git diff just fine",
+        "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage",
+        "stop dumping this entire slop grenade at me. simply say: best order: <list>",
+        "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items",
+        "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write",
+        "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you",
+        "how much left? progress percent and a sneak peek"
+      ],
+      "body_links": [
+        "principle-37-comment-the-artifact-not-the-edit",
+        "principle-48-look-at-the-rendered-output"
+      ],
+      "path": "brain/principles/principle-43-report-state-not-changelog.md"
+    },
+    {
+      "id": "principle-44-build-from-nothing-to-something",
+      "kind": "principle",
+      "headline": "he learns by building a foundation from nothing to something, one atomic step at a time, each step touching the last one's output - never by memorizing a finished artifact. any explanation or teaching material is a ladder he climbs interactively, not a reference he is handed.",
+      "interest": [
+        "intent-comprehension",
+        "intent-efficiency"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "its not memorization that works - its building up foundation from nothing -> something, interactive",
+        "do you not understand how to start simple and BUILD ONTOP of existing knowledge?",
+        "the NEXT one should BUILD ONTOP of it, by showing my first kernel from previous lab, and ADDING to it, so i can see the DIFFERENCE",
+        "i want it interactive like I WRITE THE KERNEL in some of them not just run commands",
+        "even the first lab just takes 30 minutes to LEARN what is actually happening before i can actually do anything",
+        "do NOT make me edit fucking markdown tables, the formatting/input is so dogshit - this is NOT a lab its manual grunt work and i am learning nothing",
+        "dont do that again. just make them all .cu files that i have to edit. dont make me move them individually"
+      ],
+      "body_links": [
+        "principle-40-idiom-needs-exemplars",
+        "principle-42-plain-english-questions"
+      ],
+      "path": "brain/principles/principle-44-build-from-nothing-to-something.md"
+    },
+    {
+      "id": "principle-45-scope-is-the-ask",
+      "kind": "principle",
+      "headline": "a sanctioned change does what was asked and stops. adjacent cleanup nobody asked for is not a bonus - it is what turns a two-step task into a review loop, because the gate then reviews the widened surface.",
+      "interest": [
+        "intent-efficiency",
+        "intent-control"
+      ],
+      "confidence": "high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "this should have just been moving main fn's so i dont see the big confusion",
+        "what was my original ask again?",
+        "how much more is left?"
+      ],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-04-anti-fabrication",
+        "principle-14-minimal-surface",
+        "principle-20-refactors-welcome",
+        "principle-37-comment-the-artifact-not-the-edit"
+      ],
+      "path": "brain/principles/principle-45-scope-is-the-ask.md"
+    },
+    {
+      "id": "principle-46-stay-in-the-working-folder",
+      "kind": "principle",
+      "headline": "work inside the folder he pointed at; never roam his file system for prior art or context; toolchain caches (~/.cargo registry, node_modules, cached .so files) are fine to read; anything else outside the folder is a question first.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-trust"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "STAY IN THIS FOLDER. do NOT move around my file system",
+        "that other repo was purely arm vs x86 NOT a gpu workload spec review... never use that as a baseline, forgrt it ever exists",
+        "uh yea i just said stay in this repo lile dont look at my other projects/files/sensitive but cargo registry and cached lib files and even so's are fine. make note"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-05-reuse-first",
+        "principle-15-tone-is-signal"
+      ],
+      "path": "brain/principles/principle-46-stay-in-the-working-folder.md"
+    },
+    {
+      "id": "principle-47-copy-raw-fetches-into-the-repo",
+      "kind": "principle",
+      "headline": "every page, api response or search result an agent fetches for data is copied into the repo's source corpus as it is fetched, and the row that cites it names that copy; a fetch that was not copied does not exist.",
+      "interest": [
+        "intent-trust",
+        "intent-comprehension"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "and for all these subagent tasks which fetch data, where is that stored? ... were they ephemeral/in RAM or were they written to disk",
+        "if that agent saved the raw info, then during the analysis it could be queried too",
+        "no need to complicate with code, i was asking because next time i do fetches, the llm should know to copy stuff to snapshot, thats all"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-08-read-source-and-error"
+      ],
+      "path": "brain/principles/principle-47-copy-raw-fetches-into-the-repo.md"
+    },
+    {
+      "id": "principle-48-look-at-the-rendered-output",
+      "kind": "principle",
+      "headline": "a pdf, chart, page or app is not done until its rendered output has been looked at - rasterise / screenshot and read it - and a programmatic audit of the things an eye misses (chart kind vs caption, embed width, label density, overfull lines, table overflow) sits in the build gate.",
+      "interest": [
+        "intent-craft",
+        "intent-trust"
+      ],
+      "confidence": "very-high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong",
+        "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up",
+        "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm",
+        "this is visually so confusing. middle is a blank screen, no styling"
+      ],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/principles/principle-48-look-at-the-rendered-output.md"
+    },
+    {
+      "id": "principle-49-his-interactive-app-shape",
+      "kind": "principle",
+      "headline": "an interactive data app of his opens on the data (a 3d stage, the full universe drawn, click a point for its page), lets him weight importance himself with sliders, keeps detail as stackable pages not side drawers, offers settings as a questionnaire first with a raw tab behind it and keeps them across restarts, prints money like a receipt, wears his 90's academic page style with a harsh retro scene, works by finger on his surface pro and phone, and relays any settings/filter change to every surface at once - list, stage, graphs - never just the tab being edited.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "very-high",
+      "binds": [],
+      "tells": [
+        "i want it ALL and then i can filter out, choose min/max. i should be able to filter and sort everything. there should be an interactive model",
+        "this is supposed to be an analysis across a bunch of existing workloads with 3d data, then i click on datapoint and can view specs and all. then apply optional filters to remove datapoints",
+        "any way to make the list format where i can weight importance? like i care about memory 50% and power 25% and flops 25% or something, 0% price",
+        "thats an option, they should all be sliders",
+        "id much rather have a dedicated page for each which i can view and return to. not necessarily URL, but like a stack, where i can press on it, it overlays, and i press back and it returns to layer underneath",
+        "the default view is a questionnaire. the questionnare should page you through asking questions in an interactive sleek format, which then sets settings for you. the settings are applied and shouldnt be ephemeral",
+        "make it look like a receipt or something",
+        "harsh black white rgb colors, 24bit colors or whatever",
+        "any way on browser-side to allow for touch options? i see point and click but on my MS surface pro or phone, no work",
+        "very last, mobile view?",
+        "not some naive line graph but something more scientific like optimization problem across cost power vram gflops and other metrics",
+        "search the web, use browser skills, etc to fetch relevant images for each... not only of the products, but saying this is gpu, this is a case, and company logos too. feel free to use ffmpeg to style/alter logos... use dithered options for more of that retro look",
+        "when i change settings/filters then i dont see that relayed on the list. it should be realyed everywhere, the list the 3d the graphs etc"
+      ],
+      "body_links": [
+        "principle-23-standing-decisions",
+        "principle-42-plain-english-questions",
+        "principle-48-look-at-the-rendered-output"
+      ],
+      "path": "brain/principles/principle-49-his-interactive-app-shape.md"
     },
     {
       "id": "intent-comprehension",
@@ -1029,6 +1253,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-03-review-gate",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "relates"
+    },
+    {
       "src": "principle-05-reuse-first",
       "dst": "principle-07-trim-fat-verbose-docs",
       "type": "relates"
@@ -1051,6 +1280,11 @@
     {
       "src": "principle-06-idiomatic-per-language",
       "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-39-style-contract",
       "type": "relates"
     },
     {
@@ -1096,6 +1330,21 @@
     {
       "src": "principle-10-autonomy-after-sanction",
       "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-33-git-is-not-a-blocker",
+      "type": "relates"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-42-plain-english-questions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "principle-43-report-state-not-changelog",
       "type": "relates"
     },
     {
@@ -1434,6 +1683,116 @@
       "type": "relates"
     },
     {
+      "src": "principle-42-plain-english-questions",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-42-plain-english-questions",
+      "dst": "principle-24-socratic-mode",
+      "type": "relates"
+    },
+    {
+      "src": "principle-42-plain-english-questions",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "relates"
+    },
+    {
+      "src": "principle-43-report-state-not-changelog",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "relates"
+    },
+    {
+      "src": "principle-43-report-state-not-changelog",
+      "dst": "principle-48-look-at-the-rendered-output",
+      "type": "relates"
+    },
+    {
+      "src": "principle-44-build-from-nothing-to-something",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
+    },
+    {
+      "src": "principle-44-build-from-nothing-to-something",
+      "dst": "principle-42-plain-english-questions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-20-refactors-welcome",
+      "type": "relates"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-37-comment-the-artifact-not-the-edit",
+      "type": "relates"
+    },
+    {
+      "src": "principle-46-stay-in-the-working-folder",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-46-stay-in-the-working-folder",
+      "dst": "principle-05-reuse-first",
+      "type": "relates"
+    },
+    {
+      "src": "principle-46-stay-in-the-working-folder",
+      "dst": "principle-15-tone-is-signal",
+      "type": "relates"
+    },
+    {
+      "src": "principle-47-copy-raw-fetches-into-the-repo",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-47-copy-raw-fetches-into-the-repo",
+      "dst": "principle-08-read-source-and-error",
+      "type": "relates"
+    },
+    {
+      "src": "principle-48-look-at-the-rendered-output",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-48-look-at-the-rendered-output",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-49-his-interactive-app-shape",
+      "dst": "principle-23-standing-decisions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-49-his-interactive-app-shape",
+      "dst": "principle-42-plain-english-questions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-49-his-interactive-app-shape",
+      "dst": "principle-48-look-at-the-rendered-output",
+      "type": "relates"
+    },
+    {
       "src": "intent-comprehension",
       "dst": "principle-01-no-assumptions",
       "type": "served_by"
@@ -1474,6 +1833,31 @@
       "type": "served_by"
     },
     {
+      "src": "intent-comprehension",
+      "dst": "principle-42-plain-english-questions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-43-report-state-not-changelog",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-44-build-from-nothing-to-something",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-47-copy-raw-fetches-into-the-repo",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-comprehension",
+      "dst": "principle-49-his-interactive-app-shape",
+      "type": "served_by"
+    },
+    {
       "src": "intent-control",
       "dst": "principle-01-no-assumptions",
       "type": "served_by"
@@ -1506,6 +1890,11 @@
     {
       "src": "intent-control",
       "dst": "principle-38-a-non-answer-is-not-consent",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-control",
+      "dst": "principle-45-scope-is-the-ask",
       "type": "served_by"
     },
     {
@@ -1634,6 +2023,16 @@
       "type": "served_by"
     },
     {
+      "src": "intent-craft",
+      "dst": "principle-48-look-at-the-rendered-output",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-craft",
+      "dst": "principle-49-his-interactive-app-shape",
+      "type": "served_by"
+    },
+    {
       "src": "intent-efficiency",
       "dst": "principle-10-autonomy-after-sanction",
       "type": "served_by"
@@ -1679,6 +2078,26 @@
       "type": "served_by"
     },
     {
+      "src": "intent-efficiency",
+      "dst": "principle-42-plain-english-questions",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-43-report-state-not-changelog",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-44-build-from-nothing-to-something",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-efficiency",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "served_by"
+    },
+    {
       "src": "intent-sovereignty",
       "dst": "principle-09-git-sovereignty",
       "type": "served_by"
@@ -1686,6 +2105,11 @@
     {
       "src": "intent-sovereignty",
       "dst": "principle-33-git-is-not-a-blocker",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-sovereignty",
+      "dst": "principle-46-stay-in-the-working-folder",
       "type": "served_by"
     },
     {
@@ -1701,6 +2125,11 @@
     {
       "src": "intent-trust",
       "dst": "principle-08-read-source-and-error",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-10-autonomy-after-sanction",
       "type": "served_by"
     },
     {
@@ -1731,6 +2160,21 @@
     {
       "src": "intent-trust",
       "dst": "principle-36-verify-with-stderr-visible",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-46-stay-in-the-working-folder",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-47-copy-raw-fetches-into-the-repo",
+      "type": "served_by"
+    },
+    {
+      "src": "intent-trust",
+      "dst": "principle-48-look-at-the-rendered-output",
       "type": "served_by"
     },
     {
@@ -1796,6 +2240,11 @@
     {
       "src": "principle-10-autonomy-after-sanction",
       "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-10-autonomy-after-sanction",
+      "dst": "intent-trust",
       "type": "serves"
     },
     {
@@ -2031,6 +2480,86 @@
     {
       "src": "principle-41-rigor-scales-with-purpose",
       "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-42-plain-english-questions",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-42-plain-english-questions",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-43-report-state-not-changelog",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-43-report-state-not-changelog",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-44-build-from-nothing-to-something",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-44-build-from-nothing-to-something",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "intent-control",
+      "type": "serves"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "intent-efficiency",
+      "type": "serves"
+    },
+    {
+      "src": "principle-46-stay-in-the-working-folder",
+      "dst": "intent-sovereignty",
+      "type": "serves"
+    },
+    {
+      "src": "principle-46-stay-in-the-working-folder",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-47-copy-raw-fetches-into-the-repo",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-47-copy-raw-fetches-into-the-repo",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-48-look-at-the-rendered-output",
+      "dst": "intent-craft",
+      "type": "serves"
+    },
+    {
+      "src": "principle-48-look-at-the-rendered-output",
+      "dst": "intent-trust",
+      "type": "serves"
+    },
+    {
+      "src": "principle-49-his-interactive-app-shape",
+      "dst": "intent-comprehension",
+      "type": "serves"
+    },
+    {
+      "src": "principle-49-his-interactive-app-shape",
+      "dst": "intent-craft",
       "type": "serves"
     },
     {

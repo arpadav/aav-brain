@@ -488,10 +488,9 @@ def main() -> None:
     # a flag accepted only in first position silently becomes a PATH anywhere else
     # --------------------------------------------------
     args = Args.from_argv()
-    if unknown := args.unknown(Flag.SINCE, Flag.STALE, Flag.CHECK, Flag.GATE):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+    args.gate(TOOL, __doc__, Flag.SINCE, Flag.STALE, Flag.CHECK, Flag.GATE)
     ref = args.value(Flag.SINCE) or None
-    paths = args.positional(Flag.SINCE)
+    paths = args.positional()
     # --------------------------------------------------
     # validate the mode against the arguments
     # --------------------------------------------------

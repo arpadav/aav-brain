@@ -5,7 +5,7 @@ rule: before AND after generating any artifact, interrogate it with the question
 interest: [intent-craft, intent-comprehension]
 confidence: very-high
 evidence_count: 7
-tells: ["would arpad write this function that way", "would arpad write this file like this", "would arpad structure this folder like this", "why am i generating this artifact, is it used", "should i be reading from it instead", "has this been defined elsewhere", "what questions would arpad ask", "cold review plus a would-arpad pass", "is this coupling necessary", "does this belong to that parent or is it independent", "decouple, find what is purely independent", "cut the fat even more"]
+tells: ["would arpad write this function that way", "would arpad write this file like this", "would arpad structure this folder like this", "why am i generating this artifact, is it used", "should i be reading from it instead", "has this been defined elsewhere", "what questions would arpad ask", "cold review plus a would-arpad pass", "is this coupling necessary", "does this belong to that parent or is it independent", "decouple, find what is purely independent", "cut the fat even more", "even when you believe you are done, ask yourself 'is there more i can include'"]
 ---
 
 # P29 - interrogate the work (ask the questions i'd ask)

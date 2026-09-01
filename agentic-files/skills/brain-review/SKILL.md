@@ -39,10 +39,12 @@ mandatory - a summary of what the engine does is NOT a substitute for running it
 python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
-`$MODE` is `--self-refine` for the self-refine entry and EMPTY for every other.
-it is not cosmetic: a guarded edge resolves differently by mode, so a walk that
-drops it takes the build branch. set it once at the entry and pass it on every
-walk call - the engine forwards it verbatim and never infers it.
+`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
+and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
+differently by mode, so a walk that drops it takes the build branch and a
+phase-less run can be sent back to DOCTRINE for a phase that does not exist.
+set it once at the entry and pass it on every walk call - the engine forwards
+it verbatim and never infers it.
 
 **you may not proceed until that output is in the transcript.** it names the
 state's owner and its transitions; if it is absent, the walk did not happen.
