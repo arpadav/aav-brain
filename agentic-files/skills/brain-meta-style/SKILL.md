@@ -30,6 +30,10 @@ for each new artifact (struct/type/module/function/file):
   the lowest layer that can host them.
 - organization / reorg (P27). is a file too long or a folder too flat-crowded (-> split to a tree)?
   is a tree now overkill after a refactor (-> collapse to flat)? hierarchy is critical, both ways.
+- proportion (P14 at the SUBSYSTEM scale). every addition can pass on its own while the sum outgrows
+  the problem. measure the whole thing the work touches (lines, files) against the dumbest version
+  that does his stated job - a shell script is the usual baseline. far over it and the excess is not
+  justified layer by layer -> that is a finding, raised to him unasked, not a style nit.
 - minimal surface (P14). anything speculative (a dep, a flag, an abstraction nobody asked for)? cut
   it. but P14 NEVER justifies a duplicated datatype - that is P31, library-fy it.
 - idiom fit (P06). flag Box<dyn> / unwrap_or / magic numbers / free-function-logic in rust.

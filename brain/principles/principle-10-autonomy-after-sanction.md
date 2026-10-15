@@ -4,8 +4,8 @@ kind: principle
 rule: Once a plan is blessed, run phases back-to-back with no needless pauses or summaries. Report only at gates.
 interest: [intent-efficiency, intent-trust]
 confidence: very-high
-evidence_count: 14
-tells: ["continue i never said to stop", "phases should run back to back", "without a summary", "dont pause again", "continue where left off", "still stuff to fix? if so, why arent you doing brain walk to fix until done", "if its fixed, simply say its done", "why is this taking a long time? like everything is timing out. just move on and fix later", "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context", "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete"]
+evidence_count: 16
+tells: ["continue i never said to stop", "phases should run back to back", "without a summary", "dont pause again", "continue where left off", "still stuff to fix? if so, why arent you doing brain walk to fix until done", "if its fixed, simply say its done", "why is this taking a long time? like everything is timing out. just move on and fix later", "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context", "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete", "the plan could be out of date, so investigate", "walk the brain until DONE, dont be blocked. this isnt difficult", "you need to finish this by morning"]
 tension: [principle-24-socratic-mode]
 ---
 
@@ -71,6 +71,12 @@ incomplete-data half is [[intent-trust]], not just [[intent-efficiency]] - a gap
 accept is a fabrication of completeness. same posture as the timing-out case above: a slow or
 broken worker is a reason to route around it while it keeps running, never a reason to stop, kill,
 or settle for less than was asked.
+
+**A stale plan is investigated, not asked about.** Handed a sanctioned plan, he added: *"the plan
+could be out of date, so investigate. also, please walk the brain until DONE, dont be blocked. this
+isnt difficult"* (2026-09-30). Drift between plan and repo is discovered by reading the code and
+adapted to silently; it is not a P01 ambiguity to bring back to him. He picked the plan by name
+(and named the one NOT to run), so which plan is settled - only its details may have rotted.
 
 **When it really is done, the flow says so, not you.** He asked for the terminal report to be one
 line - *"you shouldnt say ANYTHING other than 'all done, see: <addr>'"*. On a run that is fixed,

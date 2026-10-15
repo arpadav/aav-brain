@@ -4,9 +4,9 @@ kind: principle
 rule: every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with brain-fmt.py --gate rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.
 interest: [intent-craft]
 confidence: very-high
-evidence_count: 3
+evidence_count: 5
 binds: [code]
-tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it", "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE"]
+tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it", "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE", "please do a style pass on the git diff compared to main (+4.7k -200 lines). shell and python and all", "for phase 1's style pass in havoc-ml, which rule wins? -> My style, touched lines"]
 ---
 
 # P39 - the style contract, and the gate that proves it
@@ -65,5 +65,16 @@ saying nothing.**
 - resolve the language row at INTENT, before the plan, not at STYLE.
 - STYLE is always required. only an explicit instruction against it skips it.
 - run `brain-fmt.py --gate` and let the number decide; do not emit `styled` on judgement.
+- the scope of a style pass is whatever he points it at, in every language in that diff: "please do a style pass
+  on the git diff compared to main (+4.7k -200 lines). shell and python and all". a python repo with posix sh
+  templates and a Dockerfile gets all three passes, not just the language the brain thinks of first.
+- while the pass runs in a scratch worktree, say so when he asks and keep his checkout untouched until the one
+  apply command ([[principle-09-git-sovereignty]]): "note you are making style pass on scratchpad and not main
+  branch, yes?"
 - when the gate and his own reference code disagree, that is a question for him, not a threshold to
   tune - tuning the bar until it passes is the failure [[principle-04-anti-fabrication]] names.
+- in a shared repo whose own rules differ (havoc-ml's AGENTS.md: "keep comments minimal"), ask once; he chose
+  his style on the lines the change writes ONLY. the lenses review the diff hunks; a rule that needs untouched
+  lines is reported, never applied; `brain-fmt.py` changes on untouched lines are out of scope. calibrate to
+  HIS code in that repo, not the abstract spec: his havoc-ml `deploy/` docstrings end sentences with periods,
+  so a lens asking to strip them on touched lines only was rejected (it would mix styles in one docstring).

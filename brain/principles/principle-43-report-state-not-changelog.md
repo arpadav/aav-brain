@@ -4,8 +4,8 @@ kind: principle
 rule: when work finishes, report STATE - is it done, what is left - not a tour of what was fixed. he reads the diff for the changelog. a how-to gets a one-liner, not a section. the fix that no longer matters is not news.
 interest: [intent-efficiency, intent-comprehension]
 confidence: very-high
-evidence_count: 23
-tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek"]
+evidence_count: 25
+tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek", "make it way shorter it doesnt need to be an essay", "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin"]
 ---
 
 # P43 - report state, not the changelog

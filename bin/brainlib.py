@@ -231,6 +231,7 @@ class Flag(StrEnum):
     EXPORT = "--export"
     GATE = "--gate"
     HELP = "--help"
+    LAST = "--last"
     LIST = "--list"
     LOW_CONFIDENCE = "--low-confidence"
     MERMAID = "--mermaid"
@@ -255,6 +256,7 @@ class Flag(StrEnum):
     STALE_CANDIDATES = "--stale-candidates"
     STATE = "--state"
     SUPERSEDES = "--supersedes"
+    TAG = "--tag"
     TELLS = "--tells"
 
     @classmethod
@@ -279,7 +281,7 @@ class Flag(StrEnum):
             cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
             cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.N, cls.NEIGHBORS, cls.ON,
             cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
-            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TELLS,
+            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG, cls.TELLS,
         })
 
 
@@ -1384,6 +1386,18 @@ def find_archive() -> Path:
     the archive root Path (created on demand by its writer)
     """
     return _xdg_data() / "aav-brain-archive"
+
+
+def find_gate_state() -> Path:
+    """the per-checkout review-gate state dir, a sibling of find_data().
+
+    private run state, never versioned and never in the repo under review, so a
+    finished run leaves nothing in the tree (CLEANUP deletes its file)
+
+    # Returns
+    the gate-state root Path (created on demand by its writer)
+    """
+    return _xdg_data() / "aav-brain-gate"
 
 
 def _xdg_data() -> Path:
