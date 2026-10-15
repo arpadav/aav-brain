@@ -28,5 +28,9 @@ multi-stage cathedral.
 - This composes with [[principle-07-trim-fat-verbose-docs]]: minimal surface, but the
   docs on that surface are thorough.
 
+**When it is already over-built** the answer is not a patch round but a rebuild from his stated steps -
+[[principle-51-an-outgrown-design-is-rebuilt-small]]. minimal is also not naive: the edge cases a real run
+learned stay ([[principle-52-device-facing-code-is-gated-by-a-live-run]]).
+
 **Anti-pattern.** Reaching for a heavy dependency for a trivial need; speculative
 "might need it later" abstractions; config knobs nobody asked for.

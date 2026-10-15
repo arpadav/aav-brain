@@ -4,9 +4,9 @@ kind: principle
 rule: a pdf, chart, page or app is not done until its rendered output has been looked at - rasterise / screenshot and read it - and a programmatic audit of the things an eye misses (chart kind vs caption, embed width, label density, overfull lines, table overflow) sits in the build gate.
 interest: [intent-craft, intent-trust]
 confidence: very-high
-evidence_count: 1
+evidence_count: 2
 binds: [code]
-tells: ["ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong", "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up", "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm", "this is visually so confusing. middle is a blank screen, no styling"]
+tells: ["ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong", "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up", "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm", "this is visually so confusing. middle is a blank screen, no styling", "the 'how it executes' another mermaid diagram, vertical, its not very legible"]
 ---
 
 # P48 - look at the rendered output
@@ -20,11 +20,17 @@ he judges the artifact, not the log ([[intent-craft]]); a visibly broken deliver
 ## how to apply
 every worker that produces a visual pastes a one-line reading per page/shot; the coordinator reads a sample itself; the gate scripts fail closed on: chart kind against the plan's, embed width floors, legend and text-object caps, minimum type size at the embedded scale, overfull boxes, hand-typed digits. for an app: screenshots at the real viewports, and the ink box of the stage measured. links: [[principle-04-anti-fabrication]], [[principle-03-review-gate]].
 
+a diagram in a PR or doc is rendered output too: a wide left-to-right mermaid flow that shrinks to unreadable in a
+narrow column is a fail by its own look. he asked for the same flow redrawn top-down ("another mermaid diagram,
+vertical, its not very legible"). default a many-step flow to `flowchart TD`, and read it rendered at the width
+it will be shown at.
+
 ## verbatim tells
 - "ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong"
 - "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up"
 - "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm"
 - "this is visually so confusing. middle is a blank screen, no styling"
+- "the 'how it executes' another mermaid diagram, vertical, its not very legible"
 
 ## anti-pattern
 "the build is green" offered as done while the pdf carries an empty 3d scatter and a 254 pt overfull; a first paint reported as fine that he called "visually so confusing".

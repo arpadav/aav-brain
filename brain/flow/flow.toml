@@ -137,28 +137,28 @@ kind = "work"
 owner = "worker"
 recall = true
 regime = "execute-through"
-doc = "dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction)"
+doc = "dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction). then run `brain-gate.py phase --tag <the plan's S|M|L for this phase>` (add `--last` on the final phase) and emit what it says: `gate N` -> implemented (PHASEGATE, N reviewers); `defer` -> phase_done (the next phase; a later gate covers this one). phases and gates are NOT 1-to-1: six small phases may share two gates, and a doc-only build often has one gate, at the end"
 
 [[states]]
 id = "PHASEGATE"
 kind = "gate"
 owner = "brain-review-gate"
 recall = false
-doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE"
+doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE. dispatch brain-review-gate ONCE, never the reviewers yourself: every agent he named for review goes into its prompt as a required lens, and the gate fills the rest up to the count `brain-gate.py phase` printed (2-6). round 2 re-reviews only the files the fix touched. there is no round 3 - ADJUDICATE's round count ends the loop"
 
 [[states]]
 id = "ADJUDICATE"
 kind = "work"
 owner = "brain-meta-style"
 recall = true
-doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate"
+doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate. then run `brain-gate.py round <valid> <medium-or-worse>` and emit the event it prints: all_invalid | valid_remain | final_fix (fix, no re-review) | not_converging (DESIGN) | capped (stop, list the open findings for him)"
 
 [[states]]
 id = "REMEDIATE"
 kind = "work"
 owner = "brain-meta-author-prompt+worker"
 recall = true
-doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase"
+doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. arrived via final_fix -> emit fixed_final (VERIFY, no third review); otherwise emit fixed (re-review)"
 
 [[states]]
 id = "VERIFY"
@@ -172,7 +172,7 @@ id = "STYLE"
 kind = "gate"
 owner = "brain-meta-style:style + aav-style-separators + aav-style-docs + aav-style-imports + aav-style-items"
 recall = true
-doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check. emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing"
+doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check, and with brain-register.py over the changed .md files (P59 register). emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing"
 
 [[states]]
 id = "RECORD"
@@ -187,6 +187,20 @@ kind = "work"
 owner = "brain-meta-curate"
 recall = true
 doc = "capture every correction/approval/interrupt -> update the store; log the decision trace"
+
+[[states]]
+id = "DESIGN"
+kind = "gate"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "the review loop stopped converging: the design is the defect, not the diff (P51). STOP patching. map the flow and the dependency graph of what the findings touch (an ascii diagram), list HARD requirements (his words, the contract) apart from SOFT ones (the current shape), and ask of each piece: merge with another step, split it out, move it earlier or later, or cut it. propose ONE regrouped design and ask him once (P42): the diagram, the finding counts per round, the before/after shape. run `brain-gate.py design`, then emit approved (build the redesign) or declined (patch the open findings). the re-review after it is the acceptance test: a net decrease in valid findings, or capped"
+
+[[states]]
+id = "CLEANUP"
+kind = "work"
+owner = "brain-meta-commit:sweep"
+recall = true
+doc = "the run's residue goes BEFORE the commit is drafted (P54), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects, delete the open-item file, the todo bullet that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `brain-gate.py reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally"
 
 [[states]]
 id = "BLOCKED"
@@ -452,6 +466,41 @@ src = "REMEDIATE"
 on = "fixed"
 dst = "PHASEGATE"
 
+# the round cap: a round-2 decrease is fixed and verified, never reviewed a third time
+[[transitions]]
+src = "REMEDIATE"
+on = "fixed_final"
+dst = "VERIFY"
+
+# the round count decides; brain-gate.py round prints the event
+[[transitions]]
+src = "ADJUDICATE"
+on = "final_fix"
+dst = "REMEDIATE"
+
+# a count that does not drop, or a first round full of medium-or-worse findings,
+# is a design verdict (P51): measured 22 -> 36 -> 40 findings while the diff grew
+[[transitions]]
+src = "ADJUDICATE"
+on = "not_converging"
+dst = "DESIGN"
+
+# the cap held and valid findings remain: stop and hand him the list
+[[transitions]]
+src = "ADJUDICATE"
+on = "capped"
+dst = "BLOCKED"
+
+[[transitions]]
+src = "DESIGN"
+on = "approved"
+dst = "REMEDIATE"
+
+[[transitions]]
+src = "DESIGN"
+on = "declined"
+dst = "REMEDIATE"
+
 [[transitions]]
 src = "PHASEGATE"
 on = "threshold_met"
@@ -484,6 +533,12 @@ dst = "STYLE"
 [[transitions]]
 src = "STYLE"
 on = "styled"
+dst = "CLEANUP"
+
+# the sweep runs before RECORD so the drafted commit is the fix and only the fix
+[[transitions]]
+src = "CLEANUP"
+on = "swept"
 dst = "RECORD"
 
 [[transitions]]

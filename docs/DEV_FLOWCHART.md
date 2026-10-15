@@ -40,14 +40,16 @@ stateDiagram-v2
     state "PLANGATE [gate] architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end. loops via below_threshold until then" as PLANGATE
     state "SANCTION [boundary] arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)" as SANCTION
     state "DOCTRINE [gate] resolve the artifact PURPOSE (P41: scratch skip / tutorial light / production exhaustive) and the language row (P06); load the always-load doctrine set plus that language's extras; author the worker prompt carrying P40's before/after exemplars and the find-exhaustively ask. an adjective is not a resolved doctrine - emit unresolved (brain-execute entry, post-sanction)" as DOCTRINE
-    state "IMPL [work] dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction)" as IMPL
-    state "PHASEGATE [gate] cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE" as PHASEGATE
-    state "ADJUDICATE [work] a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate" as ADJUDICATE
-    state "REMEDIATE [work] fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase" as REMEDIATE
+    state "IMPL [work] dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction). then run `brain-gate.py phase --tag <the plan's S|M|L for this phase>` (add `--last` on the final phase) and emit what it says: `gate N` -> implemented (PHASEGATE, N reviewers); `defer` -> phase_done (the next phase; a later gate covers this one). phases and gates are NOT 1-to-1: six small phases may share two gates, and a doc-only build often has one gate, at the end" as IMPL
+    state "PHASEGATE [gate] cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE. dispatch brain-review-gate ONCE, never the reviewers yourself: every agent he named for review goes into its prompt as a required lens, and the gate fills the rest up to the count `brain-gate.py phase` printed (2-6). round 2 re-reviews only the files the fix touched. there is no round 3 - ADJUDICATE's round count ends the loop" as PHASEGATE
+    state "ADJUDICATE [work] a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate. then run `brain-gate.py round <valid> <medium-or-worse>` and emit the event it prints: all_invalid | valid_remain | final_fix (fix, no re-review) | not_converging (DESIGN) | capped (stop, list the open findings for him)" as ADJUDICATE
+    state "REMEDIATE [work] fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. arrived via final_fix -> emit fixed_final (VERIFY, no third review); otherwise emit fixed (re-review)" as REMEDIATE
     state "VERIFY [gate] build/test/bench honestly; emits sound only when the build is green AND the artifact's OWN stated bar is met AND the bench is within threshold. the bar is usually 'tests pass' but is NOT hardcoded to it: an artifact that ships deliberately red (a rustlings-style tutorial, a lab with todo!()) declares its real bar - e.g. `--features solutions` green while a bare `cargo test` stays red - and THAT is what soundness means for it. measuring against the wrong bar makes unsound permanent, the same non-terminating loop ADJUDICATE breaks at PHASEGATE. loops via unsound -> REMEDIATE. the pass events REQUIRE a returned brain-verifier report: measured, the agent was dispatched on 9 of ~31 visits, so 7 times in 10 the author verified its own work and advanced. verifying yourself is not verification - emit unverified and dispatch the agent" as VERIFY
-    state "STYLE [gate] the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check. emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing" as STYLE_GATE
+    state "STYLE [gate] the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check, and with brain-register.py over the changed .md files (P59 register). emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing" as STYLE_GATE
     state "RECORD [work] categorise by semantics, draft the commit script, stop at the line" as RECORD
     state "CURATE [work] capture every correction/approval/interrupt -> update the store; log the decision trace" as CURATE
+    state "DESIGN [gate] the review loop stopped converging: the design is the defect, not the diff (P51). STOP patching. map the flow and the dependency graph of what the findings touch (an ascii diagram), list HARD requirements (his words, the contract) apart from SOFT ones (the current shape), and ask of each piece: merge with another step, split it out, move it earlier or later, or cut it. propose ONE regrouped design and ask him once (P42): the diagram, the finding counts per round, the before/after shape. run `brain-gate.py design`, then emit approved (build the redesign) or declined (patch the open findings). the re-review after it is the acceptance test: a net decrease in valid findings, or capped" as DESIGN
+    state "CLEANUP [work] the run's residue goes BEFORE the commit is drafted (P54), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects, delete the open-item file, the todo bullet that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `brain-gate.py reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally" as CLEANUP
     state "BLOCKED [halt] post-sanction ambiguity: stop and ask arpad; resume the blocked state on /continue" as BLOCKED
     state "DONE [terminal] work complete. the closing line reports STATE, NOT A CHANGELOG (P43): is it done yes/no, and what is left. NEVER a tour of what was fixed, measured or rewritten - he reads git diff for that, and a defect that no longer exists is not information. a how-to is ONE LINE per thing, not a section per thing. surface a number only when it changes what he does next. an unresolved blocker IS state and must be said first. measured: 5 of 77 recorded heat events are him saying the brain wrote too much - it is the single most reliable producer of heat in the corpus. then DISPATCH brain-learner to mine this conversation for durable signal, and say so - e.g. `done. <what is left, if anything>. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything" as DONE
     state "REVIEW [entry] brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop" as REVIEW
@@ -57,10 +59,16 @@ stateDiagram-v2
     state "EDIT [work] make ONLY the selected/asked-for edit, through the right meta-skill (curate/style/direct). the OUTBOUND EVENT IS THE RIGOR DIAL and it is HIS to set, asked before the edit starts, never inferred from how small the change looks (P41): `edited` -> VERIFY builds and tests it, `gated` -> PHASEGATE puts a cold reviewer on the diff first, `unchecked` -> STYLE skips verification entirely. every one of them still rides STYLE -> RECORD -> CURATE, so a small edit is never outside the ecosystem" as EDIT
 
     ADJUDICATE --> VERIFY: all_invalid
+    ADJUDICATE --> BLOCKED: capped
     ADJUDICATE --> VERIFY: deferred
+    ADJUDICATE --> REMEDIATE: final_fix
+    ADJUDICATE --> DESIGN: not_converging
     ADJUDICATE --> REMEDIATE: valid_remain
     ASK --> INTENT: answered
+    CLEANUP --> RECORD: swept
     CURATE --> DONE: learned
+    DESIGN --> REMEDIATE: approved
+    DESIGN --> REMEDIATE: declined
     DOCTRINE --> IMPL: resolved
     DOCTRINE --> BLOCKED: unresolved
     EDIT --> BLOCKED: ambiguous
@@ -89,6 +97,7 @@ stateDiagram-v2
     RECORD --> CURATE: prepared
     RELOCATE --> EXPAND: moved
     REMEDIATE --> PHASEGATE: fixed
+    REMEDIATE --> VERIFY: fixed_final
     REORG --> EXPAND: reshaped
     REVIEW --> PHASEGATE: reviewed
     SANCTION --> DOCTRINE: sanctioned
@@ -99,7 +108,7 @@ stateDiagram-v2
     SR_ASK --> EDIT: selected
     SR_FINDINGS --> SR_ASK: found
     SR_SCAN --> SR_FINDINGS: scanned
-    STYLE_GATE --> RECORD: styled
+    STYLE_GATE --> CLEANUP: styled
     STYLE_GATE --> STYLE_GATE: unstyled
     VERIFY --> STYLE_GATE: last_phase
     VERIFY --> DOCTRINE: more_phases [build]
@@ -143,6 +152,8 @@ flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask 
 | STYLE | gate |  |  | brain-meta-style:style + aav-style-separators + aav-style-docs + aav-style-imports + aav-style-items | true |
 | RECORD | work |  |  | brain-meta-commit | false |
 | CURATE | work |  |  | brain-meta-curate | true |
+| DESIGN | gate |  |  | brain-meta-style:plan | true |
+| CLEANUP | work |  |  | brain-meta-commit:sweep | true |
 | BLOCKED | halt |  |  | brain-meta-intent | false |
 | DONE | terminal |  |  | brain-learner | false |
 | REVIEW | entry | true | ask-first | brain-review-gate | false |

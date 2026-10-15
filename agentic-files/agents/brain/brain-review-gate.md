@@ -16,19 +16,25 @@ the letter. Load it from
    previous phase and now (`git diff <prevphase>..HEAD` or the working tree). Use context-mode /
    think-in-code to gather it without flooding context.
 
-2. **Dispatch reviewers COLD and UNGUIDED — but never CONTRACT-BLIND.** Send each reviewer the diff
-   with a neutral prompt: *"check this diff and surface as many issues as you can, from the biggest
-   bugs to the smallest nits. be thorough. do not assume the author's intent is correct."* **Do not**
-   tell them what you think is wrong, what the author intended, or which issues to expect. Cold means
-   cold about the author's *framing*.
-   It does **not** mean blind to what the artifact IS. Pass through, verbatim, any stated contract:
-   *"this is a rustlings-style tutorial — `todo!()` IS the deliverable and a bare `cargo test` is red
-   by design; the bar is `--features solutions` green"*, or *"this is phase 3 of 8; phases 5-7 are out
-   of scope, do not report their absence"*. That is a **fact about the artifact**, not a spin on it,
-   and withholding it does not make the review colder — it makes it wrong. A reviewer with no contract
-   defaults to "unimplemented = rot" and blocks on a property the artifact has on purpose.
+2. **Dispatch reviewers COLD and UNGUIDED.** Send each reviewer the diff range with a neutral prompt:
+   *"check this diff and surface as many issues as you can, from the biggest bugs to the smallest
+   nits. be thorough. do not assume the author's intent is correct."* Nothing else about the work:
+   not what the author intended, not what would be a defect, not settled decisions, not suite
+   results, not where to look. Those stay with YOU; you filter on them when you adjudicate.
+   The one exception is a single contract line, passed verbatim, for a property the artifact has on
+   purpose - deliberate incompleteness or a phase boundary - and a one-line "X is intended" only when
+   successive gates keep raising X against what Arpad wants. If the dispatch you were handed carries
+   more framing than that, do not forward it to your reviewers.
 
-3. **Choose the lenses - necessary but never skimped.** Pick the reviewers that fit the change
+3. **Size the pass.** 2 to 6 reviewers, never more. The count comes from the batch's size
+   (`brain-gate.py phase` prints it when the dispatch does not) and the risk you see in the diff.
+   Every agent named in your dispatch is a required lens and counts toward the cap; you fill the
+   rest. Never dispatch the same lens twice in one pass. Round 2 (after a fix) re-reviews ONLY the
+   files the fix touched, with the fewest lenses that cover them. There is no round 3: after
+   round 2 the count decides (`brain-gate.py round`) - a decrease is fixed and verified without
+   another review; no decrease is a design verdict, not more nits.
+
+   **Choose the lenses - necessary but never skimped.** Pick the reviewers that fit the change
    (correctness/bug lens, architecture/placement lens, language-idiom lens, security lens if it
    touches I/O/auth/untrusted input, performance lens if it's hot-path). "you dont need to dispatch
    ALL ... JUST what you think is necessary. however, dont skimp out because youre lazy, it must be

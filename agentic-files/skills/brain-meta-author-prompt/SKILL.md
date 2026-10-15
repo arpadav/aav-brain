@@ -40,7 +40,7 @@ and never loaded ([[principle-40-idiom-needs-exemplars]]).
 2. **THE LANGUAGE ROW**, from [[principle-06-idiomatic-per-language]]. a language with no row is a
    question for him, never a guess. rust resolves to `aav-rust-implementer`, which already carries
    the doctrine; every other language gets it from you, injected into the worker prompt.
-3. **THE EXEMPLARS, PASTED IN.** run `brain-recall.py "<task>" --binds code` (plus `--binds <lang>`)
+3. **THE EXEMPLARS, PASTED IN.** run `brain-recall.py "<task>" --binds code` (plus `--binds <lang>`; `--binds docs` when the task writes prose, which carries P59 and `brain-register.py`)
    and copy the relevant before/after pairs from P40's catalogue INTO the prompt. do not write "be
    idiomatic", "follow his style", or "make it clean" - a worker resolves an adjective against its
    own priors, so the wrong form and the right form both go on the page.
@@ -54,25 +54,21 @@ then attach the find-exhaustively ask, which is the shape that measurably worked
 both halves are load-bearing. exhaustiveness without the anti-fabrication clause produces padding
 ([[principle-04-anti-fabrication]]); the clause without exhaustiveness produces two fixes and a stop.
 
-## the CONTRACT clause - MANDATORY on every review dispatch
-a cold reviewer must be cold about the AUTHOR's framing, never ignorant of what the artifact IS. with
-no contract its default prior fires - `todo!()` reads as rot, a red suite reads as broken - and it
-blocks on a property the artifact has ON PURPOSE. that is not a cold read, it is a wrong one.
+## the CONTRACT clause - one line on a review dispatch, or nothing
+a cold reviewer is cold about the author's framing AND about what the host expects to find. its prompt
+is the neutral ask plus the diff range - nothing else about the work. ONE exception, one sentence:
+a property the artifact has ON PURPOSE that a reviewer would otherwise block on forever -
+deliberate incompleteness ("a tutorial; `todo!()` IS the deliverable, the bar is
+`--features solutions` green") or a phase boundary ("phase 3 of 8; P5-P7 are out of scope"). no such
+property -> no contract line at all. where the artifact declares it in-tree, point at that instead.
 
-so every dispatch to a reviewing agent states, up front:
-1. **what deliberate incompleteness means here.** "this is a rustlings-style tutorial; `todo!()` IS the
-   deliverable and a red `cargo test` is the shipped state. the correctness bar is
-   `--features solutions`, which must be green." name the bar it should actually judge against.
-2. **the phase boundary**, on multiphase work. "this is phase 3 of 8. streams and events are in scope;
-   buffers (P5), launch/capture/graphs (P6) and the FFI seam (P7) are NOT - do not report their absence."
-3. **what WOULD be a defect**, so the reviewer has somewhere to aim: a reference solution that fails, a
-   hint that gives away the answer, a doc comment that contradicts the code, an API that teaches a habit
-   you would not want in production.
+NEVER put in a reviewer prompt: what would be a defect, the design reasoning, settled decisions,
+suite results, or where to look. those belong to the HOST. the host knows what would be a defect and
+filters the findings itself at ADJUDICATE - a finding that contradicts a settled decision is rejected
+there with a logged reason, not pre-empted in the prompt.
 
-this does NOT soften the review and does NOT tell it what to conclude - it states what the thing IS, and
-that is a fact the author does not get to spin. omit it and you get the loop ADJUDICATE exists to break.
-where the artifact declares its own contract in-tree (a README "before reviewing this" section, a script
-header), POINT AT IT - in-tree survives a reviewer that never loaded the brain.
+the one time a reviewer is told "X is intended": when successive gates keep raising X although he
+wants the opposite. then one line naming X, and only X.
 
 ## intensity -> constraint (non-negotiable)
 his corrections carry heat. translate the force into a precise constraint, never reproduce the

@@ -79,6 +79,15 @@ the flow encodes threshold loops; you do not advance a phase until its metric ho
 - **IMPL -> PHASEGATE -> VERIFY**: PHASEGATE `below_threshold` -> REMEDIATE -> PHASEGATE until the review
   converges; VERIFY `unsound` -> REMEDIATE until the build/test/bench is sound. only then advance.
 - a gate below threshold routes BACK (to PLAN or REMEDIATE), never forward.
+- **the loop is bounded by a script, not by judgement.** `brain-gate.py phase` after each phase says
+  whether a gate is due (phases batch until the measured diff earns one) and how many reviewers it
+  gets (2-6). `brain-gate.py round <valid> <serious>` after each ADJUDICATE names the event: two
+  rounds per gate, a round-2 decrease is fixed and verified with no third review, and a count that
+  does not drop goes to DESIGN - the design is the defect, not the diff. DESIGN's one re-review is
+  its acceptance test: a net decrease, or `capped` and he gets the list. measured before the cap:
+  22 -> 36 -> 40 findings while +639 -> +753 lines, on a feature a ~100 line script does.
+- **one gate dispatch per review.** the agents he names for review are forwarded into the one
+  `brain-review-gate` dispatch as required lenses; never dispatch them beside it.
 
 ## boundary + stops
 - **SANCTION** (only on entries that pass through it) is the regime flip ask-first -> execute-through;
@@ -96,6 +105,10 @@ bag-of-skills composition (P18).
 ## reporting
 only at gates, and only what he cant see himself: verdicts, blockers, the single next action. no diff
 recaps. lowercase, terse, ends on the next action.
+
+every gate report also answers ONE line, unasked: would a much simpler thing do this job, and is the
+work proportionate to it? the test: if he asked "is this over-engineered?" right now and you would
+agree, you owed him that sentence before he asked. a critique produced only on request is an omission.
 
 ## the review barrier - a review's input tree is FROZEN
 a review is a measurement, and a measurement of a moving target is noise. two rules, both hard:
