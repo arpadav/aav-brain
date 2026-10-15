@@ -44,7 +44,15 @@ Author: aav
 # --------------------------------------------------
 from brainlib.args import Args
 from brainlib.model import Artifact, Edge, Node, State, Transition, load_json
-from brainlib.paths import DataLayout, Layout, find_archive, find_brain, find_data, find_repo
+from brainlib.paths import (
+    DataLayout,
+    Layout,
+    find_archive,
+    find_brain,
+    find_data,
+    find_gate_state,
+    find_repo,
+)
 from brainlib.store import Decision, Ledger, MergeCount, PrunePolicy, ShapePolicy, git
 from brainlib.text import clip, iso_now, kind_rank, parse_frontmatter, read_text, write_text
 from brainlib.vocab import (
@@ -71,6 +79,7 @@ __all__ = [
     "Args", "Artifact", "Confidence", "DataLayout", "Decision", "Edge", "Entry", "Env", "Exit",
     "Flag", "Frontmatter", "Kind", "Layout", "Ledger", "MergeCount", "Mode", "Node",
     "PrunePolicy", "Rel", "ShapePolicy", "State", "Tier", "Transition",
-    "clip", "find_archive", "find_brain", "find_data", "find_repo", "git", "iso_now",
+    "clip", "find_archive", "find_brain", "find_data", "find_gate_state", "find_repo", "git",
+    "iso_now",
     "kind_rank", "load_json", "parse_frontmatter", "read_text", "write_text",
 ]

@@ -5,8 +5,8 @@ tier: conditional
 rule: before AND after generating any artifact, interrogate it with the questions arpad would ask - dont hardcode the list, ask the brain "what would i ask about this?" then answer honestly. ask it GRANULARLY - "would arpad write THIS file like this? this folder structure like this? this individual function like this?" - not just at the project level. on a review this runs as a brain-guided pass layered in SUPERPOSITION on the cold unguided review (the cold pass stays cold; this is a second, independent, memory-recalling pass). "why am i generating this, is it even consumed, should i read from it instead?" and "has this been defined elsewhere?" are others.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high
-evidence_count: 7
-tells: ["would arpad write this function that way", "would arpad write this file like this", "would arpad structure this folder like this", "why am i generating this artifact, is it used", "should i be reading from it instead", "has this been defined elsewhere", "what questions would arpad ask", "cold review plus a would-arpad pass", "is this coupling necessary", "does this belong to that parent or is it independent", "decouple, find what is purely independent", "cut the fat even more", "even when you believe you are done, ask yourself 'is there more i can include'"]
+evidence_count: 8
+tells: ["would arpad write this function that way", "would arpad write this file like this", "would arpad structure this folder like this", "why am i generating this artifact, is it used", "should i be reading from it instead", "has this been defined elsewhere", "what questions would arpad ask", "cold review plus a would-arpad pass", "is this coupling necessary", "does this belong to that parent or is it independent", "decouple, find what is purely independent", "cut the fat even more", "even when you believe you are done, ask yourself 'is there more i can include'", "is this ready to go, or to make it better answer those questions?", "does this do my 1-4 or does it force a re-use of triton container?"]
 ---
 
 # P29 - interrogate the work (ask the questions i'd ask)
@@ -48,6 +48,13 @@ exist?) and after (would i keep it?). asking is cheaper than rewriting.
 - this IS the execution flow the brain runs ([[principle-30-deterministic-flow]], the RECON..REORG
   region; PLANPROBE traces a plan through its own example). any move re-expands the set.
 - a "no" is only actionable with a reason - cite the principle it violates, dont just dislike it.
+- CLOSE-OUT. he runs the same post-build interrogation himself at the end of a build: "is this ready to go, or to
+  make it better answer those questions?", "does this do my 1-4 or does it force a re-use of triton container?",
+  "did you clean up all relevant docs/files which are no longer needed?", "is this built ontop of main or
+  feat/hml-deploy ?". answer them before he asks: ready or what is blocking; whether it does his stated steps
+  or still leans on the crutch he named ([[principle-51-spaghetti-is-a-design-fault]], his steps are
+  canonical); the cleanup sweep ([[principle-56-close-out-housekeeping]]); the base branch
+  ([[principle-09-git-sovereignty]]). one honest line each, per [[principle-43-report-state-not-changelog]].
 - ON A REVIEW, this is a SUPERPOSITION, not a replacement: the cold review-gate
   ([[principle-03-review-gate]]) runs first with ABSOLUTELY no guidance (cold means cold - fresh eyes
   that never saw the author's framing). THEN, independently, this brain-guided "would arpad write

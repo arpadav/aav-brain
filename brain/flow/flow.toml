@@ -137,35 +137,28 @@ kind = "work"
 owner = "worker"
 recall = true
 regime = "execute-through"
-doc = "dispatch the workers with the prompt DOCTRINE authored; implement the phase (post-sanction). FAN OUT: two to three independent workers issued as PARALLEL TOOL CALLS IN ONE MESSAGE, each on a disjoint file set or in its own worktree, staggered as one returns - a loop of single dispatches is serial and looks identical in the transcript until you count them (P52). the tree-wide build/test/lint command belongs to the OVERSEER and runs one at a time, never to a worker: two builds block on one target lock and two mutation batteries revert over each other. a worker proves its own work with the cheap subset in its own worktree. the worker carries its END GOAL, not just this phase's ask: work beyond the literal ask that moves toward the sanctioned mission is IN, work merely adjacent is out (P45, P50). at the phase boundary, `brain-shape.py <repo> --since <the ref this phase started from>` decides which exit to take: over shape.toml's budget -> `implemented`, the cold gate; under it -> `under_budget`, straight to VERIFY. an unresolvable ref ARMS, because a gate is not cancelled by a typo"
+doc = "dispatch the workers with the prompt DOCTRINE authored; implement the phase (post-sanction). FAN OUT: two to three independent workers issued as PARALLEL TOOL CALLS IN ONE MESSAGE, each on a disjoint file set or in its own worktree, staggered as one returns - a loop of single dispatches is serial and looks identical in the transcript until you count them (P52). the tree-wide build/test/lint command belongs to the OVERSEER and runs one at a time, never to a worker: two builds block on one target lock and two mutation batteries revert over each other. a worker proves its own work with the cheap subset in its own worktree. the worker carries its END GOAL, not just this phase's ask: work beyond the literal ask that moves toward the sanctioned mission is IN, work merely adjacent is out (P45, P50). at the phase boundary `brain-gate.py phase --tag <the plan's S|M|L for this phase>` (add `--last` on the final phase) DECIDES the exit, and its word is final: `gate N` -> implemented (PHASEGATE, N reviewers); `defer` -> phase_done (the next phase; a later gate covers this one). phases and gates are NOT 1-to-1: six small phases may share two gates, and a doc-only build often has one gate, at the end. `brain-shape.py <repo> --since <the ref this phase started from>` is the SECONDARY signal, kept while it is measured against brain-gate.py: run it beside, and when brain-gate.py says `defer` on the final phase (nothing pending) its under-budget verdict emits `under_budget`, straight to VERIFY. where the two disagree, brain-gate.py wins and the disagreement is logged to plans/open-items/G01-two-gate-arming-checks.md, which decides whether the shape budget is pruned. an unresolvable ref ARMS, because a gate is not cancelled by a typo"
 
 [[states]]
 id = "PHASEGATE"
 kind = "gate"
 owner = "brain-review-gate"
 recall = true
-doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE, which is what makes the loop terminating. TWO SCOPES, and running only the first is the measured failure: the correctness and idiom lenses read the DIFF, and a STRUCTURE lens reads the WHOLE TREE - file length, folder fan-out, one datatype defined twice - because none of those is visible in a hunk. run `brain-shape.py <repo>` FIRST and hand its crossings to that lens as its input; P27 and P28 are adjectives without it. what makes this a rule rather than a preference is measured, once, on principle-27 under `## the measurement`: the architecture lens ran at every late phase of a build, on the diff, and passed a 7540-line file every time - not because nobody looked, but because what it was shown could not contain the defect. WHEN IT FIRES is `brain-shape.py --since <phase start>`: armed by the change budget, then held to the next phase boundary so a gate never lands mid-phase. under budget the phase ends at VERIFY and STYLE - a two-line formatter fix does not buy a cold multi-lens review. A DENIED DISPATCH IS A HOLE, NOT A PASS: a lens refused by the permission classifier did not run, so the gate did not measure what that lens was for. retry once; if it still will not go, emit `unmeasurable` and stop - `below_threshold` is the WRONG event for it, because a denial is not a finding and ADJUDICATE would rule the empty set all_invalid and advance"
+doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE, which is what makes the loop terminating. TWO SCOPES, and running only the first is the measured failure: the correctness and idiom lenses read the DIFF, and a STRUCTURE lens reads the WHOLE TREE - file length, folder fan-out, one datatype defined twice - because none of those is visible in a hunk. run `brain-shape.py <repo>` FIRST and hand its crossings to that lens as its input; P27 and P28 are adjectives without it. what makes this a rule rather than a preference is measured, once, on principle-27 under `## the measurement`: the architecture lens ran at every late phase of a build, on the diff, and passed a 7540-line file every time - not because nobody looked, but because what it was shown could not contain the defect. WHEN IT FIRES is `brain-shape.py --since <phase start>`: armed by the change budget, then held to the next phase boundary so a gate never lands mid-phase. under budget the phase ends at VERIFY and STYLE - a two-line formatter fix does not buy a cold multi-lens review. A DENIED DISPATCH IS A HOLE, NOT A PASS: a lens refused by the permission classifier did not run, so the gate did not measure what that lens was for. retry once; if it still will not go, emit `unmeasurable` and stop - `below_threshold` is the WRONG event for it, because a denial is not a finding and ADJUDICATE would rule the empty set all_invalid and advance. dispatch brain-review-gate ONCE, never the reviewers yourself: every agent he named for review goes into its prompt as a required lens, and the gate fills the rest up to the count `brain-gate.py phase` printed (2-6). round 2 re-reviews only the files the fix touched. there is no round 3 - ADJUDICATE's round count ends the loop"
 
 [[states]]
 id = "ADJUDICATE"
 kind = "work"
 owner = "brain-meta-style"
 recall = true
-doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate"
-
-[[states]]
-id = "SUBDESIGN"
-kind = "work"
-owner = "brain-meta-author-prompt+aav-semantic-architecture-reviewer"
-recall = true
-doc = "design ONE atomic part, then return. reached only when ADJUDICATE ruled that the finding is not a defect in the patch but a defect in the DESIGN - the tell is that every available fix makes the code worse, so the patch spaghettifies (P51). scope is the part, never the plan: the error model, the id scheme, the one seam the findings keep circling - name it, design it, write it to plans/ as an addendum so a cold reviewer reads it as errata rather than as drift, then hand REMEDIATE a shape to build to. DESTRUCTIVE AND DRASTIC PROPOSALS ARE SANCTIONED HERE and nowhere else in the impl loop: delete the layer, invert the ownership, collapse the two types into one. the size of the change is not an argument against it (P20); the only test is whether the result is more maintainable and more atomic. it is NOT a licence to re-plan the build - a subdesign that reaches for a second part is out of scope and emits ambiguous"
+doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate. then run `brain-gate.py round <valid> <medium-or-worse>` and emit the event it prints: all_invalid | valid_remain | final_fix (fix, no re-review) | not_converging (DESIGN) | design_fault (DESIGN, when a finding's every fix makes the code worse) | capped (stop, list the open findings for him)"
 
 [[states]]
 id = "REMEDIATE"
 kind = "work"
 owner = "brain-meta-author-prompt+worker"
 recall = true
-doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. a finding ADJUDICATE ruled a DESIGN fault does not arrive here as a patch - it goes to SUBDESIGN first and comes back as a shape to build to. patching around a bad design is what this state must not be used for (P20, P51)"
+doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. a finding ADJUDICATE ruled a DESIGN fault does not arrive here as a patch - it goes to DESIGN first and comes back as a shape to build to. patching around a bad design is what this state must not be used for (P20, P51). arrived via final_fix -> emit fixed_final (VERIFY, no third review); otherwise emit fixed (re-review)"
 
 [[states]]
 id = "VERIFY"
@@ -179,7 +172,7 @@ id = "STYLE"
 kind = "gate"
 owner = "brain-meta-style:style + aav-style-separators + aav-style-docs + aav-style-imports + aav-style-items"
 recall = true
-doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check. emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing"
+doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract card, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result with brain-fmt.py --check, and with brain-register.py over the changed .md files (P57 register). emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and landed nothing"
 
 [[states]]
 id = "RECORD"
@@ -194,6 +187,20 @@ kind = "work"
 owner = "brain-meta-curate"
 recall = true
 doc = "capture every correction/approval/interrupt -> update the store; log the decision trace"
+
+[[states]]
+id = "DESIGN"
+kind = "work"
+owner = "brain-meta-author-prompt+aav-semantic-architecture-reviewer"
+recall = true
+doc = "the design is the defect, not the diff (P51). TWO TRIGGERS, one state: ADJUDICATE rules a finding a design fault (`design_fault` - every available fix makes the code worse, so the patch spaghettifies), or `brain-gate.py round` reports the count is not converging (`not_converging` - the valid findings did not drop, or a first round was full of medium-or-worse). STOP patching. map the flow and the dependency graph of what the findings touch (an ascii diagram), list HARD requirements (his words, the contract) apart from SOFT ones (the current shape), and ask of each piece: merge with another step, split it out, move it earlier or later, or cut it. scope is ONE atomic part, never the plan: the error model, the id scheme, the one seam the findings keep circling - name it, design it, write it to plans/ as an addendum so a cold reviewer reads it as errata rather than as drift. DESTRUCTIVE AND DRASTIC PROPOSALS ARE SANCTIONED HERE and nowhere else in the impl loop: delete the layer, invert the ownership, collapse the two types into one. the size of the change is not an argument against it (P20); the only test is whether the result is more maintainable and more atomic. within one part it proceeds without asking: run `brain-gate.py design` and emit designed, handing REMEDIATE a shape to build to; the re-review after it is the acceptance test - a net decrease in valid findings, or capped. a redesign that reaches beyond one part is a re-plan, and re-planning a sanctioned build is his call: emit ambiguous and ask him ONCE (P42) with the diagram, the finding counts per round and the before/after shape"
+
+[[states]]
+id = "CLEANUP"
+kind = "work"
+owner = "brain-meta-commit:sweep"
+recall = true
+doc = "the run's residue goes BEFORE the commit is drafted (P56), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects, delete the open-item file, the todo bullet that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `brain-gate.py reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally"
 
 [[states]]
 id = "BLOCKED"
@@ -461,19 +468,19 @@ dst = "REMEDIATE"
 [[transitions]]
 src = "ADJUDICATE"
 on = "design_fault"
-dst = "SUBDESIGN"
+dst = "DESIGN"
 guard = "build"
 
 [[transitions]]
-src = "SUBDESIGN"
+src = "DESIGN"
 on = "designed"
 dst = "REMEDIATE"
 guard = "build"
 
-# a subdesign that cannot be scoped to one atomic part is not a subdesign - it
+# a redesign that cannot be scoped to one atomic part is not a design fix - it
 # is a re-plan, and re-planning a sanctioned build is his call, not the loop's.
 [[transitions]]
-src = "SUBDESIGN"
+src = "DESIGN"
 on = "ambiguous"
 dst = "BLOCKED"
 guard = "build"
@@ -494,6 +501,31 @@ dst = "VERIFY"
 src = "REMEDIATE"
 on = "fixed"
 dst = "PHASEGATE"
+
+# the round cap: a round-2 decrease is fixed and verified, never reviewed a third time
+[[transitions]]
+src = "REMEDIATE"
+on = "fixed_final"
+dst = "VERIFY"
+
+# the round count decides; brain-gate.py round prints the event
+[[transitions]]
+src = "ADJUDICATE"
+on = "final_fix"
+dst = "REMEDIATE"
+
+# a count that does not drop, or a first round full of medium-or-worse findings,
+# is a design verdict (P51): measured 22 -> 36 -> 40 findings while the diff grew
+[[transitions]]
+src = "ADJUDICATE"
+on = "not_converging"
+dst = "DESIGN"
+
+# the cap held and valid findings remain: stop and hand him the list
+[[transitions]]
+src = "ADJUDICATE"
+on = "capped"
+dst = "BLOCKED"
 
 [[transitions]]
 src = "PHASEGATE"
@@ -536,6 +568,12 @@ dst = "STYLE"
 [[transitions]]
 src = "STYLE"
 on = "styled"
+dst = "CLEANUP"
+
+# the sweep runs before RECORD so the drafted commit is the fix and only the fix
+[[transitions]]
+src = "CLEANUP"
+on = "swept"
 dst = "RECORD"
 
 [[transitions]]

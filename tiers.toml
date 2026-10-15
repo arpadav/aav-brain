@@ -116,3 +116,11 @@ measured_on = "2026-09-05"
 "principle-56-close-out-housekeeping" = { tier = "conditional", measured = false }
 "principle-57-user-docs-are-an-icd" = { tier = "conditional", measured = false }
 "principle-58-a-correction-is-a-class" = { tier = "conditional", measured = false }
+"principle-59-cli-shows-the-commands-it-runs" = { tier = "conditional", measured = false }
+"principle-60-device-facing-code-is-gated-by-a-live-run" = { tier = "conditional", measured = false }
+"principle-61-private-infra-stays-out-of-tracked-files" = { tier = "conditional", measured = false }
+"principle-62-a-requested-separate-agent-is-dispatched-not-simulated" = { tier = "conditional", measured = false }
+"principle-63-brainstorming-does-not-change-the-plan" = { tier = "conditional", measured = false }
+"principle-64-resume-after-interruption-verifies-then-redispatches" = { tier = "conditional", measured = false }
+"principle-65-numbered-recommendations-get-one-word-replies" = { tier = "conditional", measured = false }
+"principle-66-open-items-are-one-file-each" = { tier = "conditional", measured = false }

@@ -433,6 +433,18 @@ def find_archive() -> Path:
     return _xdg_data() / "aav-brain-archive"
 
 
+def find_gate_state() -> Path:
+    """the per-checkout review-gate state dir, a sibling of find_data().
+
+    private run state, never versioned and never in the repo under review, so a
+    finished run leaves nothing in the tree (CLEANUP deletes its file)
+
+    # Returns
+    the gate-state root Path (created on demand by its writer)
+    """
+    return _xdg_data() / "aav-brain-gate"
+
+
 def _xdg_data() -> Path:
     """the XDG data root, ignoring a relative $XDG_DATA_HOME per the spec.
 

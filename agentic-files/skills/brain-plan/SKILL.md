@@ -87,16 +87,25 @@ dialogue at the start, not a delivery.
 2. worked example FIRST. a concrete instance of the design in use: a struct exercising the new api,
    a sample invocation, a tiny flowchart, with comments. he validates abstractions against
    instances. give him one.
-3. phases. atomic, ordered, each independently reviewable. each states: what changes, which files,
-   the acceptance check.
-4. review-gate strategy, baked in. each phase gated cold/unguided, multi-lens (see the
-   brain-review-gate agent): "check the diff between phase X and Y, surface every issue
-   biggest-bug-to-smallest-nit, be thorough". converge, fix even single-lens nits, correctness ->
-   fix -> style/fmt last.
-5. reuse + minimal-surface notes. existing primitives to reuse, smallest viable surface, no
-   speculative deps.
+3. phases. atomic, ordered. each states: what changes, which files, the acceptance check, and a
+   size tag S | M | L (S: a few files, no new types or modules; M: one module's worth, or a new type;
+   L: new modules, moved code, or a public surface change). phase count follows the work, never the
+   review: a doc fix is one phase, a full doc rewrite may be six.
+4. review-gate schedule, baked in. phases and gates are NOT 1-to-1. list where the gates are
+   expected from the tags (an L phase gates alone; S phases batch until about one M's worth; the
+   last phase always gates). the real call is `brain-gate.py phase` after each phase, on the
+   measured diff, which overrides the tags when a phase is bigger than tagged. each gate: one
+   brain-review-gate dispatch, 2-6 reviewers sized to the batch, two rounds at most.
+5. proportion, then reuse + minimal surface. state the problem in HIS steps, quoted ("pull, send, run
+   trt, copy back. thats it"). estimate the dumbest version that works - often a shell script - and
+   its size, beside the plan's expected size. if the plan is several times that, each layer above the
+   baseline gets a one-line reason it earns its place, or the plan shrinks. then existing primitives
+   to reuse, smallest viable surface, no speculative deps.
 6. open decisions. anything ambiguous, as a question with options + a rec - and err toward MORE
-   questions, stated verbosely, not fewer (P24, P01). include the would-arpad fidelity questions for
+   questions, stated verbosely, not fewer (P24, P01). a decision that outlives this session (he
+   wants to think, or it waits on someone) becomes an open-item file instead, per P66:
+   `plans/open-items/<ID>-<slug>.md`, stamped with `brain-open-items.py stamp`. at RECON, recall with
+   `--binds plans` and run `brain-open-items.py status`: an `edited` item carries his answer and is input to this plan. include the would-arpad fidelity questions for
    the artifacts the plan introduces: "would arpad write this file / folder / function like this?"
    (P29), each with the alternative and your lean, for him to settle.
 

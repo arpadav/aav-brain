@@ -5,8 +5,8 @@ tier: conditional
 rule: Gate every phase with a cold, independent, multi-lens review. Wait for ALL reviewers, converge, ADJUDICATE each finding against the artifact's contract, then fix every surviving nit - even a single-agent one - before advancing.
 interest: [intent-trust, intent-craft]
 confidence: very-high
-evidence_count: 25
-tells: ["triple review first", "COLD/UNGUIDED", "even smallest nits", "dont skimp out because youre lazy", "find ANY remaining issues or nits or large bugs"]
+evidence_count: 26
+tells: ["triple review first", "COLD/UNGUIDED", "even smallest nits", "dont skimp out because youre lazy", "find ANY remaining issues or nits or large bugs", "after this review it should be good"]
 ---
 
 # P03 - Review-gate every phase (cold, independent, converged)
@@ -82,6 +82,19 @@ can trust it without reading every line."*
 - **A stale count is not a finding.** A doc block whose number disagrees with the tree is a
   measurement with a timestamp, not a defect: re-measure, correct it in passing, and do not spend
   a round on it ([[principle-54-a-count-is-a-measurement]]).
+  He states the bound himself: *"after this review it should be good"* (2026-09-30) - one review
+  is the expected budget; a second full round on the same diff is a sign scope widened.
+- **A climbing count is a design verdict, not a queue.** Findings that rise across rounds on a small diff
+  (22, 36, 40, 22 on about 450 lines) mean the machinery is wrong; he said "many bugs = bad design, so go
+  back to a plan/design phase" - rebuild per [[principle-51-spaghetti-is-a-design-fault]]. For
+  device-facing code the live run, not another review round, is the gate
+  ([[principle-60-device-facing-code-is-gated-by-a-live-run]]).
+- **The bound is scripted.** `brain-gate.py` schedules the gate by measured diff (phases batch; a
+  3-line phase does not get a 2k-line phase's review), sizes it at 2-6 reviewers, and ends it after
+  two rounds: a round-2 decrease is fixed and verified, no decrease goes to DESIGN. He: "dude stop
+  reviewing its okay just fix it up, continue, then review at the end".
+- **Named reviewers are lenses of the one gate.** An agent he names for review goes into the
+  brain-review-gate dispatch; dispatching it beside the gate runs it twice.
 - **Scope discipline is what keeps the round count down** ([[principle-45-scope-is-the-ask]]).
   The gate reviews whatever surface you hand it; widen the diff and you commission findings
   about work nobody asked for.
