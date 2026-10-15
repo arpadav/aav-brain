@@ -5,8 +5,8 @@ tier: conditional
 rule: never treat git state as a blocker or a gate. he commits, adds, and pushes - the agent does the fixes and reports git instructions at the END. do not stop, do not ask, do not invent a gate out of repo state.
 interest: [intent-sovereignty, intent-efficiency]
 confidence: very-high
-evidence_count: 3
-tells: ["do not commit anything ever", "thats my job. you just do the fixes and give review at end", "stop worrying about git operations?", "please just continue", "i already told you this"]
+evidence_count: 4
+tells: ["do not commit anything ever", "thats my job. you just do the fixes and give review at end", "stop worrying about git operations?", "please just continue", "i already told you this", "actually, its fine. when i merge i will squash anyway. just make the appropriate changes and let me know when done"]
 tension: [principle-09-git-sovereignty]
 ---
 
@@ -20,6 +20,11 @@ git is entirely his surface: commits, adds, pushes, remotes, submodule wiring. t
 - do NOT gate a phase on "a copy must exist off-box first" or "this needs a remote first"
   unless HE said so. that is an invented gate.
 - do NOT clean, stash, or reconcile a dirty tree. a dirty tree is normal and fine.
+- do NOT turn a history problem into a menu. asked to scrub a value from pushed commits, the agent put "how far
+  should I soft-reset" to him as a multi-choice question; he interrupted it: "actually, its fine. when i merge i
+  will squash anyway. just make the appropriate changes and let me know when done". he squash-merges, so a
+  slip on the branch is fixed forward in the working tree and handed over uncommitted; the pushed history is
+  not worth a decision from him.
 - DO collect the git actions and hand them over as instructions at the very end.
 
 ## why

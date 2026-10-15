@@ -5,8 +5,8 @@ tier: conditional
 rule: large refactors are ALWAYS welcome when they make the structure or architecture more maintainable and atomic. dont avoid a big change just because its big.
 interest: [intent-craft]
 confidence: medium
-evidence_count: 3
-tells: ["large refactor changes ARE ALWAYS welcome", "more maintanable and atomic", "if it serves the benefit of the structure and architecture"]
+evidence_count: 4
+tells: ["large refactor changes ARE ALWAYS welcome", "more maintanable and atomic", "if it serves the benefit of the structure and architecture", "i want you to do a complete refactor of this to reduce the lines of codes"]
 tension: [principle-05-reuse-first, principle-14-minimal-surface]
 ---
 
@@ -29,6 +29,11 @@ serves was a large change that killed an entire drift class - exactly the kind o
 - the test: does it make the thing more maintainable AND more atomic? yes -> welcome. if its just
   motion with no structural gain, thats churn ([[principle-05-reuse-first]]), skip it.
 - note this welcome explicitly in any self-review session so the next pass isnt timid.
+
+## the limit case (2026-09-30)
+handed a 30k-line branch that kept finding issues, he asked for a complete refactor in the agent's own
+worktree to cut the line count, reusing the old logic but not its shape. a rewrite is the same welcome as a
+refactor; when to choose it over patching is [[principle-51-spaghetti-is-a-design-fault]].
 
 ## anti-pattern
 keeping a worse structure because "the refactor is too big". timidly patching around a design flaw

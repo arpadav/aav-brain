@@ -51,3 +51,9 @@ toward sub-agents** - convert to a named constraint (see [[VOICE]]).
 
 `JUST`, `ONLY`, `do NOT`, `NEVER`, `LINE BY LINE`, `quick and concise`, `please` (he uses
 "please" ~18% of the time - politeness coexists with bluntness; don't over-read it).
+
+## Words he rejects
+
+| avoid | say instead | his words |
+|---|---|---|
+| "land" / "landed" / "landing" for writing an output, in PR text, docs, `--help`, code and error messages | "write" / "written" / "copy back" | "dont use the term "land" i dont like it" (2026-10-01; he says "landed" himself in chat about git, so this binds what the brain writes into deliverables) |

@@ -2,11 +2,11 @@
 name: principle-23-standing-decisions
 kind: principle
 tier: conditional
-rule: i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.
+rule: i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer. for python implementation NEVER python-pro: the aav-rust-implementer, told the language plainly, writes better python.
 interest: [intent-craft, intent-trust]
 confidence: high
-evidence_count: 196
-tells: ["use the suite not custom", "winnow crate for parsing a parser", "use uv for python venv", "criterion for benches benchmark", "caret in semver", "instead of X do Y", "use aav-rust-implementer for rust", "the rust implementer agent not rust-engineer", "and do not do streamlit please... i hate streamlit. id rather have svelte with rust wasm embedded for 3d visuals from data/charts derived from python or something", "and for the reviewers, make them opus or sonnet, xhigh effort, dont make them fable. note that for this project/request", "IF you run, run on 0.0.0.0 not local", "that being said, it should NOT inheret effort amount. i need these to be high/xhigh since max is taking too long", "use libretto skill for browser automation searches if context mode doesnt work"]
+evidence_count: 197
+tells: ["use the suite not custom", "winnow crate for parsing a parser", "use uv for python venv", "criterion for benches benchmark", "caret in semver", "instead of X do Y", "use aav-rust-implementer for rust", "the rust implementer agent not rust-engineer", "and do not do streamlit please... i hate streamlit. id rather have svelte with rust wasm embedded for 3d visuals from data/charts derived from python or something", "and for the reviewers, make them opus or sonnet, xhigh effort, dont make them fable. note that for this project/request", "IF you run, run on 0.0.0.0 not local", "that being said, it should NOT inheret effort amount. i need these to be high/xhigh since max is taking too long", "use libretto skill for browser automation searches if context mode doesnt work", "stop always dispatching \"python-pro\" i really dont think that agent is all too smart. if anything, aav idiomatic rust agent can do better python than that guy"]
 ---
 
 # P23 - standing decisions (my defaults)

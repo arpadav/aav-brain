@@ -46,6 +46,11 @@ exempt = ["/brain/principles/", "/brain/intents/"]
 duplicate_type_files = 2
 
 [budget]
+# SECONDARY since the computer-1/computer-2 merge: `brain-gate.py phase` decides
+# whether a phase buys the gate, and this budget only takes the `under_budget`
+# exit on a final phase brain-gate.py deferred. kept until
+# plans/open-items/G01-two-gate-arming-checks.md rules on pruning it.
+#
 # the phase gate is ARMED when a phase's accumulated change crosses either of
 # these. under both, the phase still ends with VERIFY and STYLE - it just does
 # not buy a cold multi-lens review.

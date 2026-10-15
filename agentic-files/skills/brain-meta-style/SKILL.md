@@ -30,6 +30,10 @@ for each new artifact (struct/type/module/function/file):
   the lowest layer that can host them.
 - organization / reorg (P27). is a file too long or a folder too flat-crowded (-> split to a tree)?
   is a tree now overkill after a refactor (-> collapse to flat)? hierarchy is critical, both ways.
+- proportion (P14 at the SUBSYSTEM scale). every addition can pass on its own while the sum outgrows
+  the problem. measure the whole thing the work touches (lines, files) against the dumbest version
+  that does his stated job - a shell script is the usual baseline. far over it and the excess is not
+  justified layer by layer -> that is a finding, raised to him unasked, not a style nit.
 - minimal surface (P14). anything speculative (a dep, a flag, an abstraction nobody asked for)? cut
   it. but P14 NEVER justifies a duplicated datatype - that is P31, library-fy it.
 - idiom fit (P06). flag Box<dyn> / unwrap_or / magic numbers / free-function-logic in rust.
@@ -44,7 +48,7 @@ against the artifact's stated contract:
 | verdict | when | action |
 |---|---|---|
 | valid | a real defect | -> REMEDIATE. even a single-reviewer nit; there is no "minor enough to skip" (P03) |
-| design fault | real, and every available fix makes the code WORSE | -> SUBDESIGN, which designs that ONE part and hands REMEDIATE a shape |
+| design fault | real, and every available fix makes the code WORSE | -> DESIGN, which designs that ONE part and hands REMEDIATE a shape |
 | invalid | it contradicts what the artifact IS | REJECT, log the reason, never fix |
 | deferred | real, but a later phase delivers it | REJECT for this phase, log, move on |
 | fabricated | asserted without being run (P04) | REJECT, and discount that reviewer's OTHER claims until you verify them yourself |

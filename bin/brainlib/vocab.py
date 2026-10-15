@@ -221,6 +221,7 @@ class Flag(StrEnum):
     EXPORT = "--export"
     GATE = "--gate"
     HELP = "--help"
+    LAST = "--last"
     LIST = "--list"
     LOW_CONFIDENCE = "--low-confidence"
     MERMAID = "--mermaid"
@@ -245,6 +246,7 @@ class Flag(StrEnum):
     STALE_CANDIDATES = "--stale-candidates"
     STATE = "--state"
     SUPERSEDES = "--supersedes"
+    TAG = "--tag"
     TELLS = "--tells"
 
     @classmethod
@@ -269,7 +271,7 @@ class Flag(StrEnum):
             cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
             cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.N, cls.NEIGHBORS, cls.ON,
             cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
-            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TELLS,
+            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG, cls.TELLS,
         })
 
 

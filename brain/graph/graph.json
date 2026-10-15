@@ -60,14 +60,17 @@
         "COLD/UNGUIDED",
         "even smallest nits",
         "dont skimp out because youre lazy",
-        "find ANY remaining issues or nits or large bugs"
+        "find ANY remaining issues or nits or large bugs",
+        "after this review it should be good"
       ],
       "body_links": [
         "principle-04-anti-fabrication",
         "principle-29-interrogate-the-work",
         "principle-45-scope-is-the-ask",
+        "principle-51-spaghetti-is-a-design-fault",
         "principle-53-rigor-scales-with-the-change",
-        "principle-54-a-count-is-a-measurement"
+        "principle-54-a-count-is-a-measurement",
+        "principle-60-device-facing-code-is-gated-by-a-live-run"
       ],
       "path": "brain/principles/principle-03-review-gate.md"
     },
@@ -206,10 +209,18 @@
         "i will go through and verify the messages",
         "im the one who editted this",
         "files: <tree> commit: 'an example pre-filled commit'",
-        "then i can simply say Y to accept or N to not accept the commit message"
+        "then i can simply say Y to accept or N to not accept the commit message",
+        "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally",
+        "note you are making style pass on scratchpad and not main branch, yes?",
+        "did you say the style landed on feat/hml-deploy ? im on that one not v2",
+        "is this built ontop of main or feat/hml-deploy ?",
+        "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2",
+        "i edited re-read"
       ],
       "body_links": [
-        "principle-15-tone-is-signal"
+        "principle-15-tone-is-signal",
+        "principle-45-scope-is-the-ask",
+        "principle-51-spaghetti-is-a-design-fault"
       ],
       "path": "brain/principles/principle-09-git-sovereignty.md"
     },
@@ -237,7 +248,10 @@
         "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete",
         "you should not have stopped, since under brain-execute skill youd still be walking the brain and you havent reached a blocker or your DONE state yet",
         "can you please not be as hardstuck as previous agents about \\",
-        " or whatever? its trying to think of every edge case possible but i just want this damn thing finished already"
+        " or whatever? its trying to think of every edge case possible but i just want this damn thing finished already",
+        "the plan could be out of date, so investigate",
+        "walk the brain until DONE, dont be blocked. this isnt difficult",
+        "you need to finish this by morning"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -323,7 +337,9 @@
       ],
       "body_links": [
         "principle-05-reuse-first",
-        "principle-07-trim-fat-verbose-docs"
+        "principle-07-trim-fat-verbose-docs",
+        "principle-51-spaghetti-is-a-design-fault",
+        "principle-60-device-facing-code-is-gated-by-a-live-run"
       ],
       "path": "brain/principles/principle-14-minimal-surface.md"
     },
@@ -446,7 +462,8 @@
       "tells": [
         "large refactor changes ARE ALWAYS welcome",
         "more maintanable and atomic",
-        "if it serves the benefit of the structure and architecture"
+        "if it serves the benefit of the structure and architecture",
+        "i want you to do a complete refactor of this to reduce the lines of codes"
       ],
       "body_links": [
         "principle-05-reuse-first",
@@ -509,7 +526,7 @@
       "id": "principle-23-standing-decisions",
       "kind": "principle",
       "tier": "conditional",
-      "headline": "i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.",
+      "headline": "i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer. for python implementation NEVER python-pro: the aav-rust-implementer, told the language plainly, writes better python.",
       "interest": [
         "intent-craft",
         "intent-trust"
@@ -529,7 +546,9 @@
         "and for the reviewers, make them opus or sonnet, xhigh effort, dont make them fable. note that for this project/request",
         "IF you run, run on 0.0.0.0 not local",
         "that being said, it should NOT inheret effort amount. i need these to be high/xhigh since max is taking too long",
-        "use libretto skill for browser automation searches if context mode doesnt work"
+        "use libretto skill for browser automation searches if context mode doesnt work",
+        "stop always dispatching \\",
+        " i really dont think that agent is all too smart. if anything, aav idiomatic rust agent can do better python than that guy"
       ],
       "body_links": [
         "principle-05-reuse-first",
@@ -698,16 +717,22 @@
         "does this belong to that parent or is it independent",
         "decouple, find what is purely independent",
         "cut the fat even more",
-        "even when you believe you are done, ask yourself 'is there more i can include'"
+        "even when you believe you are done, ask yourself 'is there more i can include'",
+        "is this ready to go, or to make it better answer those questions?",
+        "does this do my 1-4 or does it force a re-use of triton container?"
       ],
       "body_links": [
         "principle-01-no-assumptions",
         "principle-03-review-gate",
         "principle-05-reuse-first",
+        "principle-09-git-sovereignty",
         "principle-24-socratic-mode",
         "principle-27-organization-reorg",
         "principle-30-deterministic-flow",
-        "principle-31-libraryfy-shared"
+        "principle-31-libraryfy-shared",
+        "principle-43-report-state-not-changelog",
+        "principle-51-spaghetti-is-a-design-fault",
+        "principle-56-close-out-housekeeping"
       ],
       "path": "brain/principles/principle-29-interrogate-the-work.md"
     },
@@ -771,7 +796,9 @@
         "is this path hardcoded?",
         "use $HOME not /home/arpad",
         "discover the root, dont assume the layout",
-        "never guess a path"
+        "never guess a path",
+        "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this",
+        "like the local version should simply take the local architecture, thats IT..."
       ],
       "body_links": [
         "principle-01-no-assumptions"
@@ -794,7 +821,8 @@
         "thats my job. you just do the fixes and give review at end",
         "stop worrying about git operations?",
         "please just continue",
-        "i already told you this"
+        "i already told you this",
+        "actually, its fine. when i merge i will squash anyway. just make the appropriate changes and let me know when done"
       ],
       "body_links": [
         "principle-09-git-sovereignty",
@@ -932,11 +960,14 @@
         "adhering to my style should be baked into the brain",
         "i always have to manually do it afterwards",
         "it should ALWAYS be required, unless i explicitly ask against it",
-        "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE"
+        "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE",
+        "please do a style pass on the git diff compared to main (+4.7k -200 lines). shell and python and all",
+        "for phase 1's style pass in havoc-ml, which rule wins? -> My style, touched lines"
       ],
       "body_links": [
         "principle-04-anti-fabrication",
-        "principle-06-idiomatic-per-language"
+        "principle-06-idiomatic-per-language",
+        "principle-09-git-sovereignty"
       ],
       "path": "brain/principles/principle-39-style-contract.md"
     },
@@ -1026,7 +1057,9 @@
         "all i see is left column confusing knobs and buttons which are not user friendly at all, the middle area is blank (completely white), the right area is also blank (but grey) with some text, etc. i assume the final passes fix all this junk?",
         "use plain english and minimal code-speak. like it should be natural language with code snippets, rather than language with code intertwined",
         "this was far clearer",
-        "you are conflating and giving me pages of info for something thats such a simple concept. ask it in one sentence"
+        "you are conflating and giving me pages of info for something thats such a simple concept. ask it in one sentence",
+        "stop telling me about havocos dude holy shit this is completely independent of that. ask me again without frustrating me. be super simple. like cmon",
+        "dude why are you making this so complicated? you have docker OR trtexec, simply TRT THE DAMN ONNX FILE ON THE BOARD stop asking about hard-coded env vars and refusals, just DO IT"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -1053,7 +1086,9 @@
         "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items",
         "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write",
         "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you",
-        "how much left? progress percent and a sneak peek"
+        "how much left? progress percent and a sneak peek",
+        "make it way shorter it doesnt need to be an essay",
+        "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin"
       ],
       "body_links": [
         "principle-37-comment-the-artifact-not-the-edit",
@@ -1096,14 +1131,15 @@
         "intent-efficiency",
         "intent-control"
       ],
-      "confidence": "high",
+      "confidence": "medium",
       "binds": [
         "code"
       ],
       "tells": [
         "this should have just been moving main fn's so i dont see the big confusion",
         "what was my original ask again?",
-        "how much more is left?"
+        "how much more is left?",
+        "fix all things in scope to my request, all things out of scope just document into plans dir as a todos"
       ],
       "body_links": [
         "principle-03-review-gate",
@@ -1111,7 +1147,8 @@
         "principle-14-minimal-surface",
         "principle-20-refactors-welcome",
         "principle-37-comment-the-artifact-not-the-edit",
-        "principle-50-the-standing-mission"
+        "principle-50-the-standing-mission",
+        "principle-56-close-out-housekeeping"
       ],
       "path": "brain/principles/principle-45-scope-is-the-ask.md"
     },
@@ -1179,7 +1216,8 @@
         "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm",
         "this is visually so confusing. middle is a blank screen, no styling",
         "i love the layout and look of the example, and this one is still way way way too crowded for the eyes",
-        "this looks really good now, keep it going"
+        "this looks really good now, keep it going",
+        "the 'how it executes' another mermaid diagram, vertical, its not very legible"
       ],
       "body_links": [
         "principle-03-review-gate",
@@ -1253,10 +1291,11 @@
       "id": "principle-51-spaghetti-is-a-design-fault",
       "kind": "principle",
       "tier": "conditional",
-      "headline": "when every available fix makes the code worse, the DESIGN is the defect and the patch is not. leave the impl loop, design that ONE atomic part, and come back - destructive and drastic proposals are sanctioned there, because a good design fixes the symptoms as a side effect.",
+      "headline": "when every available fix makes the code worse, or the valid-finding count stops dropping across review rounds, the DESIGN is the defect and the patch is not. leave the impl loop for DESIGN, measure the build against his own step list, and redesign that ONE atomic part from his canonical statement - harvesting the edge cases the old code learned. destructive and drastic proposals are sanctioned there, because a good design fixes the symptoms as a side effect.",
       "interest": [
         "intent-craft",
-        "intent-comprehension"
+        "intent-comprehension",
+        "intent-efficiency"
       ],
       "confidence": "high",
       "binds": [
@@ -1267,14 +1306,30 @@
         "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work",
         "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions",
         "hold up wtf?",
-        "get OUT of impl and back to design/plan"
+        "get OUT of impl and back to design/plan",
+        "many bugs = bad design, so go bsck to a plan/design phase",
+        "why is it 16 massive modules for this simple 4 stages",
+        "has this been over-engineered? its taken like 2-3 weeks to get this working, would a shell script have been easier in some places? be completely honest",
+        "its 30k lines and constantly finding issues",
+        "i need you to make and execute a seperate plan. in your own workspace or worktree, i want you to do a complete refactor of this to reduce the lines of codes",
+        "it just seems like so much went into this but the initial design was bad",
+        "yes its not perfect and might be a bit spaghetti, but the general gist and edge cases which i havent described should be accounted for",
+        "if anything in the repo *disagrees* with the 1-4 i described, it is wrong and 1-4 is canonical and true",
+        "learn from this bad design and see where the faults always keep happening",
+        "they think its TOO simple with the balena device ssh, its more complex than that",
+        "this should not be 1/7... i thought this was a simple cut to remove?"
       ],
       "body_links": [
         "principle-02-plan-before-build",
+        "principle-03-review-gate",
         "principle-04-anti-fabrication",
+        "principle-09-git-sovereignty",
+        "principle-14-minimal-surface",
         "principle-20-refactors-welcome",
+        "principle-23-standing-decisions",
         "principle-27-organization-reorg",
-        "principle-28-dry-merge-blast-radius"
+        "principle-28-dry-merge-blast-radius",
+        "principle-60-device-facing-code-is-gated-by-a-live-run"
       ],
       "path": "brain/principles/principle-51-spaghetti-is-a-design-fault.md"
     },
@@ -1378,18 +1433,37 @@
       "id": "principle-56-close-out-housekeeping",
       "kind": "principle",
       "tier": "conditional",
-      "headline": "finishing a build includes the housekeeping pass unprompted - stale worktrees, closed items, superseded plans and old docs are cleared, and the report says it ran.",
+      "headline": "finishing a build includes the housekeeping pass unprompted - executed or superseded plans, resolved todos, closed items, one-off scripts, old output caches, stale worktrees and scratchpads, docs that describe a state that no longer exists - delete it, keep exactly what he names, and say in one line what went.",
       "interest": [
         "intent-control",
-        "intent-comprehension"
+        "intent-comprehension",
+        "intent-efficiency"
       ],
-      "confidence": "medium",
+      "confidence": "high",
       "binds": [],
       "tells": [
+        "UNDER plans/ i see so many old files, i JUST want the most recent or relevant files ... i keep asking for this and it never keeps happening",
         "clean up any old worktrees while you wait",
-        "did you have a cleanup pass? clean old git worktrees, clean closed items and old plans and old docs?"
+        "did you have a cleanup pass? clean old git worktrees, clean closed items and old plans and old docs?",
+        "did you clean up all relevant docs/files which are no longer needed?",
+        "clean up old files and old todos which are relevant, clean up old output cache",
+        "clean up old commit bash files",
+        "can you clean up all unused worktrees and unused scratchpads?",
+        "can you purge other plans which arent relevant anymore? keep final prompt though",
+        "remove all old plans and unrelated docs. yes i still have the registry move and the cli stuff, keep those plans",
+        "i want you to clean up plan docs, everything thats complete, remove it",
+        "just delete stale plans",
+        "clean up? both scripts and old artifacts and unused configs/scripts/data/etc",
+        "remove the worktree if it is stale",
+        "please clean up agents and worktrees and old images after yourself",
+        "clean up after yourself (e.g. delete your plan doc and other ancillary doc info)",
+        "and keep all venv's and artifacts local bruh until finished, tmp scratchpads are for scratchpads only"
       ],
       "body_links": [
+        "principle-07-trim-fat-verbose-docs",
+        "principle-29-interrogate-the-work",
+        "principle-43-report-state-not-changelog",
+        "principle-45-scope-is-the-ask",
         "principle-52-parallel-dispatch"
       ],
       "path": "brain/principles/principle-56-close-out-housekeeping.md"
@@ -1398,13 +1472,15 @@
       "id": "principle-57-user-docs-are-an-icd",
       "kind": "principle",
       "tier": "conditional",
-      "headline": "user-facing docs teach USAGE in an ICD register - bullets, tables, small snippets and shown examples over prose, never code mixed into a sentence, plain fixed headings, a mechanism shown as a story, and the smallest format each item needs.",
+      "headline": "docs and replies read like a textbook or a military ICD, and user-facing docs teach USAGE - noun-phrase headings, imperative instructions with the object named, bullets, tables, small snippets and shown examples over prose, never code mixed into a sentence, a mechanism shown as a story, no conversational openers or filler phrases, and the smallest format each item needs.",
       "interest": [
         "intent-comprehension",
         "intent-craft"
       ],
       "confidence": "high",
-      "binds": [],
+      "binds": [
+        "docs"
+      ],
       "tells": [
         "this is abhorrent and impossible for a human to digest",
         "BULLETS, CHARTS, SMALL CODE SNIPPETS, EXAMPLES, etc ALL surpass paragraphs of text",
@@ -1413,10 +1489,27 @@
         "no one cares about paths to tests or the actual algorithm behind it",
         "stop trying to adhere to one single formula for explaining things",
         "i dont see a literal example. i dont see a story",
-        "the `Note` sections are literally meant to expand in english whats going on for weird scenarios"
+        "the `Note` sections are literally meant to expand in english whats going on for weird scenarios",
+        "NO buzzfeed jargon NO fluff wording like \\",
+        " \\",
+        " \\",
+        " \\",
+        "",
+        "it should just be \\",
+        " \\",
+        " \\",
+        " \\",
+        "",
+        "talk like a textbook or a military ICD, not like a buzzfeed or gossip article",
+        "the \\",
+        " wording is so cringe",
+        "search AI jargon 2026 and flag them in here, draft and redraft until you removed every weird \\",
+        "",
+        "i said be terse, this is way too long"
       ],
       "body_links": [
         "principle-07-trim-fat-verbose-docs",
+        "principle-15-tone-is-signal",
         "principle-44-build-from-nothing-to-something"
       ],
       "path": "brain/principles/principle-57-user-docs-are-an-icd.md"
@@ -1442,6 +1535,198 @@
         "principle-40-idiom-needs-exemplars"
       ],
       "path": "brain/principles/principle-58-a-correction-is-a-class.md"
+    },
+    {
+      "id": "principle-59-cli-shows-the-commands-it-runs",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "a tool that acts on machines (devices, hosts, buckets, docker) says up front what it resolved, lists the exact commands it will run, asks once, then prints `Running: <cmd>` before each - every printed line re-runnable as is.",
+      "interest": [
+        "intent-comprehension",
+        "intent-control",
+        "intent-trust"
+      ],
+      "confidence": "medium",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "i really want whatever language you use to use the following type of output, where its strictly reproducable, says what commands are being run, etc etc. construct the command, guide the user, etc etc",
+        "the output logs are all misaligned",
+        "i need some trt commands I CAN run directly and immediuately because id like to screen record them. like give me various flavors",
+        "i want 1. examples to be in individual blocks, and say 'more examples in deploy.md'",
+        "see @commands-to-run.sh can you make this where it displays all commands and i choose one to execute? like 1-9a-z selection"
+      ],
+      "body_links": [
+        "principle-14-minimal-surface"
+      ],
+      "path": "brain/principles/principle-59-cli-shows-the-commands-it-runs.md"
+    },
+    {
+      "id": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "code whose job is to act on a real device, host or bucket is not done when mocked tests pass; it is done when the agent has run his real command against the real target and read the result. tests stay local and never perform a real remote deployment.",
+      "interest": [
+        "intent-trust",
+        "intent-craft"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "i want commands tried and executed",
+        "i want `HAVOC_BALENA_CLI=~/Downloads/balena/bin/balena uv run hml deploy --output s3://havoc-dev-triton-zoo/.output/migrations/tmp --via balena --device $BALENA_DEVICE_1` with BALENA_DEVICE_{1,2,3,4} tried (sometimes some arent available)",
+        "i want <lan ssh host> ssh tried",
+        "i dont want tests to try straight up remote deployment like this",
+        "learn from this comment",
+        "correctness run on a device. The live runs found every real bug today",
+        "wheel size ? and confirmation that an independent docker container (with trt) can run hml deploy ? id like to see that"
+      ],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-04-anti-fabrication",
+        "principle-36-verify-with-stderr-visible",
+        "principle-51-spaghetti-is-a-design-fault",
+        "principle-61-private-infra-stays-out-of-tracked-files"
+      ],
+      "path": "brain/principles/principle-60-device-facing-code-is-gated-by-a-live-run.md"
+    },
+    {
+      "id": "principle-61-private-infra-stays-out-of-tracked-files",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "his real hosts, LAN ips, usernames and device ids belong to live runs, plans/ and memory - never to a tracked doc, test or source file. tracked files carry neutral placeholders (`user@gpu-host`); a real value that gets pushed is a leak he has to rewrite history to undo.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-control"
+      ],
+      "confidence": "medium",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "`rg <lan-ip>` and please remove these from docs and tests (fine in plans)",
+        "like can you roll back a commit, edit files, then i commit and force-push? these should not have landed onto the git repo",
+        "actually, its fine. when i merge i will squash anyway. just make the appropriate changes and let me know when done"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-33-git-is-not-a-blocker",
+        "principle-60-device-facing-code-is-gated-by-a-live-run"
+      ],
+      "path": "brain/principles/principle-61-private-infra-stays-out-of-tracked-files.md"
+    },
+    {
+      "id": "principle-62-a-requested-separate-agent-is-dispatched-not-simulated",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "when he asks for a separate subagent to do a piece of work (a search, a review), the orchestrator dispatches that agent and relays between them; it never absorbs the work into its own context or lets another worker do it inline.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-trust"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "i asked explore: 'send out a seperate subagent to potentially find instances of that. there might not be, so dont make it up' but now its trying to do it itself, tell it to stop and you spawn that agent and make them talk"
+      ],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-04-anti-fabrication"
+      ],
+      "path": "brain/principles/principle-62-a-requested-separate-agent-is-dispatched-not-simulated.md"
+    },
+    {
+      "id": "principle-63-brainstorming-does-not-change-the-plan",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "when he is exploring (\"we are just brainstorming\", \"question:\"), answer the question and stop; the sanctioned plan stays exactly as it is until he says to change it. never fold a brainstorm answer into the plan or start rebuilding.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-comprehension"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "and yea im thinking A. note this doesnt change your plan, we are just brainstorming right now",
+        "question: how to make perception-runners a submodule of havoc-ml, or vice versa? ... or does that not make sense?",
+        "so in one sentence, tell me this flow if we fold it into havoc-ml"
+      ],
+      "body_links": [
+        "principle-38-a-non-answer-is-not-consent",
+        "principle-45-scope-is-the-ask"
+      ],
+      "path": "brain/principles/principle-63-brainstorming-does-not-change-the-plan.md"
+    },
+    {
+      "id": "principle-64-resume-after-interruption-verifies-then-redispatches",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "after a crash or restart, resuming means verifying what actually finished; recover the subagent output if it exists, otherwise re-dispatch. never assume done and never skip the unfinished piece.",
+      "interest": [
+        "intent-trust",
+        "intent-sovereignty"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "hey my computer auto-restarted, can you continue? dont cut corners, if it didnt finish then re-dispatch, or try to recover subagent info"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-62-a-requested-separate-agent-is-dispatched-not-simulated"
+      ],
+      "path": "brain/principles/principle-64-resume-after-interruption-verifies-then-redispatches.md"
+    },
+    {
+      "id": "principle-65-numbered-recommendations-get-one-word-replies",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "put findings/decisions to him as a numbered list, each with a recommended default, so he can reply \"affirm\" or overrule by number. his overrules are usually about keeping extensibility structure or making a value configurable.",
+      "interest": [
+        "intent-efficiency",
+        "intent-comprehension"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "1. affirm 2. affirm 3. no, this structure is fine in case more services are added 4. affirm 5. affirm 6. affirm 7. affirm 8. make this configurable.",
+        "phase/stage in brain and in plan?"
+      ],
+      "body_links": [
+        "principle-43-report-state-not-changelog",
+        "principle-49-his-interactive-app-shape",
+        "principle-51-spaghetti-is-a-design-fault"
+      ],
+      "path": "brain/principles/principle-65-numbered-recommendations-get-one-word-replies.md"
+    },
+    {
+      "id": "principle-66-open-items-are-one-file-each",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "a decision that outlives the session is one file, plans/open-items/<ID>-<slug>.md - title states the problem in one line, then What / Issue / Decisions (recommended option plus an A/B/C table) / Your call, every term defined with \"e.g.\" on first use, and a sha256 footer so an edit by him is detected, not asked about.",
+      "interest": [
+        "intent-comprehension",
+        "intent-efficiency",
+        "intent-control"
+      ],
+      "confidence": "medium",
+      "binds": [
+        "plans"
+      ],
+      "tells": [
+        "i like to have `open-items` folder no `plans/open-items/*.md` where each file is an open item",
+        "it breaks down the problem, defines jargon, and keeps a sha256 sum/hash of the doc to see when ive editted it at the bottom",
+        "then based off those, it can make a plan and execute on open items",
+        "ask me if there is anything blocking or open decisions to be made"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-56-close-out-housekeeping",
+        "principle-57-user-docs-are-an-icd",
+        "principle-65-numbered-recommendations-get-one-word-replies"
+      ],
+      "path": "brain/principles/principle-66-open-items-are-one-file-each.md"
     }
   ],
   "edges": [
@@ -1477,12 +1762,22 @@
     },
     {
       "src": "principle-03-review-gate",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
+      "src": "principle-03-review-gate",
       "dst": "principle-53-rigor-scales-with-the-change",
       "type": "relates"
     },
     {
       "src": "principle-03-review-gate",
       "dst": "principle-54-a-count-is-a-measurement",
+      "type": "relates"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "principle-60-device-facing-code-is-gated-by-a-live-run",
       "type": "relates"
     },
     {
@@ -1556,6 +1851,16 @@
       "type": "relates"
     },
     {
+      "src": "principle-09-git-sovereignty",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "relates"
+    },
+    {
+      "src": "principle-09-git-sovereignty",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
       "src": "principle-10-autonomy-after-sanction",
       "dst": "principle-01-no-assumptions",
       "type": "relates"
@@ -1593,6 +1898,16 @@
     {
       "src": "principle-14-minimal-surface",
       "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-60-device-facing-code-is-gated-by-a-live-run",
       "type": "relates"
     },
     {
@@ -1772,6 +2087,11 @@
     },
     {
       "src": "principle-29-interrogate-the-work",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
       "dst": "principle-24-socratic-mode",
       "type": "relates"
     },
@@ -1788,6 +2108,21 @@
     {
       "src": "principle-29-interrogate-the-work",
       "dst": "principle-31-libraryfy-shared",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-43-report-state-not-changelog",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
+      "src": "principle-29-interrogate-the-work",
+      "dst": "principle-56-close-out-housekeeping",
       "type": "relates"
     },
     {
@@ -1883,6 +2218,11 @@
     {
       "src": "principle-39-style-contract",
       "dst": "principle-06-idiomatic-per-language",
+      "type": "relates"
+    },
+    {
+      "src": "principle-39-style-contract",
+      "dst": "principle-09-git-sovereignty",
       "type": "relates"
     },
     {
@@ -2021,6 +2361,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-56-close-out-housekeeping",
+      "type": "relates"
+    },
+    {
       "src": "principle-46-stay-in-the-working-folder",
       "dst": "principle-01-no-assumptions",
       "type": "relates"
@@ -2102,12 +2447,32 @@
     },
     {
       "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-04-anti-fabrication",
       "type": "relates"
     },
     {
       "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-20-refactors-welcome",
+      "type": "relates"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-23-standing-decisions",
       "type": "relates"
     },
     {
@@ -2118,6 +2483,11 @@
     {
       "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-60-device-facing-code-is-gated-by-a-live-run",
       "type": "relates"
     },
     {
@@ -2172,12 +2542,37 @@
     },
     {
       "src": "principle-56-close-out-housekeeping",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-56-close-out-housekeeping",
+      "dst": "principle-29-interrogate-the-work",
+      "type": "relates"
+    },
+    {
+      "src": "principle-56-close-out-housekeeping",
+      "dst": "principle-43-report-state-not-changelog",
+      "type": "relates"
+    },
+    {
+      "src": "principle-56-close-out-housekeeping",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "relates"
+    },
+    {
+      "src": "principle-56-close-out-housekeeping",
       "dst": "principle-52-parallel-dispatch",
       "type": "relates"
     },
     {
       "src": "principle-57-user-docs-are-an-icd",
       "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
+    },
+    {
+      "src": "principle-57-user-docs-are-an-icd",
+      "dst": "principle-15-tone-is-signal",
       "type": "relates"
     },
     {
@@ -2191,8 +2586,123 @@
       "type": "relates"
     },
     {
+      "src": "principle-59-cli-shows-the-commands-it-runs",
+      "dst": "principle-14-minimal-surface",
+      "type": "relates"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-36-verify-with-stderr-visible",
+      "type": "relates"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-61-private-infra-stays-out-of-tracked-files",
+      "type": "relates"
+    },
+    {
+      "src": "principle-61-private-infra-stays-out-of-tracked-files",
+      "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-61-private-infra-stays-out-of-tracked-files",
+      "dst": "principle-33-git-is-not-a-blocker",
+      "type": "relates"
+    },
+    {
+      "src": "principle-61-private-infra-stays-out-of-tracked-files",
+      "dst": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "type": "relates"
+    },
+    {
+      "src": "principle-62-a-requested-separate-agent-is-dispatched-not-simulated",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
+    },
+    {
+      "src": "principle-62-a-requested-separate-agent-is-dispatched-not-simulated",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-63-brainstorming-does-not-change-the-plan",
+      "dst": "principle-38-a-non-answer-is-not-consent",
+      "type": "relates"
+    },
+    {
+      "src": "principle-63-brainstorming-does-not-change-the-plan",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "relates"
+    },
+    {
+      "src": "principle-64-resume-after-interruption-verifies-then-redispatches",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-64-resume-after-interruption-verifies-then-redispatches",
+      "dst": "principle-62-a-requested-separate-agent-is-dispatched-not-simulated",
+      "type": "relates"
+    },
+    {
+      "src": "principle-65-numbered-recommendations-get-one-word-replies",
+      "dst": "principle-43-report-state-not-changelog",
+      "type": "relates"
+    },
+    {
+      "src": "principle-65-numbered-recommendations-get-one-word-replies",
+      "dst": "principle-49-his-interactive-app-shape",
+      "type": "relates"
+    },
+    {
+      "src": "principle-65-numbered-recommendations-get-one-word-replies",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
+      "src": "principle-66-open-items-are-one-file-each",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
+    },
+    {
+      "src": "principle-66-open-items-are-one-file-each",
+      "dst": "principle-56-close-out-housekeeping",
+      "type": "relates"
+    },
+    {
+      "src": "principle-66-open-items-are-one-file-each",
+      "dst": "principle-57-user-docs-are-an-icd",
+      "type": "relates"
+    },
+    {
+      "src": "principle-66-open-items-are-one-file-each",
+      "dst": "principle-65-numbered-recommendations-get-one-word-replies",
+      "type": "relates"
+    },
+    {
       "src": "principle-01-no-assumptions",
       "dst": "principle-10-autonomy-after-sanction",
+      "type": "tension"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "principle-60-device-facing-code-is-gated-by-a-live-run",
       "type": "tension"
     },
     {
@@ -2218,6 +2728,11 @@
     {
       "src": "principle-14-minimal-surface",
       "dst": "principle-20-refactors-welcome",
+      "type": "tension"
+    },
+    {
+      "src": "principle-14-minimal-surface",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
       "type": "tension"
     },
     {
@@ -2248,6 +2763,16 @@
     {
       "src": "principle-50-the-standing-mission",
       "dst": "principle-45-scope-is-the-ask",
+      "type": "tension"
+    },
+    {
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-14-minimal-surface",
+      "type": "tension"
+    },
+    {
+      "src": "principle-60-device-facing-code-is-gated-by-a-live-run",
+      "dst": "principle-03-review-gate",
       "type": "tension"
     }
   ],

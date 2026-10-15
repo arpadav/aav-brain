@@ -23,6 +23,12 @@ read `$AAV_BRAIN/brain/CONSTITUTION.md`.
 
 no reconstruction needed: the artifact under review is the current working diff, which is on disk.
 
+**named reviewers are forwarded, never dispatched beside the gate.** when he names agents ("have the
+semantic architecture reviewer look at it"), they go into the ONE `brain-review-gate` dispatch as
+required lenses; the gate adds others up to its 2-6 cap. dispatching a named reviewer yourself AND
+the gate, which then dispatches it again, is the duplication this rule exists to stop (measured: 62
+top-level dispatches producing 154 subagent transcripts in one session).
+
 ## 2. hand the walk to the engine
 load `brain-meta-drive` and run its trampoline from `REVIEW`. it dispatches the cold `brain-review-gate`
 agent (a fresh, cleared-context pass that never saw the author's framing - P03/P04), then funnels into

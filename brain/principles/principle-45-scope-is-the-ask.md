@@ -4,10 +4,10 @@ kind: principle
 tier: conditional
 rule: a sanctioned change does what was asked and stops. adjacent cleanup nobody asked for is not a bonus - it is what turns a two-step task into a review loop, because the gate then reviews the widened surface.
 interest: [intent-efficiency, intent-control]
-confidence: high
-evidence_count: 1
+confidence: medium
+evidence_count: 2
 binds: [code]
-tells: ["this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?"]
+tells: ["this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?", "fix all things in scope to my request, all things out of scope just document into plans dir as a todos"]
 ---
 
 # P45 - the scope of a change is the ask, not everything nearby
@@ -59,6 +59,12 @@ and he had to ask what his own request had been to re-anchor it ([[intent-contro
 - this does NOT license leaving the ask half-done, and it does not override the doc-accuracy
   rules for text the change itself authored: once a comment is re-typed into a new doc block,
   it belongs to the change and its claims must be true ([[principle-04-anti-fabrication]]).
+- an out-of-scope finding is WRITTEN DOWN, not fixed and not dropped: one `plans/NN-TODO-<topic>.md`
+  per coherent topic, a list he can pick up later. a gate's "pre-existing, predates the diff"
+  rejections go there too. when the build is done, the executed plan doc goes (its leftovers
+  already live in the TODO files) - he said, 2026-09-30: "fix all things in scope to my request,
+  all things out of scope just document into plans dir as a todos. clean up after yourself (e.g.
+  delete your plan doc and other ancillary doc info)". the sweep itself is its own card: [[principle-56-close-out-housekeeping]].
 
 ## orthogonality
 [[principle-14-minimal-surface]] bounds the ARTIFACT (no dep or abstraction it does not need).
