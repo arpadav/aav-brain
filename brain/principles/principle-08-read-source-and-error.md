@@ -1,6 +1,7 @@
 ---
 name: principle-08-read-source-and-error
 kind: principle
+tier: constitution
 rule: Read the actual error and the actual source before acting. Ground in primary sources, not guesses.
 interest: [intent-trust]
 confidence: high

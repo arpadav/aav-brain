@@ -43,10 +43,39 @@ load the method:
 - heat in the request = a hard rule just broke. flag it for brain-meta-curate.
 
 ## HOW to ask: AskUserQuestion, not prose (this skill owns ASK and BLOCKED)
-the question goes through the **`AskUserQuestion` tool**, one entry per decision, each option
-labelled with what it means and what it costs. put your recommendation first and mark it
-"(Recommended)". prose is the FALLBACK, and only when the options cannot be enumerated - an
-open "what should this be?" that has no shortlist yet.
+the question goes through the **`AskUserQuestion` tool**, one entry per decision. put your
+recommendation first and mark it "(Recommended)". prose is the FALLBACK, and only when the options
+cannot be enumerated - an open "what should this be?" that has no shortlist yet.
+
+### the LENGTH is a hard limit, and it is counted (2026-09-18)
+
+this section used to say "each option labelled with what it means and what it costs", and that
+licence is what produced asks he could not read. his words, after a run of them:
+
+> you need to break down the problem to make it digestable, and extremely clear WHAT is the
+> question... you keep over complicating it and asking 100 lines of text when it could just be
+> "currently, the webpage hardcodes font size. on mobile, if you rotate, keep or change?"
+
+and, on three separate threads the same night: *"im not reading blocks of text"*; *"dude what are
+you saying? what is a tick? like you arent describing the problem in a digestable format"*; *"its
+not clear what is a question/todo item vs some shit youre just trying to yap about"*.
+
+so, per question:
+- **`question`: ONE line of current state, then the choice.** nineteen words is the bar he set.
+- **each option `label`: ten words or fewer.**
+- **`description`: one short line, or omit it.** it is NOT for the cost, the trade-off, the
+  consequence, or what you will do next. he weighs the trade-off himself - that is what the
+  recommendation is for.
+- never in an ask: a gate, a review, a phase, an agent, a test, a file path, a type name, a unit he
+  did not ask for (pixels, ms, line counts, percentages), or a jargon noun you have not defined in
+  that same sentence. "on every tick" is the failure - he asked what a tick was.
+
+**several one-line questions are fine; one bloated question is not.** the limit is LINES, not
+questions - he has never complained about being asked too much, only about how long it takes to find
+what is being asked. and a REJECTED question means the wording was wrong: it never means he wants
+fewer questions, and inferring that is its own P01 violation.
+
+the same limits bind the email path and live in `ask-arpad` with his bad/good pair quoted.
 
 this is not cosmetic. a question buried in a paragraph reads as narration: he has to find it,
 quote it back, and re-answer it. he has said "ask me questions in an interactive way" three

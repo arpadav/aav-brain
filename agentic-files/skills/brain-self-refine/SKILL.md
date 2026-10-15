@@ -101,6 +101,7 @@ python3 $AAV_BRAIN/bin/brain-flow.py --check     # flow + flowchart drift from f
 python3 $AAV_BRAIN/bin/compile.py --check        # codex agents + the global preamble drift from their sources
 python3 $AAV_BRAIN/bin/brain-lint.py             # every installed python checker, each on its pinned config
 python3 $AAV_BRAIN/bin/brain-fmt.py --stale $AAV_BRAIN/bin/*.py   # comments naming a symbol the file lost (P37)
+python3 $AAV_BRAIN/bin/brain-shape.py "$AAV_BRAIN"  # file length, folder fan-out, one datatype twice (P27, P28)
 python3 $AAV_BRAIN/bin/brain-trace.py --against        # decisions that rejected an option
 python3 $AAV_BRAIN/bin/brain-trace.py --low-confidence # decisions worth revisiting
 python3 $AAV_BRAIN/bin/brain-trace.py --stale-candidates # entries whose affects resolves to nothing

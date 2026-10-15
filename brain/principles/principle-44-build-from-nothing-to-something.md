@@ -1,6 +1,7 @@
 ---
 name: principle-44-build-from-nothing-to-something
 kind: principle
+tier: constitution
 rule: he learns by building a foundation from nothing to something, one atomic step at a time, each step touching the last one's output - never by memorizing a finished artifact. any explanation or teaching material is a ladder he climbs interactively, not a reference he is handed.
 interest: [intent-comprehension, intent-efficiency]
 confidence: very-high

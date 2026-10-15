@@ -71,6 +71,26 @@ the state's work; the owner skill IS the method, and hand-rolling it inline
 looks identical in the transcript while discarding it.
 <!-- END GENERATED: handoff -->
 
+## how IMPL dispatches: fan out, then measure (P52)
+you are the OVERSEER. you dispatch, you run the tree-wide command, you adjudicate, you commit -
+you are not the one typing the code.
+
+- **two to three workers at a time, issued as PARALLEL TOOL CALLS IN ONE MESSAGE.** one dispatch
+  per message is a serial queue wearing a fan-out's clothes, and it looks identical in a transcript
+  until you count them. each worker gets a file set no sibling touches, or its own worktree;
+  disjointness is ARRANGED, never hoped for. stagger the refills - dispatch the next as one returns.
+  the ceiling is the SESSION rate limit, shared by you and every subagent, which is why the number
+  is three.
+- **the tree-wide build/test/lint command is YOURS and runs ONE AT A TIME.** never a worker's. two
+  builds on one target directory block on its lock; two mutation batteries over one checkout revert
+  over each other's injection; a timing step measures a release binary that a second compile moves.
+  a worker proves its own work with the cheap subset - format, lint, doc, the one crate it touched -
+  in its own worktree.
+- **tell every worker to COMMIT AS IT GOES**, and resume a killed one by message to its id rather
+  than restarting it.
+- the one time you stop dispatching is while a cold review is live: a review is a measurement and
+  it freezes the tree, including your own edits (P03).
+
 ## the would-arpad self-check at IMPL (P29 - internal, NOT a pause)
 as each phase generates artifacts, the worker interrogates its own output the way arpad would
 ([[principle-29-interrogate-the-work]]) - PRE: is this consumed, does it already exist, should i read
@@ -88,6 +108,35 @@ DOCTRINE runs BEFORE this state for exactly that reason: it resolves the purpose
 along with the find-exhaustively ask. rust additionally has `aav-rust-implementer`, which carries the
 same doctrine natively ([[principle-23-standing-decisions]]); every other language gets it because
 DOCTRINE injected it, not because the worker happened to know it.
+
+## when the gate fires (the budget, not the phase count)
+PHASEGATE is no longer bought by finishing a phase - it is bought by the SIZE of what the phase
+changed. at each phase boundary run:
+
+```bash
+python3 $AAV_BRAIN/bin/brain-shape.py <repo> --since <the ref this phase started from>
+```
+
+ARMED -> emit `implemented` and take the gate. under budget -> emit `under_budget`, which goes
+straight to VERIFY and STYLE with no cold multi-lens review. the budget lives in `shape.toml`
+(4 changed source files or 400 changed lines by default); an unresolvable ref ARMS, because a gate
+is not cancelled by a typo.
+
+**the ref you pass is the last GATED point, not the last commit.** that is what makes small phases
+accumulate instead of each one dodging the gate on its own: two under-budget phases in a row are
+measured together against the third's boundary. nothing in the machine remembers it for you - carry
+the ref forward yourself until a gate actually runs, then reset it to that point.
+
+this exists because the gate used to cost the same whether the phase was 5885 new lines or two
+lines of formatter appeasement, so a trivial fix bought a full multi-lens review and the review
+budget went where the phases were, not where the risk was
+([[principle-53-rigor-scales-with-the-change]]). a stale count in a doc is the canonical false
+arm: re-measure it, correct it, move on ([[principle-54-a-count-is-a-measurement]]). PROSE churn
+does not arm at all - `shape.toml`'s `[scan] prose` keeps a rewritten document out of the count.
+
+the same script with no `--since` is the gate's STRUCTURE input - file lengths, folder fan-out,
+duplicated datatypes - and that half runs at every gate, armed or not, because none of it is
+visible in a diff (P27, P28).
 
 ## stops (the only sanctioned post-sanction pause)
 a transition to a `blocked`/ASK state is the only legit stop: cross back and ask via brain-meta-intent.

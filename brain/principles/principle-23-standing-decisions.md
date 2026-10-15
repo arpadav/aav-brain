@@ -1,6 +1,7 @@
 ---
 name: principle-23-standing-decisions
 kind: principle
+tier: conditional
 rule: i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.
 interest: [intent-craft, intent-trust]
 confidence: high

@@ -1,6 +1,7 @@
 ---
 name: principle-37-comment-the-artifact-not-the-edit
 kind: principle
+tier: conditional
 rule: every comment describes the code as it now stands - never the edit that produced it. no comment may name an identifier, algorithm or structure absent from the post-edit file, narrate a change, or explain an instruction he gave.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high

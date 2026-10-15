@@ -32,8 +32,12 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     skills/            the 11 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/  custom/
   bin/                 all tooling: brain-find, -recall, -cards, -graph, -flow, -trace, -walk,
-                       -fmt, -extract, -lint, compile (brainlib is the shared lib)
+                       -fmt, -shape, -extract, -lint, compile (brainlib is the shared lib)
   prune.toml           how old a trace entry must be before it is eligible to be judged
+  shape.toml           the numbers behind P27 and P28, and the change budget that arms a gate
+  tiers.toml           which cards always load, which are scored, and the measurement behind it
+  eval/                brain-eval.py + 25 tasks and their card-derived rubrics: does a brain
+                       version change how the work comes out, measured paired (on vs off)
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
                        lives in a separate private repo, never here; the scripts write to it via

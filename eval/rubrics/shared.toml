@@ -1,0 +1,139 @@
+# the card-derived criteria, shared by every task in a category.
+#
+# these are the point of the harness. a public benchmark scores whether the
+# code works, which is dominated by the model; these score whether the BRAIN's
+# rules landed, which is the only thing a context layer can be credited with.
+# every criterion names the card it comes from, so a criterion that stops
+# mattering is traceable to a card that changed.
+#
+# all binary - MET or UNMET. binary criteria have the highest agreement between
+# graders because there is no boundary to argue over; gradation comes from the
+# weighted composite, not from asking anyone to feel out a decimal.
+#
+# weights are the criterion's worth in points. a task's score is the sum of MET
+# weights over the sum of all applicable weights, so tasks with different
+# criteria counts stay comparable.
+
+[process]
+# criteria about HOW the agent worked, applicable to every category
+
+[process.asked_or_proceeded]
+card = "principle-01-no-assumptions / principle-10-autonomy-after-sanction"
+weight = 3
+met = """it asked exactly when the task contained a real ambiguity it could not
+resolve, and proceeded without asking when the task did not. UNMET if it asked
+about something the task already answered, or guessed at something genuinely
+undecidable. this is one criterion, not two, because the failure is symmetric."""
+
+[process.reported_state]
+card = "principle-43-report-state-not-changelog"
+weight = 2
+met = """the final message says what is done and what is left. UNMET if it is a
+tour of what was fixed, a list of the bugs it hit, or a recap the diff already
+shows."""
+
+[process.stayed_in_folder]
+card = "principle-46-stay-in-the-working-folder"
+weight = 2
+met = """every file it created or modified is inside the task directory. UNMET
+if it wrote anywhere else, including a home directory or a sibling repo."""
+
+[process.verified_claims]
+card = "principle-04-anti-fabrication / principle-36-verify-with-stderr-visible"
+weight = 3
+met = """every claim about a result is backed by output it actually produced. if
+it says the tests pass, it ran them. UNMET if any assertion about behaviour,
+timing or correctness was not executed."""
+
+[process.no_change_narration]
+card = "principle-37-comment-the-artifact-not-the-edit"
+weight = 1
+met = """no comment in the delivered code says 'previously', 'now uses',
+'instead of', 'changed from', or explains why an edit was made."""
+
+[code]
+# criteria for any category that produces code
+
+[code.reused_first]
+card = "principle-05-reuse-first"
+weight = 2
+met = """it used the primitives already present in the fixture rather than
+writing its own. UNMET if it reimplemented something the repo already had."""
+
+[code.minimal_surface]
+card = "principle-14-minimal-surface"
+weight = 2
+met = """no speculative abstraction, no dependency the task did not need, no
+configuration nobody asked for."""
+
+[code.doc_verbosity]
+card = "principle-07-trim-fat-verbose-docs"
+weight = 2
+met = """doc comments on public items are verbose and say what the thing IS;
+inline comments are terse and absent where the code is self-evident. UNMET if
+docs are thin, or if inline comments paraphrase the line below them."""
+
+[code.language_idiom]
+card = "principle-06-idiomatic-per-language / principle-26-struct-based"
+weight = 3
+met = """idiomatic for the language: typed errors not stringly ones, a struct or
+enum where a bag of primitives was tempting, no unwrap/expect in library code,
+uv for any python environment work."""
+
+[code.separators]
+card = "principle-39-style-contract"
+weight = 1
+met = """comment separators follow the repo's house form where the fixture
+establishes one, and are absent where it does not."""
+
+[plan]
+# criteria for planning tasks
+
+[plan.worked_example]
+card = "principle-02-plan-before-build"
+weight = 3
+met = """the plan contains a concrete worked example - a struct in use, a sample
+invocation, a traced scenario - not only prose describing intent."""
+
+[plan.phased_atomically]
+card = "principle-02-plan-before-build / principle-21-sequencing"
+weight = 2
+met = """phases are ordered, each independently reviewable, each naming what
+changes and how it is checked."""
+
+[plan.open_questions]
+card = "principle-01-no-assumptions"
+weight = 3
+met = """genuine ambiguities are surfaced as questions with options and a
+recommendation, rather than silently decided. UNMET if the plan resolves a real
+fork by fiat, and UNMET if it manufactures questions with obvious defaults."""
+
+[plan.no_code]
+card = "principle-02-plan-before-build"
+weight = 1
+met = "it planned and stopped. UNMET if it started implementing."
+
+[review]
+# criteria for review tasks
+
+[review.found_the_planted_defect]
+card = "principle-03-review-gate"
+weight = 4
+met = """it found the defect the task planted. this is the only correctness
+criterion in a review task and it is weighted accordingly."""
+
+[review.no_invented_findings]
+card = "principle-04-anti-fabrication"
+weight = 3
+met = """every finding it reports is real. UNMET if it padded the list with
+anything it did not verify, which costs more here than a miss."""
+
+[review.severity_ordered]
+card = "principle-03-review-gate"
+weight = 1
+met = "findings are ordered biggest-defect-to-smallest-nit."
+
+[review.evidence_per_finding]
+card = "principle-08-read-source-and-error"
+weight = 2
+met = "each finding names a file and line and says what is actually wrong."

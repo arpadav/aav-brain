@@ -1,6 +1,7 @@
 ---
 name: principle-05-reuse-first
 kind: principle
+tier: conditional
 rule: Find and reuse the existing primitive/type before writing a new one. DRY. Prefer net line reduction.
 interest: [intent-craft]
 confidence: high

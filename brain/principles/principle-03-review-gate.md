@@ -1,6 +1,7 @@
 ---
 name: principle-03-review-gate
 kind: principle
+tier: conditional
 rule: Gate every phase with a cold, independent, multi-lens review. Wait for ALL reviewers, converge, ADJUDICATE each finding against the artifact's contract, then fix every surviving nit - even a single-agent one - before advancing.
 interest: [intent-trust, intent-craft]
 confidence: very-high
@@ -10,7 +11,9 @@ tells: ["triple review first", "COLD/UNGUIDED", "even smallest nits", "dont skim
 
 # P03 - Review-gate every phase (cold, independent, converged)
 
-**Rule.** Between phases, run an independent review. His exact protocol:
+**Rule.** Between phases, run an independent review ON A CHANGE THAT EARNED ONE - the review is
+bought by the size and kind of the change, not by the phase ending
+([[principle-53-rigor-scales-with-the-change]]). His exact protocol:
 1. Review the **git diff between phases COLD / UNGUIDED** - prompt reviewers with no
    leading context: *"check git diff btwn X and Y and surface as many issues as you have,
    biggest bugs to smallest nits, be thorough."*
@@ -76,6 +79,9 @@ can trust it without reading every line."*
   the cosmetic class wholesale with a logged reason, and stop. A gate whose mechanical prover
   contradicts the repo's house convention is unreachable by construction - substitute a
   measurement that fits the repo and log the substitution, never loop on it.
+- **A stale count is not a finding.** A doc block whose number disagrees with the tree is a
+  measurement with a timestamp, not a defect: re-measure, correct it in passing, and do not spend
+  a round on it ([[principle-54-a-count-is-a-measurement]]).
 - **Scope discipline is what keeps the round count down** ([[principle-45-scope-is-the-ask]]).
   The gate reviews whatever surface you hand it; widen the diff and you commission findings
   about work nobody asked for.
@@ -86,3 +92,10 @@ just as bad:** treating every finding as golden and remediating an invalid one. 
 incomplete" against a deliberately-incomplete artifact is a loop that cannot terminate -
 fixing it destroys the thing the artifact was. **And its cousin:** letting a consistency
 lens set the exit condition, so the gate re-blocks on nits about nits.
+
+**A finding against a design with a recorded rationale is a fork, not a defect.** When the thing a
+reviewer calls wrong was chosen on purpose - its reason sits in a commit message or a design row -
+no worker reverses it on the finding's say-so; it goes to him as one plain question with both
+versions live. 2026-10-09: a screen audit called "typing 7 gives 0.07%" a defect, a worker made one
+box take 7 as 7%, and the bank-style fill-from-the-right had been chosen deliberately
+(`2b23f6af`). asked, he ruled *"everything fills from the right"* - over the recommendation.

@@ -1,6 +1,7 @@
 ---
 name: principle-40-idiom-needs-exemplars
 kind: principle
+tier: conditional
 rule: an abstract style instruction does not change what gets written. every idiom rule the brain enforces carries a concrete before/after pair, and the writer is shown the pairs - never the adjective alone. "be idiomatic" is not an instruction; a worked example is.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high

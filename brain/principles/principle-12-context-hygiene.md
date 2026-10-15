@@ -1,6 +1,7 @@
 ---
 name: principle-12-context-hygiene
 kind: principle
+tier: conditional
 rule: Think in code. Use context-mode to derive answers in the sandbox; keep raw bytes out of the window.
 interest: [intent-efficiency]
 confidence: high

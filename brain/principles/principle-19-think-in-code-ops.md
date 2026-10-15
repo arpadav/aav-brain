@@ -1,6 +1,7 @@
 ---
 name: principle-19-think-in-code-ops
 kind: principle
+tier: narrow
 rule: obvious recurring one-off ops are think-in-code skills, not committed scripts. commit a script only when it's a deterministic, re-runnable artifact worth versioning.
 interest: [intent-efficiency, intent-craft]
 confidence: medium

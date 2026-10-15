@@ -3,6 +3,7 @@
     {
       "id": "principle-01-no-assumptions",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Under ANY ambiguity in spec or implementation detail, stop and ask. Never guess.",
       "interest": [
         "intent-control",
@@ -24,6 +25,7 @@
     {
       "id": "principle-02-plan-before-build",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Produce a small-but-verbose plan with a concrete usage example before writing code; write it to plans/.",
       "interest": [
         "intent-comprehension",
@@ -45,6 +47,7 @@
     {
       "id": "principle-03-review-gate",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Gate every phase with a cold, independent, multi-lens review. Wait for ALL reviewers, converge, ADJUDICATE each finding against the artifact's contract, then fix every surviving nit - even a single-agent one - before advancing.",
       "interest": [
         "intent-trust",
@@ -62,13 +65,16 @@
       "body_links": [
         "principle-04-anti-fabrication",
         "principle-29-interrogate-the-work",
-        "principle-45-scope-is-the-ask"
+        "principle-45-scope-is-the-ask",
+        "principle-53-rigor-scales-with-the-change",
+        "principle-54-a-count-is-a-measurement"
       ],
       "path": "brain/principles/principle-03-review-gate.md"
     },
     {
       "id": "principle-04-anti-fabrication",
       "kind": "principle",
+      "tier": "constitution",
       "headline": "Never fabricate. No fake benchmarks, no invented issues, no fluff. Report reality even when unflattering.",
       "interest": [
         "intent-trust"
@@ -88,6 +94,7 @@
     {
       "id": "principle-05-reuse-first",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Find and reuse the existing primitive/type before writing a new one. DRY. Prefer net line reduction.",
       "interest": [
         "intent-craft"
@@ -108,6 +115,7 @@
     {
       "id": "principle-06-idiomatic-per-language",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Write each language in its own idiom and the house conventions, and run that language's REGISTERED toolchain. Rust style in Rust, TS style in TS. A language with no registered toolchain is a question for him, never a guess.",
       "interest": [
         "intent-craft"
@@ -130,13 +138,15 @@
         "principle-37-comment-the-artifact-not-the-edit",
         "principle-39-style-contract",
         "principle-40-idiom-needs-exemplars",
-        "principle-41-rigor-scales-with-purpose"
+        "principle-41-rigor-scales-with-purpose",
+        "principle-48-look-at-the-rendered-output"
       ],
       "path": "brain/principles/principle-06-idiomatic-per-language.md"
     },
     {
       "id": "principle-07-trim-fat-verbose-docs",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough. This is the VERBOSITY knob - how MUCH to write; what a comment may SAY is a separate card.",
       "interest": [
         "intent-craft"
@@ -161,6 +171,7 @@
     {
       "id": "principle-08-read-source-and-error",
       "kind": "principle",
+      "tier": "constitution",
       "headline": "Read the actual error and the actual source before acting. Ground in primary sources, not guesses.",
       "interest": [
         "intent-trust"
@@ -182,6 +193,7 @@
     {
       "id": "principle-09-git-sovereignty",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Prepare the record, never publish it. No commits/tags/version bumps without explicit say-so. Never overwrite his manual edits.",
       "interest": [
         "intent-sovereignty"
@@ -204,6 +216,7 @@
     {
       "id": "principle-10-autonomy-after-sanction",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Once a plan is blessed, run phases back-to-back with no needless pauses or summaries. Report only at gates.",
       "interest": [
         "intent-efficiency",
@@ -221,7 +234,10 @@
         "if its fixed, simply say its done",
         "why is this taking a long time? like everything is timing out. just move on and fix later",
         "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context",
-        "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete"
+        "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete",
+        "you should not have stopped, since under brain-execute skill youd still be walking the brain and you havent reached a blocker or your DONE state yet",
+        "can you please not be as hardstuck as previous agents about \\",
+        " or whatever? its trying to think of every edge case possible but i just want this damn thing finished already"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -235,6 +251,7 @@
     {
       "id": "principle-11-comprehension-ownership",
       "kind": "principle",
+      "tier": "constitution",
       "headline": "Give him a concrete example and a mental model he owns. Answer Socratic questions plainly before resuming.",
       "interest": [
         "intent-comprehension"
@@ -252,6 +269,7 @@
     {
       "id": "principle-12-context-hygiene",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Think in code. Use context-mode to derive answers in the sandbox; keep raw bytes out of the window.",
       "interest": [
         "intent-efficiency"
@@ -269,6 +287,7 @@
     {
       "id": "principle-13-performance-obsession",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Pursue the fastest correct path; measure honestly with criterion; care about raw speedups and % deltas.",
       "interest": [
         "intent-craft",
@@ -290,6 +309,7 @@
     {
       "id": "principle-14-minimal-surface",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical.",
       "interest": [
         "intent-craft"
@@ -310,6 +330,7 @@
     {
       "id": "principle-15-tone-is-signal",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "Arpad's bluntness/heat is high-value signal. It fires when a hard rule was violated, an error went unread, or his work was overwritten. Treat each as a CRITICAL learning event.",
       "interest": [
         "intent-control",
@@ -336,6 +357,7 @@
     {
       "id": "principle-16-my-stack-my-voice",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "tooling is in my stack (rust or bash, never node/mjs); tooling, scripts, architecture and docs are in my voice. agent-speak only in the agent/skill .md peripherals.",
       "interest": [
         "intent-craft",
@@ -355,6 +377,7 @@
     {
       "id": "principle-17-agent-general",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "this is a general agent brain. it reasons over agent transcripts (codex + claude + whatever), not coupled to one tool. dont brand the core as claude-specific.",
       "interest": [
         "intent-craft"
@@ -371,6 +394,7 @@
     {
       "id": "principle-18-skills-over-agents",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "skills are the unit. a null agent + one loaded skill = a standalone agent. keep an agent only when cold cleared-context dispatch is the whole point.",
       "interest": [
         "intent-craft",
@@ -391,6 +415,7 @@
     {
       "id": "principle-19-think-in-code-ops",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "obvious recurring one-off ops are think-in-code skills, not committed scripts. commit a script only when it's a deterministic, re-runnable artifact worth versioning.",
       "interest": [
         "intent-efficiency",
@@ -411,6 +436,7 @@
     {
       "id": "principle-20-refactors-welcome",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "large refactors are ALWAYS welcome when they make the structure or architecture more maintainable and atomic. dont avoid a big change just because its big.",
       "interest": [
         "intent-craft"
@@ -424,13 +450,15 @@
       ],
       "body_links": [
         "principle-05-reuse-first",
-        "principle-07-trim-fat-verbose-docs"
+        "principle-07-trim-fat-verbose-docs",
+        "principle-51-spaghetti-is-a-design-fault"
       ],
       "path": "brain/principles/principle-20-refactors-welcome.md"
     },
     {
       "id": "principle-21-sequencing",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "i think and instruct in ordered steps. honor the sequence: first X, then Y, lastly Z. do the steps in the order i gave, and run sanctioned steps back to back.",
       "interest": [
         "intent-control",
@@ -455,6 +483,7 @@
     {
       "id": "principle-22-naming-conventions",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "names and layout are deliberate. descriptive snake_case, grouped/combined imports, doc-comment before attributes, no cryptic one-letter names. the lexical layer matters as much as the logic.",
       "interest": [
         "intent-craft"
@@ -467,7 +496,9 @@
         "better names for crate",
         "i dont want fast itoa",
         "rename",
-        "doc comment first"
+        "doc comment first",
+        "find me 10-20 alternatives, but dont just write them out, search web, accumulate a bunch, then cut them down",
+        "i dont want to use the term skip"
       ],
       "body_links": [
         "principle-06-idiomatic-per-language"
@@ -477,6 +508,7 @@
     {
       "id": "principle-23-standing-decisions",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "i have standing tool/library/approach choices. honor them without re-litigating: criterion for benches, winnow for parsing, uv for python, the existing suite over custom, caret semver, read ~/.cargo source. for rust IMPLEMENTATION work, dispatch the single aav-rust-implementer (the consolidated idiomatic+perf worker), never the generic rust-engineer.",
       "interest": [
         "intent-craft",
@@ -511,6 +543,7 @@
     {
       "id": "principle-24-socratic-mode",
       "kind": "principle",
+      "tier": "constitution",
       "headline": "i interrogate, i dont just command. 29% of my turns ask a question. when i ask, im checking my own model or yours. answer plainly and directly first, dont deflect into doing.",
       "interest": [
         "intent-comprehension",
@@ -523,7 +556,8 @@
         "isnt X supposed to be optional?",
         "can you confirm??",
         "why on earth",
-        "how are the builtin sizes determined?"
+        "how are the builtin sizes determined?",
+        "i asked you to clarify on the size renames with me, you just clarified and moved on"
       ],
       "body_links": [
         "principle-11-comprehension-ownership"
@@ -533,7 +567,8 @@
     {
       "id": "principle-25-deploy-infra",
       "kind": "principle",
-      "headline": "deploy the simplest way onto my own infra. worlds-simplest docker, expose on 0.0.0.0, cloudflared tunnel to my truenas, axum for tiny services. no heavy orchestration.",
+      "tier": "narrow",
+      "headline": "deploy the simplest way onto my own infra. worlds-simplest docker, expose on 0.0.0.0, LOCAL on my truenas and reached over my own network, axum for tiny services. no heavy orchestration, and no cloudflared tunnel.",
       "interest": [
         "intent-craft"
       ],
@@ -542,8 +577,9 @@
       "tells": [
         "worlds simplest docker image",
         "0.0.0.0",
-        "cloudflared",
+        "i host local",
         "truenas",
+        "tailnet",
         "mount a volume",
         "expose it to 0.0.0.0",
         "axum",
@@ -557,6 +593,7 @@
     {
       "id": "principle-26-struct-based",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "prefer struct/class-based implementations over modules of standalone functions. rust: named structs/traits with impl, never free functions for logic. python: classes with methods, not a flat module of functions.",
       "interest": [
         "intent-craft"
@@ -568,7 +605,9 @@
       "tells": [
         "no standalone functions, use unit structs or traits",
         "math/state logic must be in named structs with impl, never inlined or as free functions",
-        "i like struct-based implementations more than standalone functions"
+        "i like struct-based implementations more than standalone functions",
+        "why are you making these standalone fn's which take &ContextError or whatever? why not impl?",
+        "if they are test helpers, then dont put them into main.rs"
       ],
       "body_links": [
         "principle-06-idiomatic-per-language",
@@ -579,7 +618,8 @@
     {
       "id": "principle-27-organization-reorg",
       "kind": "principle",
-      "headline": "organization and folder/subfolder hierarchy are critical, always. reorg in BOTH directions by threshold: flat->tree when a file is too long or a folder has too many flat files; tree->flat when a refactor shrank things and the structure is now overkill.",
+      "tier": "narrow",
+      "headline": "organization and folder/subfolder hierarchy are critical, always. reorg in BOTH directions by a MEASURED threshold, never an adjective: the numbers live in shape.toml and brain-shape.py reports the crossings - flat->tree past file_lines or folder_files, tree->flat when a refactor shrank things and the structure is now overkill.",
       "interest": [
         "intent-craft"
       ],
@@ -590,19 +630,25 @@
         "organization is critical always",
         "tree-based split up",
         "reorg is critical in both directions",
-        "file too long, folder too many flat files"
+        "file too long, folder too many flat files",
+        "i dont want 5 files all talk about design when it can be one file",
+        "living docs with explicit design decisions i made never to be deleted unless design changes again"
       ],
       "body_links": [
         "principle-14-minimal-surface",
+        "principle-19-think-in-code-ops",
         "principle-20-refactors-welcome",
         "principle-26-struct-based",
-        "principle-28-dry-merge-blast-radius"
+        "principle-28-dry-merge-blast-radius",
+        "principle-40-idiom-needs-exemplars",
+        "principle-51-spaghetti-is-a-design-fault"
       ],
       "path": "brain/principles/principle-27-organization-reorg.md"
     },
     {
       "id": "principle-28-dry-merge-blast-radius",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "merge DRY-violating structs/files even when it touches many files and peripherals. do NOT be dissuaded by a large amount of work. keep things separate ONLY for a real reason beyond programming laziness; otherwise ALWAYS change it.",
       "interest": [
         "intent-craft"
@@ -620,7 +666,9 @@
       ],
       "body_links": [
         "principle-05-reuse-first",
+        "principle-19-think-in-code-ops",
         "principle-20-refactors-welcome",
+        "principle-27-organization-reorg",
         "principle-29-interrogate-the-work",
         "principle-31-libraryfy-shared"
       ],
@@ -629,6 +677,7 @@
     {
       "id": "principle-29-interrogate-the-work",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "before AND after generating any artifact, interrogate it with the questions arpad would ask - dont hardcode the list, ask the brain \"what would i ask about this?\" then answer honestly. ask it GRANULARLY - \"would arpad write THIS file like this? this folder structure like this? this individual function like this?\" - not just at the project level. on a review this runs as a brain-guided pass layered in SUPERPOSITION on the cold unguided review (the cold pass stays cold; this is a second, independent, memory-recalling pass). \"why am i generating this, is it even consumed, should i read from it instead?\" and \"has this been defined elsewhere?\" are others.",
       "interest": [
         "intent-craft",
@@ -665,6 +714,7 @@
     {
       "id": "principle-30-deterministic-flow",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "when executing, deterministically follow the execution flow (brain/flow/flow.json). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.",
       "interest": [
         "intent-control",
@@ -684,6 +734,7 @@
     {
       "id": "principle-31-libraryfy-shared",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "library-fy shared datatypes and helpers. when 2+ scripts/modules use the same struct, constant, or helper, extract ONE shared library they import - never redefine the same datatype in multiple places. minimal-surface does NOT justify a duplicated struct; a shared lib IS the minimal surface.",
       "interest": [
         "intent-craft"
@@ -709,6 +760,7 @@
     {
       "id": "principle-32-portability",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (brain-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.",
       "interest": [
         "intent-craft"
@@ -729,6 +781,7 @@
     {
       "id": "principle-33-git-is-not-a-blocker",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "never treat git state as a blocker or a gate. he commits, adds, and pushes - the agent does the fixes and reports git instructions at the END. do not stop, do not ask, do not invent a gate out of repo state.",
       "interest": [
         "intent-sovereignty",
@@ -752,6 +805,7 @@
     {
       "id": "principle-34-untrusted-input",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "treat every filename, path, posting, plan, and cache line as attacker-controlled. never let data reach a shell word-expansion, a subprocess string, or a markup document without being neutralised at the boundary.",
       "interest": [
         "intent-trust",
@@ -773,6 +827,7 @@
     {
       "id": "principle-35-gates-are-agent-side",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "\"don't pause\" means don't stop to ask HIM; it never means skip the review gate or the brain traversal. gates need nothing from him and must run on every phase regardless of pacing instructions.",
       "interest": [
         "intent-trust",
@@ -786,13 +841,15 @@
         "phases 2-5 were done in 5 min without brain traversal or review gate"
       ],
       "body_links": [
-        "principle-01-no-assumptions"
+        "principle-01-no-assumptions",
+        "principle-53-rigor-scales-with-the-change"
       ],
       "path": "brain/principles/principle-35-gates-are-agent-side.md"
     },
     {
       "id": "principle-36-verify-with-stderr-visible",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "a verification step must never suppress stderr or ignore an exit code. if you cannot see the failure channel, you are not verifying - you are guessing with extra steps.",
       "interest": [
         "intent-trust"
@@ -811,6 +868,7 @@
     {
       "id": "principle-37-comment-the-artifact-not-the-edit",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "every comment describes the code as it now stands - never the edit that produced it. no comment may name an identifier, algorithm or structure absent from the post-edit file, narrate a change, or explain an instruction he gave.",
       "interest": [
         "intent-craft",
@@ -838,6 +896,7 @@
     {
       "id": "principle-38-a-non-answer-is-not-consent",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "a question he declined to answer is UNANSWERED, never assent. when he skips an option, annotates without selecting, or answers a different part of the question, the brain does not resolve it by its own preference - it re-asks narrower, or takes the option his own words already imply.",
       "interest": [
         "intent-control"
@@ -859,6 +918,7 @@
     {
       "id": "principle-39-style-contract",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with brain-fmt.py --gate rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.",
       "interest": [
         "intent-craft"
@@ -883,6 +943,7 @@
     {
       "id": "principle-40-idiom-needs-exemplars",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "an abstract style instruction does not change what gets written. every idiom rule the brain enforces carries a concrete before/after pair, and the writer is shown the pairs - never the adjective alone. \"be idiomatic\" is not an instruction; a worked example is.",
       "interest": [
         "intent-craft",
@@ -912,6 +973,7 @@
     {
       "id": "principle-41-rigor-scales-with-purpose",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "how hard to enforce idiom is set by what the artifact is FOR. a scratch or testing workspace - skip it. an ephemeral tutorial - adhere lightly, do not be anal. production - be extremely attentive and exhaustive. ask the purpose before writing; never infer it from the code.",
       "interest": [
         "intent-efficiency",
@@ -934,13 +996,15 @@
         "principle-14-minimal-surface",
         "principle-28-dry-merge-blast-radius",
         "principle-31-libraryfy-shared",
-        "principle-40-idiom-needs-exemplars"
+        "principle-40-idiom-needs-exemplars",
+        "principle-53-rigor-scales-with-the-change"
       ],
       "path": "brain/principles/principle-41-rigor-scales-with-purpose.md"
     },
     {
       "id": "principle-42-plain-english-questions",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "when the brain puts a choice to him, it is plain english - current flow is X, proposed flow(s) and options are Y - never syntax, jargon, or an unexplained term. one question at a time, built up from nothing, not a battery of technical options he has to reverse-engineer. ASK ABOUT THE EXPERIENCE FIRST - how he will interact with the thing - and only then specifics, each carrying a recommended default.",
       "interest": [
         "intent-comprehension",
@@ -959,7 +1023,10 @@
         "figure it out, find some yourself by reading existing files",
         "dont literally do EXACTLY 30, that number was an example. please YOU figure out how much is appropriate",
         "and ask me about styling before applying your own. i want it similar to ... where its simple 90's look and cool visuals, but at the same time i want it interactive. retro",
-        "all i see is left column confusing knobs and buttons which are not user friendly at all, the middle area is blank (completely white), the right area is also blank (but grey) with some text, etc. i assume the final passes fix all this junk?"
+        "all i see is left column confusing knobs and buttons which are not user friendly at all, the middle area is blank (completely white), the right area is also blank (but grey) with some text, etc. i assume the final passes fix all this junk?",
+        "use plain english and minimal code-speak. like it should be natural language with code snippets, rather than language with code intertwined",
+        "this was far clearer",
+        "you are conflating and giving me pages of info for something thats such a simple concept. ask it in one sentence"
       ],
       "body_links": [
         "principle-01-no-assumptions",
@@ -971,6 +1038,7 @@
     {
       "id": "principle-43-report-state-not-changelog",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "when work finishes, report STATE - is it done, what is left - not a tour of what was fixed. he reads the diff for the changelog. a how-to gets a one-liner, not a section. the fix that no longer matters is not news.",
       "interest": [
         "intent-efficiency",
@@ -996,6 +1064,7 @@
     {
       "id": "principle-44-build-from-nothing-to-something",
       "kind": "principle",
+      "tier": "constitution",
       "headline": "he learns by building a foundation from nothing to something, one atomic step at a time, each step touching the last one's output - never by memorizing a finished artifact. any explanation or teaching material is a ladder he climbs interactively, not a reference he is handed.",
       "interest": [
         "intent-comprehension",
@@ -1021,6 +1090,7 @@
     {
       "id": "principle-45-scope-is-the-ask",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "a sanctioned change does what was asked and stops. adjacent cleanup nobody asked for is not a bonus - it is what turns a two-step task into a review loop, because the gate then reviews the widened surface.",
       "interest": [
         "intent-efficiency",
@@ -1040,13 +1110,15 @@
         "principle-04-anti-fabrication",
         "principle-14-minimal-surface",
         "principle-20-refactors-welcome",
-        "principle-37-comment-the-artifact-not-the-edit"
+        "principle-37-comment-the-artifact-not-the-edit",
+        "principle-50-the-standing-mission"
       ],
       "path": "brain/principles/principle-45-scope-is-the-ask.md"
     },
     {
       "id": "principle-46-stay-in-the-working-folder",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "work inside the folder he pointed at; never roam his file system for prior art or context; toolchain caches (~/.cargo registry, node_modules, cached .so files) are fine to read; anything else outside the folder is a question first.",
       "interest": [
         "intent-sovereignty",
@@ -1069,6 +1141,7 @@
     {
       "id": "principle-47-copy-raw-fetches-into-the-repo",
       "kind": "principle",
+      "tier": "narrow",
       "headline": "every page, api response or search result an agent fetches for data is copied into the repo's source corpus as it is fetched, and the row that cites it names that copy; a fetch that was not copied does not exist.",
       "interest": [
         "intent-trust",
@@ -1090,6 +1163,7 @@
     {
       "id": "principle-48-look-at-the-rendered-output",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "a pdf, chart, page or app is not done until its rendered output has been looked at - rasterise / screenshot and read it - and a programmatic audit of the things an eye misses (chart kind vs caption, embed width, label density, overfull lines, table overflow) sits in the build gate.",
       "interest": [
         "intent-craft",
@@ -1103,7 +1177,9 @@
         "ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong",
         "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up",
         "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm",
-        "this is visually so confusing. middle is a blank screen, no styling"
+        "this is visually so confusing. middle is a blank screen, no styling",
+        "i love the layout and look of the example, and this one is still way way way too crowded for the eyes",
+        "this looks really good now, keep it going"
       ],
       "body_links": [
         "principle-03-review-gate",
@@ -1114,6 +1190,7 @@
     {
       "id": "principle-49-his-interactive-app-shape",
       "kind": "principle",
+      "tier": "conditional",
       "headline": "an interactive data app of his opens on the data (a 3d stage, the full universe drawn, click a point for its page), lets him weight importance himself with sliders, keeps detail as stackable pages not side drawers, offers settings as a questionnaire first with a raw tab behind it and keeps them across restarts, prints money like a receipt, wears his 90's academic page style with a harsh retro scene, works by finger on his surface pro and phone, and relays any settings/filter change to every surface at once - list, stage, graphs - never just the tab being edited.",
       "interest": [
         "intent-craft",
@@ -1144,86 +1221,227 @@
       "path": "brain/principles/principle-49-his-interactive-app-shape.md"
     },
     {
-      "id": "intent-comprehension",
-      "kind": "interest",
-      "headline": "Arpad will not outsource his mental model; he learns by concrete instance.",
-      "interest": [],
-      "confidence": "",
-      "binds": [],
-      "tells": [],
+      "id": "principle-50-the-standing-mission",
+      "kind": "principle",
+      "tier": "narrow",
+      "headline": "every worker carries the END GOAL of the run, not only the phase's ask. work that exceeded the ask but moved the sanctioned mission is KEPT, never reverted for tidiness; work merely adjacent to the ask is not, and is not started either.",
+      "interest": [
+        "intent-craft",
+        "intent-efficiency",
+        "intent-control"
+      ],
+      "confidence": "high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "slow down - the MAIN GOAL is to make this budget app",
+        "if those edits are aligned with that goal, despite going above and beyond the original ask, then it is fine",
+        "they did way too much! i need to revert this",
+        "above and beyond"
+      ],
+      "body_links": [
+        "principle-01-no-assumptions",
+        "principle-05-reuse-first",
+        "principle-14-minimal-surface",
+        "principle-40-idiom-needs-exemplars",
+        "principle-45-scope-is-the-ask"
+      ],
+      "path": "brain/principles/principle-50-the-standing-mission.md"
+    },
+    {
+      "id": "principle-51-spaghetti-is-a-design-fault",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "when every available fix makes the code worse, the DESIGN is the defect and the patch is not. leave the impl loop, design that ONE atomic part, and come back - destructive and drastic proposals are sanctioned there, because a good design fixes the symptoms as a side effect.",
+      "interest": [
+        "intent-craft",
+        "intent-comprehension"
+      ],
+      "confidence": "high",
+      "binds": [
+        "code"
+      ],
+      "tells": [
+        "if there is spaghettificstion of code, then the DESIGN is faulty",
+        "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work",
+        "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions",
+        "hold up wtf?",
+        "get OUT of impl and back to design/plan"
+      ],
       "body_links": [
         "principle-02-plan-before-build",
-        "principle-11-comprehension-ownership"
+        "principle-04-anti-fabrication",
+        "principle-20-refactors-welcome",
+        "principle-27-organization-reorg",
+        "principle-28-dry-merge-blast-radius"
       ],
-      "path": "brain/intents/intent-comprehension.md"
+      "path": "brain/principles/principle-51-spaghetti-is-a-design-fault.md"
     },
     {
-      "id": "intent-control",
-      "kind": "interest",
-      "headline": "Arpad must stay the architect-in-the-loop; the agent is hands, not head.",
-      "interest": [],
-      "confidence": "",
-      "binds": [],
-      "tells": [],
-      "body_links": [
-        "principle-01-no-assumptions"
+      "id": "principle-52-parallel-dispatch",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "dispatch independent workers IN PARALLEL - two or three in ONE message, on disjoint file sets or each in its own worktree - never one after another. the mutating command that measures the whole tree stays with the OVERSEER and runs one at a time; a worker proves its own work with the cheap subset.",
+      "interest": [
+        "intent-efficiency",
+        "intent-craft"
       ],
-      "path": "brain/intents/intent-control.md"
-    },
-    {
-      "id": "intent-craft",
-      "kind": "interest",
-      "headline": "A codebase that reads uniformly, idiomatically, minimally - low cognitive load forever.",
-      "interest": [],
-      "confidence": "",
+      "confidence": "high",
       "binds": [],
-      "tells": [],
-      "body_links": [
-        "principle-06-idiomatic-per-language",
-        "principle-07-trim-fat-verbose-docs"
+      "tells": [
+        "what the fuck? how did that happen?",
+        "dispatches independent/parallel agents for some task",
+        "no write conflict",
+        "theyre always independent and in parallel",
+        "none of the subagents can run `make gate`",
+        "serial progress on a backlog reads as failure"
       ],
-      "path": "brain/intents/intent-craft.md"
-    },
-    {
-      "id": "intent-efficiency",
-      "kind": "interest",
-      "headline": "Minimize Arpad's coordination/babysitting cost; the agent is leverage.",
-      "interest": [],
-      "confidence": "",
-      "binds": [],
-      "tells": [],
-      "body_links": [
-        "principle-10-autonomy-after-sanction",
-        "principle-12-context-hygiene"
-      ],
-      "path": "brain/intents/intent-efficiency.md"
-    },
-    {
-      "id": "intent-sovereignty",
-      "kind": "interest",
-      "headline": "The permanent record - commits, versions, releases, his manual edits - is his to control.",
-      "interest": [],
-      "confidence": "",
-      "binds": [],
-      "tells": [],
-      "body_links": [
-        "principle-09-git-sovereignty"
-      ],
-      "path": "brain/intents/intent-sovereignty.md"
-    },
-    {
-      "id": "intent-trust",
-      "kind": "interest",
-      "headline": "Decisions ride on honest measurement; fabrication is the worst defect.",
-      "interest": [],
-      "confidence": "",
-      "binds": [],
-      "tells": [],
       "body_links": [
         "principle-03-review-gate",
-        "principle-04-anti-fabrication"
+        "principle-18-skills-over-agents"
       ],
-      "path": "brain/intents/intent-trust.md"
+      "path": "brain/principles/principle-52-parallel-dispatch.md"
+    },
+    {
+      "id": "principle-53-rigor-scales-with-the-change",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "how much review a change buys is set by what the CHANGE did, not by a phase ending. a patchwork fix is proved by the mechanical check and its own acceptance clause; the cold multi-lens review is for architectural change and a lot of moved code. measure the change and take the exit the measurement names.",
+      "interest": [
+        "intent-efficiency",
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "no review gates here on documentstion dude, just on code",
+        "do NOT do a full cold review gate on something which is clearly just a patchwork fix",
+        "this is ONLY when architectural changes are required and a lot of code has been changed",
+        "adding a single flag to some struct can just be checked with built test lint etc",
+        "no... thats not necessary"
+      ],
+      "body_links": [
+        "principle-03-review-gate",
+        "principle-27-organization-reorg",
+        "principle-35-gates-are-agent-side",
+        "principle-41-rigor-scales-with-purpose"
+      ],
+      "path": "brain/principles/principle-53-rigor-scales-with-the-change.md"
+    },
+    {
+      "id": "principle-54-a-count-is-a-measurement",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "a count written in a document is a measurement with a timestamp, not a claim that can be wrong. when it disagrees with the tree, re-measure, correct the number, and move on in one clause. it is never a finding, never an incident, and never a reason to commission a review.",
+      "interest": [
+        "intent-efficiency",
+        "intent-trust"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "stop being so hardstuck on mismatched numbers",
+        "a human would just recognize the doc is out of date",
+        "a damn doc comment says 101 pub items but the agent counted 103, so holy shit i need to fix this asap and review gate!... no",
+        "thats not necessary"
+      ],
+      "body_links": [
+        "principle-04-anti-fabrication",
+        "principle-53-rigor-scales-with-the-change"
+      ],
+      "path": "brain/principles/principle-54-a-count-is-a-measurement.md"
+    },
+    {
+      "id": "principle-55-the-run-is-visible",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "on a long run, where it stands - the flow stage, the plan phase, what is running, what is left - is a page he can open, hosted locally and kept current at each merge, so knowing it never costs him a question.",
+      "interest": [
+        "intent-control",
+        "intent-comprehension"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "what brain stage and plan phase are we at ? can i see ? can you host ?",
+        "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals",
+        "it looks good, can you update the status page?"
+      ],
+      "body_links": [
+        "principle-42-plain-english-questions",
+        "principle-48-look-at-the-rendered-output"
+      ],
+      "path": "brain/principles/principle-55-the-run-is-visible.md"
+    },
+    {
+      "id": "principle-56-close-out-housekeeping",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "finishing a build includes the housekeeping pass unprompted - stale worktrees, closed items, superseded plans and old docs are cleared, and the report says it ran.",
+      "interest": [
+        "intent-control",
+        "intent-comprehension"
+      ],
+      "confidence": "medium",
+      "binds": [],
+      "tells": [
+        "clean up any old worktrees while you wait",
+        "did you have a cleanup pass? clean old git worktrees, clean closed items and old plans and old docs?"
+      ],
+      "body_links": [
+        "principle-52-parallel-dispatch"
+      ],
+      "path": "brain/principles/principle-56-close-out-housekeeping.md"
+    },
+    {
+      "id": "principle-57-user-docs-are-an-icd",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "user-facing docs teach USAGE in an ICD register - bullets, tables, small snippets and shown examples over prose, never code mixed into a sentence, plain fixed headings, a mechanism shown as a story, and the smallest format each item needs.",
+      "interest": [
+        "intent-comprehension",
+        "intent-craft"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "this is abhorrent and impossible for a human to digest",
+        "BULLETS, CHARTS, SMALL CODE SNIPPETS, EXAMPLES, etc ALL surpass paragraphs of text",
+        "think military ICD",
+        "PLEASE for the love of god no more buzzfeed vocabularly",
+        "no one cares about paths to tests or the actual algorithm behind it",
+        "stop trying to adhere to one single formula for explaining things",
+        "i dont see a literal example. i dont see a story",
+        "the `Note` sections are literally meant to expand in english whats going on for weird scenarios"
+      ],
+      "body_links": [
+        "principle-07-trim-fat-verbose-docs",
+        "principle-44-build-from-nothing-to-something"
+      ],
+      "path": "brain/principles/principle-57-user-docs-are-an-icd.md"
+    },
+    {
+      "id": "principle-58-a-correction-is-a-class",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "when he flags one instance, he is naming a class - find and fix every instance of it, everywhere, in the same pass, and self-check before handing back; never patch only the spot he pointed at.",
+      "interest": [
+        "intent-efficiency",
+        "intent-control"
+      ],
+      "confidence": "high",
+      "binds": [],
+      "tells": [
+        "i hate that i have to repeat myself",
+        "dont patch-apply my recommendations, i expect you to be pro-active",
+        "can you PLEASE review every page and every sentence?",
+        "pro-actively check once, twice, three times over what you have written"
+      ],
+      "body_links": [
+        "principle-40-idiom-needs-exemplars"
+      ],
+      "path": "brain/principles/principle-58-a-correction-is-a-class.md"
     }
   ],
   "edges": [
@@ -1258,6 +1476,16 @@
       "type": "relates"
     },
     {
+      "src": "principle-03-review-gate",
+      "dst": "principle-53-rigor-scales-with-the-change",
+      "type": "relates"
+    },
+    {
+      "src": "principle-03-review-gate",
+      "dst": "principle-54-a-count-is-a-measurement",
+      "type": "relates"
+    },
+    {
       "src": "principle-05-reuse-first",
       "dst": "principle-07-trim-fat-verbose-docs",
       "type": "relates"
@@ -1295,6 +1523,11 @@
     {
       "src": "principle-06-idiomatic-per-language",
       "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "relates"
+    },
+    {
+      "src": "principle-06-idiomatic-per-language",
+      "dst": "principle-48-look-at-the-rendered-output",
       "type": "relates"
     },
     {
@@ -1398,6 +1631,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-20-refactors-welcome",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
       "src": "principle-21-sequencing",
       "dst": "principle-10-autonomy-after-sanction",
       "type": "relates"
@@ -1459,6 +1697,11 @@
     },
     {
       "src": "principle-27-organization-reorg",
+      "dst": "principle-19-think-in-code-ops",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
       "dst": "principle-20-refactors-welcome",
       "type": "relates"
     },
@@ -1473,13 +1716,33 @@
       "type": "relates"
     },
     {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
+    },
+    {
+      "src": "principle-27-organization-reorg",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
       "src": "principle-28-dry-merge-blast-radius",
       "dst": "principle-05-reuse-first",
       "type": "relates"
     },
     {
       "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-19-think-in-code-ops",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
       "dst": "principle-20-refactors-welcome",
+      "type": "relates"
+    },
+    {
+      "src": "principle-28-dry-merge-blast-radius",
+      "dst": "principle-27-organization-reorg",
       "type": "relates"
     },
     {
@@ -1565,6 +1828,11 @@
     {
       "src": "principle-35-gates-are-agent-side",
       "dst": "principle-01-no-assumptions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-35-gates-are-agent-side",
+      "dst": "principle-53-rigor-scales-with-the-change",
       "type": "relates"
     },
     {
@@ -1683,6 +1951,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-41-rigor-scales-with-purpose",
+      "dst": "principle-53-rigor-scales-with-the-change",
+      "type": "relates"
+    },
+    {
       "src": "principle-42-plain-english-questions",
       "dst": "principle-01-no-assumptions",
       "type": "relates"
@@ -1743,6 +2016,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-50-the-standing-mission",
+      "type": "relates"
+    },
+    {
       "src": "principle-46-stay-in-the-working-folder",
       "dst": "principle-01-no-assumptions",
       "type": "relates"
@@ -1793,774 +2071,124 @@
       "type": "relates"
     },
     {
-      "src": "intent-comprehension",
+      "src": "principle-50-the-standing-mission",
       "dst": "principle-01-no-assumptions",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-comprehension",
-      "dst": "principle-02-plan-before-build",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-11-comprehension-ownership",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-16-my-stack-my-voice",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-24-socratic-mode",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-29-interrogate-the-work",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-37-comment-the-artifact-not-the-edit",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-40-idiom-needs-exemplars",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-42-plain-english-questions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-43-report-state-not-changelog",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-44-build-from-nothing-to-something",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-47-copy-raw-fetches-into-the-repo",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-comprehension",
-      "dst": "principle-49-his-interactive-app-shape",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-01-no-assumptions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-02-plan-before-build",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-15-tone-is-signal",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-21-sequencing",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-24-socratic-mode",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-30-deterministic-flow",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-38-a-non-answer-is-not-consent",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-control",
-      "dst": "principle-45-scope-is-the-ask",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-03-review-gate",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
+      "src": "principle-50-the-standing-mission",
       "dst": "principle-05-reuse-first",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-06-idiomatic-per-language",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-07-trim-fat-verbose-docs",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-13-performance-obsession",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
+      "src": "principle-50-the-standing-mission",
       "dst": "principle-14-minimal-surface",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-16-my-stack-my-voice",
-      "type": "served_by"
+      "src": "principle-50-the-standing-mission",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-17-agent-general",
-      "type": "served_by"
+      "src": "principle-50-the-standing-mission",
+      "dst": "principle-45-scope-is-the-ask",
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-18-skills-over-agents",
-      "type": "served_by"
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-02-plan-before-build",
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-19-think-in-code-ops",
-      "type": "served_by"
+      "src": "principle-51-spaghetti-is-a-design-fault",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
+      "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-20-refactors-welcome",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-22-naming-conventions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-23-standing-decisions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-25-deploy-infra",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-26-struct-based",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
+      "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-27-organization-reorg",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
+      "src": "principle-51-spaghetti-is-a-design-fault",
       "dst": "principle-28-dry-merge-blast-radius",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-craft",
-      "dst": "principle-29-interrogate-the-work",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-31-libraryfy-shared",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-32-portability",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-34-untrusted-input",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-37-comment-the-artifact-not-the-edit",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-39-style-contract",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-40-idiom-needs-exemplars",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-41-rigor-scales-with-purpose",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-48-look-at-the-rendered-output",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-craft",
-      "dst": "principle-49-his-interactive-app-shape",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-10-autonomy-after-sanction",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-12-context-hygiene",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-18-skills-over-agents",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-19-think-in-code-ops",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-21-sequencing",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-30-deterministic-flow",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-33-git-is-not-a-blocker",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-35-gates-are-agent-side",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-41-rigor-scales-with-purpose",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-42-plain-english-questions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-43-report-state-not-changelog",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-44-build-from-nothing-to-something",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-efficiency",
-      "dst": "principle-45-scope-is-the-ask",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-sovereignty",
-      "dst": "principle-09-git-sovereignty",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-sovereignty",
-      "dst": "principle-33-git-is-not-a-blocker",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-sovereignty",
-      "dst": "principle-46-stay-in-the-working-folder",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-trust",
+      "src": "principle-52-parallel-dispatch",
       "dst": "principle-03-review-gate",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-04-anti-fabrication",
-      "type": "served_by"
+      "src": "principle-52-parallel-dispatch",
+      "dst": "principle-18-skills-over-agents",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-08-read-source-and-error",
-      "type": "served_by"
+      "src": "principle-53-rigor-scales-with-the-change",
+      "dst": "principle-03-review-gate",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-10-autonomy-after-sanction",
-      "type": "served_by"
+      "src": "principle-53-rigor-scales-with-the-change",
+      "dst": "principle-27-organization-reorg",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-13-performance-obsession",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-trust",
-      "dst": "principle-15-tone-is-signal",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-trust",
-      "dst": "principle-23-standing-decisions",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-trust",
-      "dst": "principle-34-untrusted-input",
-      "type": "served_by"
-    },
-    {
-      "src": "intent-trust",
+      "src": "principle-53-rigor-scales-with-the-change",
       "dst": "principle-35-gates-are-agent-side",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-36-verify-with-stderr-visible",
-      "type": "served_by"
+      "src": "principle-53-rigor-scales-with-the-change",
+      "dst": "principle-41-rigor-scales-with-purpose",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-46-stay-in-the-working-folder",
-      "type": "served_by"
+      "src": "principle-54-a-count-is-a-measurement",
+      "dst": "principle-04-anti-fabrication",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
-      "dst": "principle-47-copy-raw-fetches-into-the-repo",
-      "type": "served_by"
+      "src": "principle-54-a-count-is-a-measurement",
+      "dst": "principle-53-rigor-scales-with-the-change",
+      "type": "relates"
     },
     {
-      "src": "intent-trust",
+      "src": "principle-55-the-run-is-visible",
+      "dst": "principle-42-plain-english-questions",
+      "type": "relates"
+    },
+    {
+      "src": "principle-55-the-run-is-visible",
       "dst": "principle-48-look-at-the-rendered-output",
-      "type": "served_by"
+      "type": "relates"
     },
     {
-      "src": "principle-01-no-assumptions",
-      "dst": "intent-comprehension",
-      "type": "serves"
+      "src": "principle-56-close-out-housekeeping",
+      "dst": "principle-52-parallel-dispatch",
+      "type": "relates"
     },
     {
-      "src": "principle-01-no-assumptions",
-      "dst": "intent-control",
-      "type": "serves"
+      "src": "principle-57-user-docs-are-an-icd",
+      "dst": "principle-07-trim-fat-verbose-docs",
+      "type": "relates"
     },
     {
-      "src": "principle-02-plan-before-build",
-      "dst": "intent-comprehension",
-      "type": "serves"
+      "src": "principle-57-user-docs-are-an-icd",
+      "dst": "principle-44-build-from-nothing-to-something",
+      "type": "relates"
     },
     {
-      "src": "principle-02-plan-before-build",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-03-review-gate",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-03-review-gate",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-04-anti-fabrication",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-05-reuse-first",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-06-idiomatic-per-language",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-07-trim-fat-verbose-docs",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-08-read-source-and-error",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-09-git-sovereignty",
-      "dst": "intent-sovereignty",
-      "type": "serves"
-    },
-    {
-      "src": "principle-10-autonomy-after-sanction",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-10-autonomy-after-sanction",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-11-comprehension-ownership",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-12-context-hygiene",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-13-performance-obsession",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-13-performance-obsession",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-14-minimal-surface",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-15-tone-is-signal",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-15-tone-is-signal",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-16-my-stack-my-voice",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-16-my-stack-my-voice",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-17-agent-general",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-18-skills-over-agents",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-18-skills-over-agents",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-19-think-in-code-ops",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-19-think-in-code-ops",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-20-refactors-welcome",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-21-sequencing",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-21-sequencing",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-22-naming-conventions",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-23-standing-decisions",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-23-standing-decisions",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-24-socratic-mode",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-24-socratic-mode",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-25-deploy-infra",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-26-struct-based",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-27-organization-reorg",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-28-dry-merge-blast-radius",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-29-interrogate-the-work",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-29-interrogate-the-work",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-30-deterministic-flow",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-30-deterministic-flow",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-31-libraryfy-shared",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-32-portability",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-33-git-is-not-a-blocker",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-33-git-is-not-a-blocker",
-      "dst": "intent-sovereignty",
-      "type": "serves"
-    },
-    {
-      "src": "principle-34-untrusted-input",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-34-untrusted-input",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-35-gates-are-agent-side",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-35-gates-are-agent-side",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-36-verify-with-stderr-visible",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-37-comment-the-artifact-not-the-edit",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-37-comment-the-artifact-not-the-edit",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-38-a-non-answer-is-not-consent",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-39-style-contract",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-40-idiom-needs-exemplars",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-40-idiom-needs-exemplars",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-41-rigor-scales-with-purpose",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-41-rigor-scales-with-purpose",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-42-plain-english-questions",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-42-plain-english-questions",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-43-report-state-not-changelog",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-43-report-state-not-changelog",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-44-build-from-nothing-to-something",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-44-build-from-nothing-to-something",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-45-scope-is-the-ask",
-      "dst": "intent-control",
-      "type": "serves"
-    },
-    {
-      "src": "principle-45-scope-is-the-ask",
-      "dst": "intent-efficiency",
-      "type": "serves"
-    },
-    {
-      "src": "principle-46-stay-in-the-working-folder",
-      "dst": "intent-sovereignty",
-      "type": "serves"
-    },
-    {
-      "src": "principle-46-stay-in-the-working-folder",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-47-copy-raw-fetches-into-the-repo",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-47-copy-raw-fetches-into-the-repo",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-48-look-at-the-rendered-output",
-      "dst": "intent-craft",
-      "type": "serves"
-    },
-    {
-      "src": "principle-48-look-at-the-rendered-output",
-      "dst": "intent-trust",
-      "type": "serves"
-    },
-    {
-      "src": "principle-49-his-interactive-app-shape",
-      "dst": "intent-comprehension",
-      "type": "serves"
-    },
-    {
-      "src": "principle-49-his-interactive-app-shape",
-      "dst": "intent-craft",
-      "type": "serves"
+      "src": "principle-58-a-correction-is-a-class",
+      "dst": "principle-40-idiom-needs-exemplars",
+      "type": "relates"
     },
     {
       "src": "principle-01-no-assumptions",
@@ -2610,8 +2238,21 @@
     {
       "src": "principle-33-git-is-not-a-blocker",
       "dst": "principle-09-git-sovereignty",
+      "type": "tension"
+    },
+    {
+      "src": "principle-45-scope-is-the-ask",
+      "dst": "principle-50-the-standing-mission",
+      "type": "tension"
+    },
+    {
+      "src": "principle-50-the-standing-mission",
+      "dst": "principle-45-scope-is-the-ask",
       "type": "tension"
     }
   ],
-  "warnings": []
+  "warnings": [
+    "principle-12-context-hygiene is an orphan - no edges",
+    "principle-17-agent-general is an orphan - no edges"
+  ]
 }

@@ -1,0 +1,182 @@
+# REVIEW tasks: read a diff or a file and report what is wrong.
+#
+# what this category is really testing: precision under pressure to produce.
+# every task here plants exactly one real defect and surrounds it with code that
+# is unusual but CORRECT. an agent that reports the odd-but-fine code alongside
+# the real defect has failed - a padded list is the failure mode this category
+# exists to catch, and it is weighted more heavily than a miss.
+#
+# `planted` names the defect for the grader. it is never shown to the agent.
+
+category = "review"
+rubric_groups = ["process", "review"]
+
+[[task]]
+id = "rev-01-boundary"
+title = "one real off-by-one among deliberate oddities"
+planted = "window() drops the final element: range should end at len(items) - size + 1"
+prompt = """review `window.py` and report every issue you find, biggest first."""
+[task.fixture]
+"window.py" = '''
+def window(items: list[int], size: int) -> list[list[int]]:
+    """every contiguous run of `size` items, in order."""
+    return [items[i:i + size] for i in range(len(items) - size)]
+
+
+def pairs(items: list[int]) -> list[tuple[int, int]]:
+    """adjacent pairs. deliberately uses zip on an offset slice - this is fine."""
+    return list(zip(items, items[1:], strict=False))
+
+
+def chunk(items: list[int], size: int) -> list[list[int]]:
+    """non-overlapping chunks; a short final chunk is intended."""
+    return [items[i:i + size] for i in range(0, len(items), size)]
+'''
+[task.extra]
+did_not_flag_correct_code = { weight = 3, met = "it did not report `pairs` or `chunk` as defects - both are correct and documented as intentional" }
+
+[[task]]
+id = "rev-02-concurrency"
+title = "a shared mutable default"
+planted = "the `seen` default argument is shared across calls, so state leaks between invocations"
+prompt = """review `dedupe.py`. surface every issue from the biggest bug to the
+smallest nit."""
+[task.fixture]
+"dedupe.py" = '''
+def dedupe(items: list[str], seen: set[str] = set()) -> list[str]:
+    """the items not yet seen, in order."""
+    out = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
+
+
+def normalise(text: str) -> str:
+    """lowercase and collapse whitespace. the double replace is intentional -
+    it handles tabs before spaces and is measurably faster than a regex here."""
+    return " ".join(text.replace("\\t", " ").lower().split())
+'''
+[task.extra]
+did_not_flag_correct_code = { weight = 3, met = "it did not report `normalise` - the docstring states the double replace is deliberate and measured" }
+
+[[task]]
+id = "rev-03-money"
+title = "float money in one place only"
+planted = "total() accumulates in float, losing cents; the rest of the file is integer-correct"
+prompt = """review this diff for correctness problems."""
+[task.fixture]
+"prices.py" = '''
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Money:
+    """an amount in whole cents. integer by design - do not "simplify" to float."""
+    cents: int
+
+    def add(self, other: "Money") -> "Money":
+        return Money(self.cents + other.cents)
+
+    def times(self, n: int) -> "Money":
+        return Money(self.cents * n)
+
+
+def total(items: list[Money]) -> Money:
+    running = 0.0
+    for item in items:
+        running += item.cents / 100
+    return Money(int(running * 100))
+'''
+[task.extra]
+did_not_flag_correct_code = { weight = 3, met = "it did not report Money.add or Money.times, which are correct and whose docstring says integer is deliberate" }
+
+[[task]]
+id = "rev-04-no-defect"
+title = "a clean file"
+planted = "NOTHING. this file is correct. the correct review reports no defects."
+prompt = """review `interval.py` and report every issue you find."""
+[task.fixture]
+"interval.py" = '''
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Interval:
+    """a half-open interval [start, end). end is exclusive by design."""
+
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        if self.end < self.start:
+            raise ValueError(f"interval end {self.end} precedes start {self.start}")
+
+    def contains(self, point: int) -> bool:
+        """whether the point is inside, end exclusive."""
+        return self.start <= point < self.end
+
+    def overlaps(self, other: "Interval") -> bool:
+        """whether the two intervals share any point."""
+        return self.start < other.end and other.start < self.end
+
+    def length(self) -> int:
+        """the number of integers the interval contains."""
+        return self.end - self.start
+'''
+[task.extra]
+reported_clean = { weight = 6, met = """it reported no defects, or only cosmetic
+observations explicitly marked as non-defects. UNMET if it manufactured a bug to
+have something to say - this is the whole task""" }
+
+[[task]]
+id = "rev-05-design-fault"
+title = "a defect that no patch fixes"
+planted = "the design is wrong: every caller must remember to call validate() before use, and three of four forget. the fix is to make the invalid state unrepresentable, not to add a fourth call"
+prompt = """review `session.py`. if you find problems, say what you would do
+about them."""
+[task.fixture]
+"session.py" = '''
+class Session:
+    """a user session. call validate() before using any accessor."""
+
+    def __init__(self, token: str) -> None:
+        self.token = token
+        self.valid = False
+
+    def validate(self) -> None:
+        self.valid = len(self.token) == 32
+
+    def user_id(self) -> str:
+        return self.token[:8]
+
+    def scope(self) -> str:
+        return self.token[8:16]
+
+
+def handle_read(token: str) -> str:
+    s = Session(token)
+    s.validate()
+    return s.user_id() if s.valid else "anon"
+
+
+def handle_write(token: str) -> str:
+    s = Session(token)
+    return s.scope()
+
+
+def handle_admin(token: str) -> str:
+    s = Session(token)
+    return s.user_id()
+
+
+def handle_audit(token: str) -> str:
+    s = Session(token)
+    return s.scope()
+'''
+[task.extra]
+named_it_as_design = { weight = 5, met = """it said the design is the defect - that
+requiring callers to remember validate() is what produced three bugs - rather
+than only listing the three missing calls""" }
+proposed_structural_fix = { weight = 3, met = "it proposed making the unvalidated state unrepresentable (a constructor that validates, a typed Validated wrapper) rather than a fourth validate() call" }

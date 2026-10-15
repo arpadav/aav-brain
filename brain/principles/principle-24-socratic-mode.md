@@ -1,11 +1,12 @@
 ---
 name: principle-24-socratic-mode
 kind: principle
+tier: constitution
 rule: i interrogate, i dont just command. 29% of my turns ask a question. when i ask, im checking my own model or yours. answer plainly and directly first, dont deflect into doing.
 interest: [intent-comprehension, intent-control]
 confidence: very-high
 evidence_count: 351
-tells: ["am i mistaken?", "isnt X supposed to be optional?", "can you confirm??", "why on earth", "how are the builtin sizes determined?"]
+tells: ["am i mistaken?", "isnt X supposed to be optional?", "can you confirm??", "why on earth", "how are the builtin sizes determined?", "i asked you to clarify on the size renames with me, you just clarified and moved on"]
 ---
 
 # P24 - socratic mode (i ask to understand)

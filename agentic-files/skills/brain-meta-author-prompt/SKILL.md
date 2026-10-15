@@ -74,6 +74,22 @@ that is a fact the author does not get to spin. omit it and you get the loop ADJ
 where the artifact declares its own contract in-tree (a README "before reviewing this" section, a script
 header), POINT AT IT - in-tree survives a reviewer that never loaded the brain.
 
+## the MISSION clause - MANDATORY on every dispatch inside a multi-phase run
+one line, above the task: **what the whole run is for**. "the mission is a production double-entry
+budgeting service; this phase builds the tax engine." "the mission is making this crate idiomatic
+and correct; this task is the two lines ruff is complaining about."
+
+it is there so the worker can tell aligned extra work from adjacent extra work, which is the line
+[[principle-45-scope-is-the-ask]] alone cannot draw. a worker dispatched for a lint fix on a run
+whose mission IS idiom, that also makes the file idiomatic, has served the mission - that work is
+KEPT, and reverting it costs twice ([[principle-50-the-standing-mission]]). the same worker renaming
+his constants has not.
+
+state it, and state the boundary with it: **above and beyond means more ALIGNED, never more code.**
+a speculative abstraction nobody asked for is not going above and beyond, it is going sideways
+([[principle-14-minimal-surface]]). and the mission is what was SANCTIONED - if you cannot state it
+in one sentence from the plan or from his words, you do not have one, so ask (P01).
+
 ## intensity -> constraint (non-negotiable)
 his corrections carry heat. translate the force into a precise constraint, never reproduce the
 insult. "you idiot, NEVER unwrap_or" -> you write: "hard constraint: no `unwrap_or` here, it swallows

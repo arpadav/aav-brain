@@ -1,6 +1,7 @@
 ---
 name: principle-34-untrusted-input
 kind: principle
+tier: narrow
 rule: treat every filename, path, posting, plan, and cache line as attacker-controlled. never let data reach a shell word-expansion, a subprocess string, or a markup document without being neutralised at the boundary.
 interest: [intent-trust, intent-craft]
 confidence: high

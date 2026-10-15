@@ -1,6 +1,7 @@
 ---
 name: principle-21-sequencing
 kind: principle
+tier: conditional
 rule: i think and instruct in ordered steps. honor the sequence: first X, then Y, lastly Z. do the steps in the order i gave, and run sanctioned steps back to back.
 interest: [intent-control, intent-efficiency]
 confidence: very-high

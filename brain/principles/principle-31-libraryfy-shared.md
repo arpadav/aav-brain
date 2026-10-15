@@ -1,6 +1,7 @@
 ---
 name: principle-31-libraryfy-shared
 kind: principle
+tier: conditional
 rule: library-fy shared datatypes and helpers. when 2+ scripts/modules use the same struct, constant, or helper, extract ONE shared library they import - never redefine the same datatype in multiple places. minimal-surface does NOT justify a duplicated struct; a shared lib IS the minimal surface.
 interest: [intent-craft]
 confidence: very-high
@@ -56,6 +57,9 @@ layout section, so the instinct is met and refused at the point it fires.
   holding the drift-gate), each builder supplying only what differs.
 - keep genuinely-distinct types distinct (Node=knowledge vs State=sequence are different concepts,
   P30) - library-fy the SHARED ones, do not force unrelated ones into one generic type.
+
+## how it is found
+by the scan [[principle-28-dry-merge-blast-radius]] describes - one measurement serves both cards.
 
 ## anti-pattern (and where the brain failed)
 defining Node/Edge in one script and a second node representation in another. the brain's own review

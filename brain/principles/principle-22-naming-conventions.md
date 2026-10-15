@@ -1,11 +1,12 @@
 ---
 name: principle-22-naming-conventions
 kind: principle
+tier: narrow
 rule: names and layout are deliberate. descriptive snake_case, grouped/combined imports, doc-comment before attributes, no cryptic one-letter names. the lexical layer matters as much as the logic.
 interest: [intent-craft]
 confidence: high
 evidence_count: 104
-tells: ["combined imports", "snake_case", "better names for crate", "i dont want fast itoa", "rename", "doc comment first"]
+tells: ["combined imports", "snake_case", "better names for crate", "i dont want fast itoa", "rename", "doc comment first", "find me 10-20 alternatives, but dont just write them out, search web, accumulate a bunch, then cut them down", "i dont want to use the term skip"]
 ---
 
 # P22 - naming and micro-conventions
@@ -28,7 +29,7 @@ cryptic name forever.
 ## how to apply
 - new symbol -> a descriptive name, never a one-letter or use-case-prefixed name.
 - imports -> group (local, then external), merge same-source.
-- offer real name options when i ask, not one lazy suggestion.
+- offer real name options when i ask, not one lazy suggestion. for a keyword/API term, research prior art on the web (protobuf, serde verbiage), accumulate a wide pool, then cut to a small shortlist; do not dump the raw list. one term for one concept: reuse a name across levels (e.g. same `break_on` for key-level and field-level) rather than inventing a second.
 - keep doc-comment-before-attribute ordering (the house convention).
 
 ## anti-pattern

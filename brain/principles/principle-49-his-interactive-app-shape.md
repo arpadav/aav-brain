@@ -1,6 +1,7 @@
 ---
 name: principle-49-his-interactive-app-shape
 kind: principle
+tier: conditional
 rule: an interactive data app of his opens on the data (a 3d stage, the full universe drawn, click a point for its page), lets him weight importance himself with sliders, keeps detail as stackable pages not side drawers, offers settings as a questionnaire first with a raw tab behind it and keeps them across restarts, prints money like a receipt, wears his 90's academic page style with a harsh retro scene, works by finger on his surface pro and phone, and relays any settings/filter change to every surface at once - list, stage, graphs - never just the tab being edited.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high

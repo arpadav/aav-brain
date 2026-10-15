@@ -1,6 +1,7 @@
 ---
 name: principle-33-git-is-not-a-blocker
 kind: principle
+tier: conditional
 rule: never treat git state as a blocker or a gate. he commits, adds, and pushes - the agent does the fixes and reports git instructions at the END. do not stop, do not ask, do not invent a gate out of repo state.
 interest: [intent-sovereignty, intent-efficiency]
 confidence: very-high

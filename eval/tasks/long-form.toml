@@ -1,0 +1,193 @@
+# LONG-FORM tasks: multi-step work in an existing repo, several files deep.
+#
+# what this category is really testing: whether the agent holds a standard
+# across a long run. these are the tasks where a context layer either compounds
+# or evaporates - and where the failure modes are drift, silent scope creep, and
+# a confident summary of work that was not verified.
+
+category = "long-form"
+rubric_groups = ["process", "code"]
+
+[[task]]
+id = "lf-01-extract-shared"
+title = "three scripts, one duplicated helper"
+prompt = """these three scripts each carry their own copy of the same date
+parsing. consolidate it. keep all three working."""
+[task.fixture]
+"report_daily.py" = '''
+import datetime
+
+
+def parse_day(text: str) -> datetime.date:
+    return datetime.datetime.strptime(text, "%Y-%m-%d").date()
+
+
+def run(rows: list[str]) -> int:
+    return len([r for r in rows if parse_day(r).weekday() < 5])
+'''
+"report_weekly.py" = '''
+import datetime
+
+
+def to_date(text: str) -> datetime.date:
+    return datetime.datetime.strptime(text, "%Y-%m-%d").date()
+
+
+def run(rows: list[str]) -> int:
+    return len({to_date(r).isocalendar()[1] for r in rows})
+'''
+"archive.py" = '''
+import datetime
+
+
+def read_date(text: str) -> datetime.date:
+    return datetime.datetime.strptime(text, "%Y-%m-%d").date()
+
+
+def stale(rows: list[str], before: datetime.date) -> list[str]:
+    return [r for r in rows if read_date(r) < before]
+'''
+[task.extra]
+one_definition = { weight = 4, met = "the parsing exists once, imported by all three" }
+callers_still_work = { weight = 3, met = "it ran or exercised all three after the change rather than assuming" }
+no_over_extraction = { weight = 2, met = "it extracted the duplicated helper and did not invent a general date utility layer" }
+
+[[task]]
+id = "lf-02-add-a-format"
+title = "a second output format across a small pipeline"
+prompt = """`pipeline.py` emits csv. add json output, selected by a flag. the two
+formats must carry the same fields."""
+[task.fixture]
+"pipeline.py" = '''
+import csv
+import sys
+from dataclasses import dataclass
+
+
+@dataclass
+class Row:
+    name: str
+    amount: int
+    tag: str
+
+
+def load(path: str) -> list[Row]:
+    with open(path) as handle:
+        return [Row(r["name"], int(r["amount"]), r["tag"]) for r in csv.DictReader(handle)]
+
+
+def emit(rows: list[Row]) -> None:
+    writer = csv.writer(sys.stdout)
+    writer.writerow(["name", "amount", "tag"])
+    for row in rows:
+        writer.writerow([row.name, row.amount, row.tag])
+'''
+[task.extra]
+one_field_source = { weight = 4, met = "the field list is defined once and both emitters read it, so adding a field cannot desync them" }
+flag_is_closed = { weight = 2, met = "the format flag is a closed set that rejects an unknown value, not a free string" }
+verified_both = { weight = 3, met = "it ran both formats and showed the output" }
+
+[[task]]
+id = "lf-03-migrate-config"
+title = "move hardcoded settings into config"
+prompt = """these constants are spread across three modules and two of them
+disagree about the timeout. move them into one authored config file with the
+rationale for each number, and make the disagreement a deliberate decision."""
+[task.fixture]
+"fetcher.py" = '''
+TIMEOUT = 10
+RETRIES = 3
+
+
+def fetch(url: str) -> str:
+    return f"GET {url} timeout={TIMEOUT} retries={RETRIES}"
+'''
+"uploader.py" = '''
+TIMEOUT = 30
+CHUNK = 1024
+
+
+def upload(blob: bytes) -> str:
+    return f"PUT {len(blob)} timeout={TIMEOUT} chunk={CHUNK}"
+'''
+"cleaner.py" = '''
+TIMEOUT = 10
+KEEP_DAYS = 14
+
+
+def clean(paths: list[str]) -> int:
+    return len(paths)
+'''
+[task.extra]
+surfaced_the_conflict = { weight = 4, met = "it noticed the two timeouts differ and either asked or made a stated decision, rather than silently picking one" }
+config_carries_why = { weight = 3, met = "each number in the config file has a reason beside it, not just a value" }
+no_number_twice = { weight = 2, met = "no value is spelled both in the config and in a module default" }
+
+[[task]]
+id = "lf-04-tests-for-untested"
+title = "cover an untested module"
+prompt = """`ledger.py` has no tests. write them. tell me anything the tests
+reveal."""
+[task.fixture]
+"ledger.py" = '''
+from dataclasses import dataclass, field
+
+
+@dataclass
+class Ledger:
+    entries: list[tuple[str, int]] = field(default_factory=list)
+
+    def post(self, account: str, amount: int) -> None:
+        self.entries.append((account, amount))
+
+    def balance(self, account: str) -> int:
+        return sum(a for acct, a in self.entries if acct == account)
+
+    def transfer(self, src: str, dst: str, amount: int) -> None:
+        self.post(src, -amount)
+        self.post(dst, amount)
+
+    def is_balanced(self) -> bool:
+        return sum(a for _, a in self.entries) == 0
+'''
+[task.extra]
+found_the_hole = { weight = 4, met = "it noticed transfer accepts a negative amount, which silently reverses direction, and reported it" }
+tests_actually_run = { weight = 3, met = "it ran the tests and showed the result" }
+tests_are_behavioural = { weight = 2, met = "the tests assert behaviour a caller depends on, not the implementation's internals" }
+
+[[task]]
+id = "lf-05-refactor-under-pressure"
+title = "a function with seven flags"
+prompt = """`render` has grown seven boolean parameters and every call site passes
+a different four. make it better."""
+[task.fixture]
+"render.py" = '''
+def render(text: str, bold: bool = False, italic: bool = False, underline: bool = False,
+           upper: bool = False, strip: bool = False, wrap: bool = False,
+           escape: bool = False) -> str:
+    """render text with the requested decorations."""
+    if strip:
+        text = text.strip()
+    if upper:
+        text = text.upper()
+    if escape:
+        text = text.replace("<", "&lt;")
+    if bold:
+        text = f"**{text}**"
+    if italic:
+        text = f"_{text}_"
+    if underline:
+        text = f"__{text}__"
+    if wrap:
+        text = f"<p>{text}</p>"
+    return text
+
+
+def title(t): return render(t, bold=True, upper=True, strip=True)
+def body(t): return render(t, wrap=True, escape=True, strip=True)
+def quote(t): return render(t, italic=True, wrap=True)
+'''
+[task.extra]
+diagnosed_as_design = { weight = 4, met = "it named the boolean-parameter pile as the defect rather than tidying around it" }
+options_are_a_type = { weight = 3, met = "the flags became a struct, dataclass, options object or set of named styles" }
+call_sites_read_better = { weight = 2, met = "title/body/quote are clearer after the change than before" }

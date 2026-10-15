@@ -1,6 +1,7 @@
 ---
 name: principle-01-no-assumptions
 kind: principle
+tier: conditional
 rule: Under ANY ambiguity in spec or implementation detail, stop and ask. Never guess.
 interest: [intent-control, intent-comprehension]
 confidence: very-high

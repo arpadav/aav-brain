@@ -1,6 +1,6 @@
 ---
 name: brain-meta-style
-description: "Review work, plans, and prose AS Arpad - agree or disagree the way he does, cite his principle cards, reject hard on hard-rule violations. Three lenses: a PLAN lens (architectural scrutiny before execution), an ADJUDICATE lens (classify reviewer findings valid/invalid/deferred against the artifact's contract, so an invalid one is rejected rather than fixed), and a STYLE lens (trim-the-fat, idiomatic, verbose-docs pass after correctness). This is Arpad-in-the-loop judgement with full task context (the cold independent pass is the brain-review-gate agent, separate). Load it to gate a plan before sanction, to adjudicate a gate's findings, or for the final style pass before preparing a commit."
+description: "Review work, plans, and prose AS Arpad - agree or disagree the way he does, cite his principle cards, reject hard on hard-rule violations. Three lenses: a PLAN lens (architectural scrutiny before execution), an ADJUDICATE lens (classify reviewer findings valid/design-fault/invalid/deferred against the artifact's contract, so an invalid one is rejected rather than fixed and a design fault leaves the impl loop rather than being patched around), and a STYLE lens (trim-the-fat, idiomatic, verbose-docs pass after correctness). This is Arpad-in-the-loop judgement with full task context (the cold independent pass is the brain-review-gate agent, separate). Load it to gate a plan before sanction, to adjudicate a gate's findings, or for the final style pass before preparing a commit."
 ---
 
 # brain-meta-style: review as arpad (plan lens + style lens)
@@ -44,6 +44,7 @@ against the artifact's stated contract:
 | verdict | when | action |
 |---|---|---|
 | valid | a real defect | -> REMEDIATE. even a single-reviewer nit; there is no "minor enough to skip" (P03) |
+| design fault | real, and every available fix makes the code WORSE | -> SUBDESIGN, which designs that ONE part and hands REMEDIATE a shape |
 | invalid | it contradicts what the artifact IS | REJECT, log the reason, never fix |
 | deferred | real, but a later phase delivers it | REJECT for this phase, log, move on |
 | fabricated | asserted without being run (P04) | REJECT, and discount that reviewer's OTHER claims until you verify them yourself |
@@ -56,12 +57,26 @@ the two invalid classes are the ones that hang the loop, because "fixing" them c
 - **out-of-phase work.** a plan is phased on purpose; a reviewer asking phase N to contain phase N+1's
   deliverable is asking you to abandon the phasing.
 
+the design-fault verdict is the one this lens used to lack, and it is the only route out of the
+impl loop. its tells are MECHANICAL, not a feeling - without one of them you have a list of fixes:
+- every repair you can name adds a branch, a flag, a parameter or a special case, and none removes one;
+- the same seam produces a different finding every round, none of them the last;
+- a fix would need something to know about what it should not - a formula reaching for a wire field,
+  an error type carrying a caller's concern, a leaf importing the root.
+
+name the ONE atomic part that needs redesigning - the error model, the id scheme, the ownership of a
+field - never the plan. destructive and drastic proposals are sanctioned there and the size of the
+change is not an argument against them ([[principle-51-spaghetti-is-a-design-fault]],
+[[principle-20-refactors-welcome]]). calling every finding a design fault turns a bounded
+remediation into an unbounded redesign, which is the failure in the other direction.
+
 log every rejection so the next pass inherits it rather than re-litigating:
 ```bash
 python3 $AAV_BRAIN/bin/brain-trace.py --skill <entry> --decision "<finding>" \
     --chosen "rejected" --reject "<finding>=<why it is invalid here>"
 ```
-emit `valid_remain` if anything survived, else `all_invalid` / `deferred` - the walk routes on it.
+emit `design_fault` if any finding earned that verdict, else `valid_remain` if anything survived,
+else `all_invalid` / `deferred` - the walk routes on it.
 
 ## style lens (the final pass, after correctness)
 - trim the fat (P07). line by line, remove old/deprecated/YAGNI/ancillary inline comments. get to

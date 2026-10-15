@@ -187,18 +187,18 @@
       "entry": false,
       "regime": "execute-through",
       "binds": [],
-      "doc": "dispatch the worker with the prompt DOCTRINE authored; implement the phase (post-sanction)"
+      "doc": "dispatch the workers with the prompt DOCTRINE authored; implement the phase (post-sanction). FAN OUT: two to three independent workers issued as PARALLEL TOOL CALLS IN ONE MESSAGE, each on a disjoint file set or in its own worktree, staggered as one returns - a loop of single dispatches is serial and looks identical in the transcript until you count them (P52). the tree-wide build/test/lint command belongs to the OVERSEER and runs one at a time, never to a worker: two builds block on one target lock and two mutation batteries revert over each other. a worker proves its own work with the cheap subset in its own worktree. the worker carries its END GOAL, not just this phase's ask: work beyond the literal ask that moves toward the sanctioned mission is IN, work merely adjacent is out (P45, P50). at the phase boundary, `brain-shape.py <repo> --since <the ref this phase started from>` decides which exit to take: over shape.toml's budget -> `implemented`, the cold gate; under it -> `under_budget`, straight to VERIFY. an unresolvable ref ARMS, because a gate is not cancelled by a typo"
     },
     {
       "id": "PHASEGATE",
       "kind": "gate",
       "owner": "brain-review-gate",
-      "recall": false,
+      "recall": true,
       "terminal": false,
       "entry": false,
       "regime": "",
       "binds": [],
-      "doc": "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> REMEDIATE"
+      "doc": "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE, which is what makes the loop terminating. TWO SCOPES, and running only the first is the measured failure: the correctness and idiom lenses read the DIFF, and a STRUCTURE lens reads the WHOLE TREE - file length, folder fan-out, one datatype defined twice - because none of those is visible in a hunk. run `brain-shape.py <repo>` FIRST and hand its crossings to that lens as its input; P27 and P28 are adjectives without it. what makes this a rule rather than a preference is measured, once, on principle-27 under `## the measurement`: the architecture lens ran at every late phase of a build, on the diff, and passed a 7540-line file every time - not because nobody looked, but because what it was shown could not contain the defect. WHEN IT FIRES is `brain-shape.py --since <phase start>`: armed by the change budget, then held to the next phase boundary so a gate never lands mid-phase. under budget the phase ends at VERIFY and STYLE - a two-line formatter fix does not buy a cold multi-lens review. A DENIED DISPATCH IS A HOLE, NOT A PASS: a lens refused by the permission classifier did not run, so the gate did not measure what that lens was for. retry once; if it still will not go, emit `unmeasurable` and stop - `below_threshold` is the WRONG event for it, because a denial is not a finding and ADJUDICATE would rule the empty set all_invalid and advance"
     },
     {
       "id": "ADJUDICATE",
@@ -212,6 +212,17 @@
       "doc": "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (brain-trace.py --reject), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate"
     },
     {
+      "id": "SUBDESIGN",
+      "kind": "work",
+      "owner": "brain-meta-author-prompt+aav-semantic-architecture-reviewer",
+      "recall": true,
+      "terminal": false,
+      "entry": false,
+      "regime": "",
+      "binds": [],
+      "doc": "design ONE atomic part, then return. reached only when ADJUDICATE ruled that the finding is not a defect in the patch but a defect in the DESIGN - the tell is that every available fix makes the code worse, so the patch spaghettifies (P51). scope is the part, never the plan: the error model, the id scheme, the one seam the findings keep circling - name it, design it, write it to plans/ as an addendum so a cold reviewer reads it as errata rather than as drift, then hand REMEDIATE a shape to build to. DESTRUCTIVE AND DRASTIC PROPOSALS ARE SANCTIONED HERE and nowhere else in the impl loop: delete the layer, invert the ownership, collapse the two types into one. the size of the change is not an argument against it (P20); the only test is whether the result is more maintainable and more atomic. it is NOT a licence to re-plan the build - a subdesign that reaches for a second part is out of scope and emits ambiguous"
+    },
+    {
       "id": "REMEDIATE",
       "kind": "work",
       "owner": "brain-meta-author-prompt+worker",
@@ -220,7 +231,7 @@
       "entry": false,
       "regime": "",
       "binds": [],
-      "doc": "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase"
+      "doc": "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. a finding ADJUDICATE ruled a DESIGN fault does not arrive here as a patch - it goes to SUBDESIGN first and comes back as a shape to build to. patching around a bad design is what this state must not be used for (P20, P51)"
     },
     {
       "id": "VERIFY",
@@ -361,6 +372,13 @@
     },
     {
       "src": "ADJUDICATE",
+      "dst": "SUBDESIGN",
+      "on": "design_fault",
+      "guard": "build",
+      "boundary": false
+    },
+    {
+      "src": "ADJUDICATE",
       "dst": "REMEDIATE",
       "on": "valid_remain",
       "guard": "",
@@ -479,6 +497,13 @@
       "boundary": false
     },
     {
+      "src": "IMPL",
+      "dst": "VERIFY",
+      "on": "under_budget",
+      "guard": "build",
+      "boundary": false
+    },
+    {
       "src": "INTENT",
       "dst": "ASK",
       "on": "ambiguous",
@@ -503,6 +528,13 @@
       "src": "PHASEGATE",
       "dst": "VERIFY",
       "on": "threshold_met",
+      "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "PHASEGATE",
+      "dst": "BLOCKED",
+      "on": "unmeasurable",
       "guard": "",
       "boundary": false
     },
@@ -658,6 +690,20 @@
       "dst": "STYLE",
       "on": "unstyled",
       "guard": "",
+      "boundary": false
+    },
+    {
+      "src": "SUBDESIGN",
+      "dst": "BLOCKED",
+      "on": "ambiguous",
+      "guard": "build",
+      "boundary": false
+    },
+    {
+      "src": "SUBDESIGN",
+      "dst": "REMEDIATE",
+      "on": "designed",
+      "guard": "build",
       "boundary": false
     },
     {

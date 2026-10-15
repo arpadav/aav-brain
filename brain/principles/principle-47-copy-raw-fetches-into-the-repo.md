@@ -1,6 +1,7 @@
 ---
 name: principle-47-copy-raw-fetches-into-the-repo
 kind: principle
+tier: narrow
 rule: every page, api response or search result an agent fetches for data is copied into the repo's source corpus as it is fetched, and the row that cites it names that copy; a fetch that was not copied does not exist.
 interest: [intent-trust, intent-comprehension]
 confidence: high

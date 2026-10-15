@@ -1,6 +1,7 @@
 ---
 name: principle-18-skills-over-agents
 kind: principle
+tier: conditional
 rule: skills are the unit. a null agent + one loaded skill = a standalone agent. keep an agent only when cold cleared-context dispatch is the whole point.
 interest: [intent-craft, intent-efficiency]
 confidence: high

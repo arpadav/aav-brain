@@ -1,6 +1,7 @@
 ---
 name: principle-20-refactors-welcome
 kind: principle
+tier: conditional
 rule: large refactors are ALWAYS welcome when they make the structure or architecture more maintainable and atomic. dont avoid a big change just because its big.
 interest: [intent-craft]
 confidence: medium
@@ -31,4 +32,6 @@ serves was a large change that killed an entire drift class - exactly the kind o
 
 ## anti-pattern
 keeping a worse structure because "the refactor is too big". timidly patching around a design flaw
-instead of fixing the design.
+instead of fixing the design - which now has a diagnosis and a route out of the implementation loop
+([[principle-51-spaghetti-is-a-design-fault]]), so the disposition this card states is finally
+something the machine can act on.

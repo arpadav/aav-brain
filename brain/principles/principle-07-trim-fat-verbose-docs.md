@@ -1,6 +1,7 @@
 ---
 name: principle-07-trim-fat-verbose-docs
 kind: principle
+tier: conditional
 rule: Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough. This is the VERBOSITY knob - how MUCH to write; what a comment may SAY is a separate card.
 interest: [intent-craft]
 confidence: high

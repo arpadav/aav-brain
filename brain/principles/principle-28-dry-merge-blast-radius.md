@@ -1,6 +1,7 @@
 ---
 name: principle-28-dry-merge-blast-radius
 kind: principle
+tier: narrow
 rule: merge DRY-violating structs/files even when it touches many files and peripherals. do NOT be dissuaded by a large amount of work. keep things separate ONLY for a real reason beyond programming laziness; otherwise ALWAYS change it.
 interest: [intent-craft]
 confidence: very-high
@@ -38,6 +39,14 @@ the DRY trio, kept distinct: [[principle-05-reuse-first]] is reuse BEFORE you wr
 fresh copy of something that exists); P28 is REMEDIATING duplication already in the tree (merge it
 despite the blast radius); [[principle-31-libraryfy-shared]] is the standing PATTERN that 2+ uses of
 a datatype/helper live in one shared library. pre-write vs remediate vs standing-rule.
+
+## how it is found
+`brain-shape.py <repo>` reports every nominal type declared in two or more files, which is the
+mechanical half of this card. it is a FINDING list, never a merge order - a `Config` in two
+unrelated crates is not a violation, and the judgement of which duplicates are real stays yours
+([[principle-19-think-in-code-ops]], [[principle-27-organization-reorg]]). the important property
+is that it reads the WHOLE TREE: duplication is invisible in a diff by construction, because the
+second definition is in a file the diff never touches.
 
 ## anti-pattern
 leaving two identical-purpose structs because unifying them touches many files. inventing a fake

@@ -1,6 +1,7 @@
 ---
 name: principle-46-stay-in-the-working-folder
 kind: principle
+tier: narrow
 rule: work inside the folder he pointed at; never roam his file system for prior art or context; toolchain caches (~/.cargo registry, node_modules, cached .so files) are fine to read; anything else outside the folder is a question first.
 interest: [intent-sovereignty, intent-trust]
 confidence: very-high

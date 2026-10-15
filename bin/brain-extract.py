@@ -861,6 +861,11 @@ def main() -> None:
     print(f"  scanned: {len(corpus.prompts)} turns | " + " ".join(f"{k}:{v}" for k, v in buckets.most_common()))
     for name, count in sorted(counts.items()):
         print(f"  {name:<22} +{count.added:<5} -> {count.total}")
+    # a second machine appending to the same corpus is the normal case, and a
+    # line-based merge over a set conflicts where no conflict exists
+    for warning in sorted({Ledger(out / name).unprotected() for name in counts}):
+        if warning:
+            print(f"  warn: {warning}")
 
 
 if __name__ == "__main__":

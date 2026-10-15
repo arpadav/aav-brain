@@ -1,6 +1,7 @@
 ---
 name: principle-38-a-non-answer-is-not-consent
 kind: principle
+tier: narrow
 rule: a question he declined to answer is UNANSWERED, never assent. when he skips an option, annotates without selecting, or answers a different part of the question, the brain does not resolve it by its own preference - it re-asks narrower, or takes the option his own words already imply.
 interest: [intent-control]
 confidence: very-high

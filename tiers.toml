@@ -1,0 +1,118 @@
+# the tier policy: which cards load on every recall, which are scored, and which
+# clear a lower bar. authored data, like flow.toml, prune.toml and shape.toml -
+# brain-cards.py checks the cards against it, and no tier is decided by taste.
+#
+# this file exists because the first version of the tier work did not have it.
+# 51 frontmatter values were set from a measurement whose rule, thresholds and
+# input tables lived only in a scratch directory, so the assignments were
+# reproducible that afternoon and unreproducible as a property of the repo. a
+# number the repo depends on belongs in the repo, with what produced it.
+
+[rule]
+# the whole assignment, as three lines. it reproduces all 51 values below.
+#   breadth >= constitution_breadth                  -> constitution
+#   breadth <= narrow_breadth AND served < narrow_served -> narrow
+#   otherwise                                        -> conditional
+constitution_breadth = 0.20
+narrow_breadth = 0.02
+narrow_served = 0.05
+
+[measurement]
+# BREADTH: the share of a 50-prompt labelled sample where the card was judged
+# relevant (>= 5 on a ten-criterion weighted rubric, scored by one agent per
+# card, each judging its card in isolation). the prompts were drawn from the
+# real corpus and stratified by size of ask, not by vocabulary.
+#
+# SERVED: the share of 1374 real prompts where the card reached the top 8 under
+# the scorer AS IT WAS BEFORE this work - the degree-normalised spread, the
+# constitution tier and the share-based floor all postdate it. it is a record of
+# the problem, not of current behaviour, and re-measuring it against today's
+# recall would compare the fix to itself.
+#
+# the two DISAGREEING is the point. principle-11 was judged relevant on 28% of
+# the sample and served on 1% of real recalls; that gap is what a constitution
+# tier is for. where they agree, the scorer was already doing its job.
+sample_prompts = 50
+corpus_prompts = 1374
+rubric_relevant_at = 5.0
+measured_on = "2026-09-05"
+
+# CAVEATS, because a number without them is a claim rather than a measurement:
+# - the rubric agents marked 5.4 cards as GOVERNING each prompt on average, and
+#   only one rule can decide an action, so breadth is inflated at the top end.
+# - `narrow` is defined by LOW measured breadth, not by measured precision. ten
+#   of the fourteen were judged relevant on one prompt of fifty and four on
+#   none. the lower floor is a bet that a rare card is specific rather than
+#   dead, and it is a bet, not a finding.
+# - a 50-prompt sample resolves breadth to 2% steps. a card at 0.20 and one at
+#   0.18 are one prompt apart, and the constitution boundary sits there.
+# - re-derive after the corpus grows materially. do not hand-edit a tier here or
+#   in a card without re-running the measurement; brain-cards.py compares the
+#   two and will report the drift either way.
+
+[cards]
+"principle-24-socratic-mode" = { tier = "constitution", breadth = 0.44, served = 0.224 }
+"principle-04-anti-fabrication" = { tier = "constitution", breadth = 0.42, served = 0.459 }
+"principle-11-comprehension-ownership" = { tier = "constitution", breadth = 0.28, served = 0.008 }
+"principle-08-read-source-and-error" = { tier = "constitution", breadth = 0.26, served = 0.022 }
+"principle-44-build-from-nothing-to-something" = { tier = "constitution", breadth = 0.22, served = 0.049 }
+"principle-29-interrogate-the-work" = { tier = "conditional", breadth = 0.16, served = 0.080 }
+"principle-43-report-state-not-changelog" = { tier = "conditional", breadth = 0.16, served = 0.049 }
+"principle-45-scope-is-the-ask" = { tier = "conditional", breadth = 0.16, served = 0.020 }
+"principle-10-autonomy-after-sanction" = { tier = "conditional", breadth = 0.14, served = 0.078 }
+"principle-12-context-hygiene" = { tier = "conditional", breadth = 0.14, served = 0.003 }
+"principle-14-minimal-surface" = { tier = "conditional", breadth = 0.14, served = 0.029 }
+"principle-01-no-assumptions" = { tier = "conditional", breadth = 0.12, served = 0.837 }
+"principle-13-performance-obsession" = { tier = "conditional", breadth = 0.12, served = 0.006 }
+"principle-21-sequencing" = { tier = "conditional", breadth = 0.12, served = 0.002 }
+"principle-23-standing-decisions" = { tier = "conditional", breadth = 0.12, served = 0.117 }
+"principle-36-verify-with-stderr-visible" = { tier = "conditional", breadth = 0.10, served = 0.001 }
+"principle-02-plan-before-build" = { tier = "conditional", breadth = 0.08, served = 0.020 }
+"principle-03-review-gate" = { tier = "conditional", breadth = 0.08, served = 0.293 }
+"principle-05-reuse-first" = { tier = "conditional", breadth = 0.08, served = 0.456 }
+"principle-06-idiomatic-per-language" = { tier = "conditional", breadth = 0.08, served = 0.201 }
+"principle-15-tone-is-signal" = { tier = "conditional", breadth = 0.08, served = 0.036 }
+"principle-39-style-contract" = { tier = "conditional", breadth = 0.08, served = 0.012 }
+"principle-42-plain-english-questions" = { tier = "conditional", breadth = 0.08, served = 0.705 }
+"principle-48-look-at-the-rendered-output" = { tier = "conditional", breadth = 0.08, served = 0.194 }
+"principle-26-struct-based" = { tier = "conditional", breadth = 0.06, served = 0.013 }
+"principle-31-libraryfy-shared" = { tier = "conditional", breadth = 0.06, served = 0.023 }
+"principle-40-idiom-needs-exemplars" = { tier = "conditional", breadth = 0.06, served = 0.104 }
+"principle-07-trim-fat-verbose-docs" = { tier = "conditional", breadth = 0.04, served = 0.038 }
+"principle-16-my-stack-my-voice" = { tier = "conditional", breadth = 0.04, served = 0.010 }
+"principle-18-skills-over-agents" = { tier = "conditional", breadth = 0.04, served = 0.022 }
+"principle-20-refactors-welcome" = { tier = "conditional", breadth = 0.04, served = 0.036 }
+"principle-33-git-is-not-a-blocker" = { tier = "conditional", breadth = 0.04, served = 0.027 }
+"principle-51-spaghetti-is-a-design-fault" = { tier = "conditional", breadth = 0.04, served = 0.009 }
+"principle-09-git-sovereignty" = { tier = "conditional", breadth = 0.02, served = 0.078 }
+"principle-17-agent-general" = { tier = "narrow", breadth = 0.02, served = 0.008 }
+"principle-27-organization-reorg" = { tier = "narrow", breadth = 0.02, served = 0.046 }
+"principle-28-dry-merge-blast-radius" = { tier = "narrow", breadth = 0.02, served = 0.036 }
+"principle-32-portability" = { tier = "narrow", breadth = 0.02, served = 0.005 }
+"principle-34-untrusted-input" = { tier = "narrow", breadth = 0.02, served = 0.000 }
+"principle-35-gates-are-agent-side" = { tier = "narrow", breadth = 0.02, served = 0.004 }
+"principle-38-a-non-answer-is-not-consent" = { tier = "narrow", breadth = 0.02, served = 0.005 }
+"principle-46-stay-in-the-working-folder" = { tier = "narrow", breadth = 0.02, served = 0.007 }
+"principle-47-copy-raw-fetches-into-the-repo" = { tier = "narrow", breadth = 0.02, served = 0.009 }
+"principle-50-the-standing-mission" = { tier = "narrow", breadth = 0.02, served = 0.008 }
+"principle-19-think-in-code-ops" = { tier = "narrow", breadth = 0.00, served = 0.010 }
+"principle-22-naming-conventions" = { tier = "narrow", breadth = 0.00, served = 0.041 }
+"principle-25-deploy-infra" = { tier = "narrow", breadth = 0.00, served = 0.004 }
+"principle-30-deterministic-flow" = { tier = "narrow", breadth = 0.00, served = 0.011 }
+"principle-37-comment-the-artifact-not-the-edit" = { tier = "conditional", breadth = 0.00, served = 0.096 }
+"principle-41-rigor-scales-with-purpose" = { tier = "conditional", breadth = 0.00, served = 0.051 }
+"principle-49-his-interactive-app-shape" = { tier = "conditional", breadth = 0.00, served = 0.188 }
+
+# AUTHORED AFTER `measured_on`, AND NOT MEASURED. these three carry no breadth or
+# served figure because the 50-prompt sample predates them, and inventing one
+# would make this file a claim rather than a record. `conditional` is the
+# rule's own default - neither the constitution nor the narrow bar can be
+# cleared by a card with no measurement - and it is provisional until the next
+# re-derivation reads them with everything else.
+"principle-52-parallel-dispatch" = { tier = "conditional", measured = false }
+"principle-53-rigor-scales-with-the-change" = { tier = "conditional", measured = false }
+"principle-54-a-count-is-a-measurement" = { tier = "conditional", measured = false }
+"principle-55-the-run-is-visible" = { tier = "conditional", measured = false }
+"principle-56-close-out-housekeeping" = { tier = "conditional", measured = false }
+"principle-57-user-docs-are-an-icd" = { tier = "conditional", measured = false }
+"principle-58-a-correction-is-a-class" = { tier = "conditional", measured = false }

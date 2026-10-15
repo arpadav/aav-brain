@@ -1,6 +1,7 @@
 ---
 name: principle-30-deterministic-flow
 kind: principle
+tier: narrow
 rule: when executing, deterministically follow the execution flow (brain/flow/flow.json). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.
 interest: [intent-control, intent-efficiency]
 confidence: very-high

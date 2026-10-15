@@ -32,6 +32,7 @@ from brainlib import (
     Layout,
     Node,
     Rel,
+    Tier,
     kind_rank,
     parse_frontmatter,
     read_text,
@@ -52,9 +53,17 @@ from pathlib import Path
 TOOL = Path(__file__).stem
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
-# the card directories scanned into nodes, with their node kind. voice
+# the ONE card directory scanned into nodes. brain/intents/ is deliberately
+# absent: an intent is the WHY of its principles and never fires independently,
+# so as a peer node it could only ever co-occur with them. measured on a
+# labelled prompt set, intent-comprehension and P11 were relevant on 86% of the
+# same prompts while sharing 12% of their vocabulary - two nodes, one rule. five
+# of the seven highest-overlap card pairs in the store paired an intent with a
+# principle. the intent files remain on disk as prose a human reads and as valid
+# [[link]] targets; they are simply not retrievable, and each principle's
+# `interest:` field carries the association without a node to hang it on. voice
 # docs are retrieved by name, not graph traversal, so they are not nodes
-CARD_DIRS = [(LAYOUT.principles, Kind.PRINCIPLE), (LAYOUT.intents, Kind.INTEREST)]
+CARD_DIRS = [(LAYOUT.principles, Kind.PRINCIPLE)]
 
 def scalar(front: Frontmatter, key: str, default: str = "") -> str:
     """one frontmatter field as a string.
@@ -156,6 +165,7 @@ class GraphBuilder(Artifact):
                     interest=listed(front, "interest"),
                     confidence=scalar(front, "confidence"),
                     binds=listed(front, "binds"),
+                    tier=scalar(front, "tier") or Tier.CONDITIONAL,
                     tells=listed(front, "tells"),
                     tension=listed(front, "tension"),
                     body_links=sorted(set(re.findall(r"\[\[(principle-[a-z0-9-]+)\]\]", text))),
@@ -163,27 +173,6 @@ class GraphBuilder(Artifact):
                 )
                 self.nodes[node_id] = node
         return self
-
-    def serves_edges(self) -> tuple[set[Edge], list[str]]:
-        """the serves edges and their inverse served_by, one pair per interest.
-
-        served_by is the inverse of serves, so each principle declares its
-        interests once and the reverse direction is derived - no drift
-
-        # Returns
-        an (edges, warnings) tuple; a warning names an interest with no card
-        """
-        edges: set[Edge] = set()
-        warnings: list[str] = []
-        for node in self.nodes.values():
-            if node.kind != Kind.PRINCIPLE:
-                continue
-            for interest in node.interest:
-                edges.add(Edge(Rel.SERVES, node.id, interest))
-                edges.add(Edge(Rel.SERVED_BY, interest, node.id))
-                if interest not in self.nodes:
-                    warnings.append(f"{node.id} serves unknown interest {interest}")
-        return edges, warnings
 
     def relates_edges(self) -> tuple[set[Edge], list[str]]:
         """the relates edges, one per [[link]] in a principle's body.
@@ -199,9 +188,13 @@ class GraphBuilder(Artifact):
             for other in node.body_links:
                 if other == node.id:
                     continue
-                edges.add(Edge(Rel.RELATES, node.id, other))
                 if other not in self.nodes:
+                    # warn INSTEAD of emitting: an edge whose destination does
+                    # not exist is not an edge, and every reader downstream then
+                    # has to guard a key that should never have been written
                     warnings.append(f"{node.id} relates to unknown card {other}")
+                    continue
+                edges.add(Edge(Rel.RELATES, node.id, other))
         return edges, warnings
 
     def tension_edges(self) -> tuple[set[Edge], list[str]]:
@@ -214,10 +207,16 @@ class GraphBuilder(Artifact):
         warnings: list[str] = []
         for node in self.nodes.values():
             for other in node.tension:
-                edges.add(Edge(Rel.TENSION, node.id, other))
-                edges.add(Edge(Rel.TENSION, other, node.id))
+                if other == node.id:
+                    # a self-tension marks the node touched, which would hide it
+                    # from the orphan sweep while meaning nothing
+                    warnings.append(f"{node.id} tensions with itself")
+                    continue
                 if other not in self.nodes:
                     warnings.append(f"{node.id} tensions with unknown card {other}")
+                    continue
+                edges.add(Edge(Rel.TENSION, node.id, other))
+                edges.add(Edge(Rel.TENSION, other, node.id))
         return edges, warnings
 
     def orphan_warnings(self, edges: set[Edge]) -> list[str]:
@@ -243,7 +242,7 @@ class GraphBuilder(Artifact):
         # --------------------------------------------------
         # each relationship kind is derived by its own pass
         # --------------------------------------------------
-        for derive in (self.serves_edges, self.relates_edges, self.tension_edges):
+        for derive in (self.relates_edges, self.tension_edges):
             found, complaints = derive()
             edges |= found
             warnings.extend(complaints)

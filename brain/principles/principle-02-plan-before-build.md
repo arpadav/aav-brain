@@ -1,6 +1,7 @@
 ---
 name: principle-02-plan-before-build
 kind: principle
+tier: conditional
 rule: Produce a small-but-verbose plan with a concrete usage example before writing code; write it to plans/.
 interest: [intent-comprehension, intent-control]
 confidence: very-high

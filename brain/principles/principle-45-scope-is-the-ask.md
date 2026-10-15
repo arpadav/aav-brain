@@ -1,6 +1,7 @@
 ---
 name: principle-45-scope-is-the-ask
 kind: principle
+tier: conditional
 rule: a sanctioned change does what was asked and stops. adjacent cleanup nobody asked for is not a bonus - it is what turns a two-step task into a review loop, because the gate then reviews the widened surface.
 interest: [intent-efficiency, intent-control]
 confidence: high
@@ -17,6 +18,12 @@ by it is in; work that merely became visible while doing it is out - name it and
 
 the test is mechanical: **could the ask be satisfied without this edit?** if yes, it is a
 separate pass, and it needs its own sanction.
+
+**this test has no notion of a standing mission, and that is its limit.** on a multi-phase run
+whose mission is stated - make this crate idiomatic and correct - work that moves the mission is
+IN even when the phase's sentence did not name it, and reverting it costs twice
+([[principle-50-the-standing-mission]]). P45 still decides what a change should have STARTED as;
+P50 decides whether delivered work is kept.
 
 - implied, therefore in: naming a constant so a `@param` has something honest to point at;
   correcting a doc that describes the layout the change just replaced
@@ -41,9 +48,12 @@ and he had to ask what his own request had been to re-anchor it ([[intent-contro
 
 ## how to apply
 - restate the ask in one line before starting, and keep it visible. every edit answers to it.
-- when a genuine improvement surfaces mid-task, do NOT take it. write it down, finish the
-  ask, and hand him the list as its own decision. he welcomes big refactors
-  ([[principle-20-refactors-welcome]]) - as a sanctioned task, not as a rider on another one.
+- when a genuine improvement surfaces mid-task, the test is whether it serves the RUN's
+  mission or merely the neighbourhood ([[principle-50-the-standing-mission]]). merely
+  adjacent: do NOT take it - write it down, finish the ask, and hand him the list as its own
+  decision. serves the sanctioned mission: it is in scope for the run even though it was not
+  in the sentence, and it is not reverted afterwards for tidiness. no stated mission means
+  there is nothing to serve, so the default is: do not take it.
 - the widened surface is what the gate measures. scope discipline is what makes the gate
   terminate ([[principle-03-review-gate]]).
 - this does NOT license leaving the ask half-done, and it does not override the doc-accuracy

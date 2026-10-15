@@ -12,9 +12,21 @@ the letter. Load it from
 
 ## The protocol
 
-1. **Scope the diff.** Identify the exact range to review - usually the git diff between the
-   previous phase and now (`git diff <prevphase>..HEAD` or the working tree). Use context-mode /
-   think-in-code to gather it without flooding context.
+1. **Scope BOTH scopes. There are two, and running only the first is the measured failure.**
+   - **The diff**, for correctness and idiom: the git range between the previous phase and now
+     (`git diff <prevphase>..HEAD` or the working tree). Use context-mode / think-in-code to gather
+     it without flooding context.
+   - **The whole tree**, for structure and duplication. Run `python3 $AAV_BRAIN/bin/brain-shape.py
+     <repo>` and treat its output as a first-class input: every file past the line limit, every
+     folder past the fan-out limit, every type name declared in more than one file. **None of these
+     is visible in a diff.** A phase that adds 800 lines to a 6700-line file produces a hunk that
+     reads perfectly fine, and a duplicated datatype lives in a file the change never opened.
+
+   This is measured, once, in `$AAV_BRAIN/brain/principles/principle-27-organization-reorg.md`
+   under `## the measurement` - read it rather than taking a number from me. The short of it: 95%
+   of review dispatches on that build were scoped to a diff, the architecture lens ran at every late
+   phase and passed a 7540-line file every time, and P27 itself was in context throughout. **A card
+   that is loaded and never measured against is a card that did not fire.**
 
 2. **Dispatch reviewers COLD and UNGUIDED — but never CONTRACT-BLIND.** Send each reviewer the diff
    with a neutral prompt: *"check this diff and surface as many issues as you can, from the biggest
@@ -34,6 +46,23 @@ the letter. Load it from
    ALL ... JUST what you think is necessary. however, dont skimp out because youre lazy, it must be
    thorough." Run them independently/in parallel. Use generic worker/reviewer agents and your own
    lenses - you are self-contained.
+
+   **One lens is not optional: the REPO-SCOPED structure lens**, carrying `brain-shape.py`'s
+   crossings as its input. Every other lens is chosen by what the change touched; this one is chosen
+   by the fact that a build has a tree. Dispatch `aav-semantic-architecture-reviewer` (and the
+   language's organization lens where one exists) with the whole-repo scope stated explicitly, since
+   a lens dispatched without a stated scope falls back to what its own definition says, and only
+   the structure lenses carry the repo-scoped exception.
+
+   **A DENIED OR FAILED DISPATCH IS A HOLE, NOT A PASS.** If a lens you chose was refused by the
+   permission classifier, errored, or returned nothing, that lens **did not run** and the gate did
+   not measure what it was for. Retry it — retries do succeed. If it still will not go, name the
+   missing lens in your report and emit **`unmeasurable`**, which routes to BLOCKED. Do NOT emit
+   `below_threshold` for it: a denial is not a finding, so ADJUDICATE would rule the empty set
+   `all_invalid` and advance the phase on a measurement nobody took. And do NOT quietly converge on
+   the lenses that happened to return. About 29% of dispatches in a long session are refused (55 of
+   187 on the build measured in P27's `## the measurement`, between 14% and 50% by agent), so this
+   is the normal case, not an exception.
 
 4. **BARRIER, then converge, then adjudicate.**
    - **Barrier.** Every dispatched reviewer must RETURN before you converge or route anything. A

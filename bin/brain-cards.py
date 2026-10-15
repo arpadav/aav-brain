@@ -21,13 +21,14 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Confidence, Exit, Flag, Frontmatter, Kind, Layout, parse_frontmatter, read_text
+from brainlib import Args, Confidence, Exit, Flag, Frontmatter, Kind, Layout, Tier, parse_frontmatter, read_text
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import re
 import sys
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -77,9 +78,76 @@ class CardLinter:
         confidence = front.get("confidence", "")
         if confidence and confidence not in tuple(Confidence):
             out.append(f"{name}: confidence '{confidence}' is not one of {[c.value for c in Confidence]}")
+        tier = front.get("tier", "")
+        if not tier:
+            out.append(f"{name}: no tier - it decides whether the card ever reaches an agent, and "
+                       f"an absent one silently defaults to {Tier.CONDITIONAL.value}")
+        elif tier not in tuple(Tier):
+            out.append(f"{name}: tier '{tier}' is not one of {[t.value for t in Tier]}")
         count = front.get("evidence_count", "")
         if isinstance(count, str) and count and not count.lstrip("-").isdigit():
             out.append(f"{name}: evidence_count '{count}' is not an integer")
+        return out
+
+    def tier_drift(self, cards: dict[str, Frontmatter]) -> list[str]:
+        """every card whose tier disagrees with the authored measurement.
+
+        the frontmatter is what recall reads and tiers.toml is what produced it.
+        checking them against each other is what stops a tier being hand-promoted
+        - the failure the policy file was written to prevent
+
+        # Arguments
+
+        * `cards` - each principle's frontmatter, keyed by card name
+
+        # Returns
+
+        one message per disagreement, and one per card the policy never measured
+        """
+        path = self.layout.tiers_toml
+        if not path.is_file():
+            return [f"no {path.name} - the tier of every card is then unexplained"]
+        try:
+            policy = tomllib.loads(read_text(path))
+        except (tomllib.TOMLDecodeError, OSError) as broken:
+            return [f"{path.name} unreadable ({broken})"]
+        measured = policy.get("cards", {})
+        out: list[str] = []
+        for name, front in sorted(cards.items()):
+            if front.get("kind") != Kind.PRINCIPLE:
+                continue
+            row = measured.get(name)
+            if row is None:
+                out.append(f"{name}: not in {path.name} - its tier rests on nothing recorded")
+            elif row.get("tier") != front.get("tier"):
+                out.append(f"{name}: tier '{front.get('tier')}' but {path.name} measured "
+                           f"'{row.get('tier')}' - re-derive, do not hand-edit either side")
+        out.extend(f"{path.name} measures {name}, which is not a card"
+                   for name in sorted(set(measured) - set(cards)))
+        return out
+
+    def interest_errors(self, cards: dict[str, Frontmatter]) -> list[str]:
+        """every `interest:` naming a document that does not exist.
+
+        this used to be caught by the graph, as a side effect of building a
+        serves edge to an interest node. intents are no longer nodes, so nothing
+        checked the field at all and a typo passed every tool
+
+        # Arguments
+
+        * `cards` - each card's frontmatter, keyed by card name
+
+        # Returns
+
+        one message per unresolvable interest name
+        """
+        known = {path.stem for path in self.layout.intents.glob("*.md")}
+        out: list[str] = []
+        for name, front in sorted(cards.items()):
+            raw = front.get("interest", [])
+            named = raw if isinstance(raw, list) else [raw]
+            out.extend(f"{name}: interest '{one}' has no document in {self.layout.intents.name}/"
+                       for one in named if one and one not in known)
         return out
 
     def run(self) -> "CardLinter":
@@ -101,6 +169,9 @@ class CardLinter:
                 cards[name] = (front, text, directory)
                 self.errors.extend(self.schema_errors(name, front))
         names = set(cards)
+        fronts = {n: f for n, (f, _t, _d) in cards.items()}
+        self.errors.extend(self.tier_drift(fronts))
+        self.errors.extend(self.interest_errors(fronts))
         # --------------------------------------------------
         # dangling links + index membership (errors)
         # --------------------------------------------------

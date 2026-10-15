@@ -1,0 +1,70 @@
+# ZERO-TO-ONE tasks: build a small thing from an empty directory.
+#
+# what this category is really testing: defaults. with nothing to imitate, the
+# agent falls back on whatever it believes good code looks like - which is
+# exactly where a context layer should show up. the artifacts are deliberately
+# small enough that any model produces working code; the difference is shape.
+
+category = "zero-to-one"
+rubric_groups = ["process", "code"]
+
+[[task]]
+id = "zto-01-rust-newtype"
+title = "a money type in rust"
+prompt = """build a small rust crate `money` with a type for an amount of money
+in a single currency. it needs addition, subtraction, multiplication by a whole
+number of units, and a display form. cents must never be lost to floating point."""
+fixture = {}
+[task.extra]
+integer_backed = { weight = 4, met = "the amount is backed by an integer of fixed scale, not f64" }
+newtype_not_primitive = { weight = 3, met = "it is a newtype or struct with a private field, not a bare type alias over i64" }
+ops_are_total = { weight = 3, met = "arithmetic that can overflow returns a Result or uses checked/saturating arithmetic rather than panicking" }
+tests_exist_and_run = { weight = 2, met = "there are unit tests and it ran them" }
+
+[[task]]
+id = "zto-02-python-cli"
+title = "a python cli that summarises a csv"
+prompt = """build a small python cli that reads a csv of `date,category,amount`
+and prints the total per category, sorted by total descending."""
+fixture = {}
+[task.extra]
+uses_uv = { weight = 3, met = "any environment or dependency work uses uv. UNMET on bare pip, python -m venv, or --break-system-packages" }
+stdlib_only_or_justified = { weight = 2, met = "it used the stdlib csv module, or named a reason for a dependency" }
+handles_bad_rows = { weight = 3, met = "a malformed row produces a legible error naming the row, not a traceback or a silent skip" }
+no_speculative_flags = { weight = 2, met = "it built the cli asked for - no --format json, no --output, no config file nobody requested" }
+
+[[task]]
+id = "zto-03-schedule-primitive"
+title = "a recurring-date primitive"
+prompt = """build a type that answers: given a schedule like 'the 15th of every
+month' or 'every other friday', what are the next N occurrences after a given
+date? language is your call. weekends and holidays are out of scope."""
+fixture = {}
+[task.extra]
+enum_over_stringly = { weight = 4, met = "the schedule kind is a closed type - an enum or sealed set - not a parsed string or a bag of optional fields" }
+month_end_handled = { weight = 3, met = "'the 31st of every month' has a defined, stated behaviour in february rather than crashing or silently sliding" }
+pure_and_testable = { weight = 2, met = "the occurrence calculation takes the reference date as an argument rather than reading the clock" }
+
+[[task]]
+id = "zto-04-error-model"
+title = "an error model for a small parser"
+prompt = """build the error type for a config parser that can fail at three
+layers: io (the file), syntax (the text), and validation (a value that parses
+but is out of range). a caller must be able to tell them apart and print
+something useful. the parser itself can be a stub."""
+fixture = {}
+[task.extra]
+three_layers_distinct = { weight = 4, met = "the three failure classes are separately matchable by a caller, not flattened into one message string" }
+carries_location = { weight = 3, met = "a syntax or validation failure carries where it happened" }
+no_stringly_errors = { weight = 3, met = "errors are types, not strings; in rust thiserror or an enum, in python an exception hierarchy" }
+
+[[task]]
+id = "zto-05-tiny-service"
+title = "a health endpoint"
+prompt = """build the smallest thing that serves GET /health returning the
+process uptime and a version string. pick the stack. it must run."""
+fixture = {}
+[task.extra]
+it_runs = { weight = 4, met = "it started the thing and showed a real response, rather than asserting it would work" }
+binds_correctly = { weight = 2, met = "if it binds a host it uses 0.0.0.0, not localhost" }
+no_framework_bloat = { weight = 3, met = "the dependency count is proportionate to one endpoint" }

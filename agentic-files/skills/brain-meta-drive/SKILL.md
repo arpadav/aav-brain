@@ -98,7 +98,7 @@ only at gates, and only what he cant see himself: verdicts, blockers, the single
 recaps. lowercase, terse, ends on the next action.
 
 ## the review barrier - a review's input tree is FROZEN
-a review is a measurement, and a measurement of a moving target is noise. two rules, both hard:
+a review is a measurement, and a measurement of a moving target is noise. three rules, all hard:
 
 1. **while ANY review agent is live, dispatch nothing that mutates the tree** - no worker, no edit, no
    `Write`/`Edit` by you. not "mostly nothing": nothing. a writer dispatched 29s after a background
@@ -113,6 +113,16 @@ the same exclusion covers writers: **no two mutating agents on an overlapping fi
 them, or give each `isolation: "worktree"`. two implementers on one crate 33s apart once forced the
 second to verify itself against a hand-built mirror, because the crate did not compile mid-flight.
 
+3. **N dispatched, M DENIED => the gate ran with M holes.** a dispatch refused by the permission
+   classifier, errored, or returned empty is a lens that DID NOT RUN, and converging on the
+   remainder reports a measurement nobody took. retry it - retries do succeed. if it still will not
+   go, name the missing lens and emit **`unmeasurable`**, which routes to BLOCKED; never
+   `below_threshold`, because a denial is not a finding and ADJUDICATE rules the empty set
+   `all_invalid` and advances. never let the barrier close on a set smaller than the one you chose.
+   about 29% of dispatches in a long session are refused (55 of 187 on the build measured under
+   [[principle-27-organization-reorg]]'s `## the measurement`, 14%-50% depending on the agent), so a
+   denial is the NORMAL case and absorbing one is not an edge case, it is the failure mode.
+
 if this costs wall-clock, it costs wall-clock. a fast wrong answer is what this engine exists to
 prevent (P04).
 
@@ -123,8 +133,19 @@ finding against the artifact's stated contract before any of it becomes work:
 | verdict | meaning | action |
 |---|---|---|
 | valid | a real defect | -> REMEDIATE |
+| design fault | real, and every available fix makes the code WORSE | -> SUBDESIGN |
 | invalid | the finding contradicts the artifact's contract | REJECT + log the reason |
 | deferred | real, but a later phase delivers it | REJECT for this phase + log |
+
+**the design-fault verdict is the one the loop used to lack**, and REMEDIATE's own doc still says it
+"does NOT leave the impl phase" - SUBDESIGN is the single exception, reached from here and nowhere
+else. the tells are mechanical, not a feeling: every fix you can name adds a branch/flag/parameter
+and none removes one; the same seam produces a different finding every round; the fix needs to know
+about something it should not. one of those, and you design that ONE atomic part - the error model,
+the id scheme, the one seam - write it to plans/ as an addendum, and come back. destructive and
+drastic proposals are sanctioned there and the size of the change is not an argument against them
+(P20, P51). without one of those tells you have a list of fixes, not a design fault - and calling
+every finding a design fault turns a bounded remediation into an unbounded redesign.
 
 the two classes that MUST be rejected, because "fixing" them cannot terminate:
 - **deliberate incompleteness.** a tutorial whose deliverable IS `todo!()`, a lab that ships red on

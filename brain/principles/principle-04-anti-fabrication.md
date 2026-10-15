@@ -1,6 +1,7 @@
 ---
 name: principle-04-anti-fabrication
 kind: principle
+tier: constitution
 rule: Never fabricate. No fake benchmarks, no invented issues, no fluff. Report reality even when unflattering.
 interest: [intent-trust]
 confidence: very-high

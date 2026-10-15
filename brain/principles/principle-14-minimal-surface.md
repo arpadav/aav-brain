@@ -1,6 +1,7 @@
 ---
 name: principle-14-minimal-surface
 kind: principle
+tier: conditional
 rule: Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical.
 interest: [intent-craft]
 confidence: high

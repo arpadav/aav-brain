@@ -1,6 +1,7 @@
 ---
 name: principle-17-agent-general
 kind: principle
+tier: narrow
 rule: this is a general agent brain. it reasons over agent transcripts (codex + claude + whatever), not coupled to one tool. dont brand the core as claude-specific.
 interest: [intent-craft]
 confidence: high

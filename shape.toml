@@ -1,0 +1,95 @@
+# the shape policy: the NUMBERS behind P27 and P28, and the budget that arms a
+# phase gate. authored data, like flow.toml and prune.toml - brainlib reads it,
+# no tool hardcodes a number.
+#
+# these exist because "a file that is too long" is an ADJECTIVE, and a worker
+# resolves an adjective against its own priors (P40). the measurement that
+# forced them is stated once, on the card itself:
+# brain/principles/principle-27-organization-reorg.md, under `## the measurement`.
+# it is not restated here, and it is not restated in the tool - one anecdote
+# retold in nine places drifts in nine directions.
+#
+# a crossing is a FINDING, not a verdict. it says a human or a reviewer should
+# look, the same way prune.toml's window says an entry is old enough to read.
+# a 2400-line file that is one coherent table of sourced constants is fine, and
+# nothing here may split it.
+
+[tree]
+# past this, a source file is a candidate for flat->tree (P27). the card's own
+# prose has named 2000 since it was written; it had simply never been measured.
+file_lines = 2000
+
+# a folder holding more than this many direct source files is a candidate for
+# the same split in the other axis - the "folder has too many flat files" half
+# of P27, which had never had a number at all.
+folder_files = 12
+
+# the OTHER direction, which P27 insists on and nothing had ever reported: a
+# folder at or under both of these is a candidate for tree->flat, because
+# structure for its own sake is debt (P14). deliberately conservative - a
+# two-file 120-line folder is a real smell, a three-file one usually is not.
+collapse_files = 2
+collapse_lines = 120
+
+# folders whose fan-out is the DELIBERATE form, exempt from folder_files. a
+# zettelkasten is one file per card on purpose and its INDEX is maintained; a
+# threshold that reports it is measuring the convention, not a defect. keep this
+# list short - it is the one place a real crossing can be silenced, and every
+# entry needs a reason that is about the FORM, never about the work of fixing it.
+exempt = ["/brain/principles/", "/brain/intents/"]
+
+# a TYPE name (struct/enum/trait/class/interface/union/record) declared in this
+# many files or more is a DRY candidate (P28, P31). two is the real threshold: a
+# datatype defined twice is the exact thing P31 forbids. it is reported, never
+# auto-merged - a `Config` in two unrelated crates is not a violation, and a
+# per-module `Error` enum is idiomatic rust, not duplication.
+duplicate_type_files = 2
+
+[budget]
+# the phase gate is ARMED when a phase's accumulated change crosses either of
+# these. under both, the phase still ends with VERIFY and STYLE - it just does
+# not buy a cold multi-lens review.
+#
+# this is the milestone half of the gate: PHASEGATE used to fire once per phase
+# whether the phase was thousands of new lines or two lines of formatter
+# appeasement, so the same machinery reviewed both. arming decouples the cold
+# review from the phase COUNT and attaches it to the phase SIZE.
+#
+# lines are counted as CHURN (added + removed) over source files only, with
+# untracked new files included: a phase that deletes 5000 lines changed a great
+# deal, and a regenerated graph changed nothing worth reviewing.
+#
+# prose does NOT count toward these two - see `prose` under [scan]. everything
+# else in this file measures a markdown file exactly like a rust one; arming is
+# the one place that would be wrong.
+changed_files = 4
+changed_lines = 400
+
+[scan]
+# the suffixes measured. a file whose suffix is absent here is invisible to
+# every measurement, so an omission reads as cleanliness - `.md` is here
+# because this repo IS a markdown corpus and leaving it out made the brain's
+# own "0 crossings" a scope artifact rather than a fact. prose suffixes are
+# measured for LENGTH only; the tool never reads a type declaration out of one.
+suffixes = [
+    ".rs", ".py", ".ts", ".tsx", ".js", ".jsx", ".svelte", ".go", ".c", ".h",
+    ".cc", ".cpp", ".hpp", ".cu", ".cuh", ".java", ".kt", ".swift", ".rb",
+    ".sh", ".bash", ".nix", ".zig", ".lua", ".md",
+]
+
+# the suffixes above whose contents are PROSE. they are measured for length and
+# for folder fan-out like anything else, and they are never scanned for a type
+# declaration - but their churn may not ARM a cold review. a handoff document
+# rewritten in place is hundreds of changed lines that no code lens reads, and
+# arming on it spends five reviewers on a diff with no code in it.
+prose = [".md", ".markdown", ".rst", ".txt"]
+
+# path fragments excluded from every measurement. a vendored tree's shape is
+# not his to fix, and a GENERATED file's length is not a design signal - the
+# brain's flow.json, graph.json and DEV_FLOWCHART.md are all builds of authored
+# sources that are measured in their own right.
+excluded = [
+    "/vendor/", "/node_modules/", "/target/", "/.generated/", "/dist/",
+    "/build/", "/third_party/", "/generated/",
+    "/brain/flow/flow.json", "/brain/graph/", "/docs/DEV_FLOWCHART.md",
+]

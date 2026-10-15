@@ -1,6 +1,7 @@
 ---
 name: principle-36-verify-with-stderr-visible
 kind: principle
+tier: conditional
 rule: a verification step must never suppress stderr or ignore an exit code. if you cannot see the failure channel, you are not verifying - you are guessing with extra steps.
 interest: [intent-trust]
 confidence: high

@@ -12,9 +12,11 @@
 [environment]
 # tracks the `# requires-python = ">=3.12"` header the scripts carry for `uv run`
 python-version = "3.12"
-# the scripts are not a package: each inserts its own dir on sys.path to import
-# the shared brainlib, so a checker has to be told the same thing
-extra-paths = ["bin"]
+# the search path a script needs is NOT written here. a relative `extra-paths`
+# is re-resolved against each PEP-723 script's OWN directory, so one spelled
+# here fires `invalid-script-metadata` on every script outside this repo and
+# masks the real diagnostics behind it; brain-lint passes
+# `--extra-search-path` per run, derived from the paths actually being checked
 
 [rules]
 ambiguous-protocol-member = "error"

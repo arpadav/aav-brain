@@ -1,6 +1,7 @@
 ---
 name: principle-39-style-contract
 kind: principle
+tier: conditional
 rule: every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with brain-fmt.py --gate rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.
 interest: [intent-craft]
 confidence: very-high

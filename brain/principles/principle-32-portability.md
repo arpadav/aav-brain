@@ -1,6 +1,7 @@
 ---
 name: principle-32-portability
 kind: principle
+tier: narrow
 rule: be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (brain-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.
 interest: [intent-craft]
 confidence: high

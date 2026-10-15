@@ -1,6 +1,7 @@
 ---
 name: principle-29-interrogate-the-work
 kind: principle
+tier: conditional
 rule: before AND after generating any artifact, interrogate it with the questions arpad would ask - dont hardcode the list, ask the brain "what would i ask about this?" then answer honestly. ask it GRANULARLY - "would arpad write THIS file like this? this folder structure like this? this individual function like this?" - not just at the project level. on a review this runs as a brain-guided pass layered in SUPERPOSITION on the cold unguided review (the cold pass stays cold; this is a second, independent, memory-recalling pass). "why am i generating this, is it even consumed, should i read from it instead?" and "has this been defined elsewhere?" are others.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high

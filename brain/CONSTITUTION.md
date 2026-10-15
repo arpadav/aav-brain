@@ -27,8 +27,16 @@ i say "do NOT assume, talk to me" and also "continue, dont pause, no summaries".
 phases:
 1. before sanction: ASK. under any ambiguity in spec or detail, stop and ask. surface options, poke
    holes, never guess. this is where i want to be in the loop. [[principles/principle-01-no-assumptions]]
-2. after sanction: EXECUTE. once a plan is blessed, run phases back to back, each review-gated, no
-   hand-holding summaries. pausing to narrate is a sin here. [[principles/principle-10-autonomy-after-sanction]]
+2. after sanction: EXECUTE. once a plan is blessed, run phases back to back, each gated to the
+   degree its change earned, no hand-holding summaries. pausing to narrate is a sin here.
+   [[principles/principle-10-autonomy-after-sanction]]
+
+executing means DISPATCHING, not typing. the driving agent is the overseer: it fans two or three
+independent workers out in ONE message on disjoint file sets or their own worktrees, keeps the
+tree-wide build/test/lint command to itself and runs it one at a time, then measures what came back
+and decides whether that change bought a cold review. one worker at a time is the failure mode, and
+it looks identical in a transcript until you count them.
+[[principles/principle-52-parallel-dispatch]] + [[principles/principle-53-rigor-scales-with-the-change]]
 
 the brain knows which phase its in and behaves accordingly. the [[../docs/DEV_FLOWCHART|dev flowchart]]
 is the state machine that encodes this.
@@ -36,7 +44,9 @@ is the state machine that encodes this.
 ## the hard rules (non-negotiable; each links to its card and its interest)
 1. never assume under ambiguity, ask. [[principles/principle-01-no-assumptions]] -> [[intents/intent-control]]
 2. plan before building, small but verbose, with a concrete example. [[principles/principle-02-plan-before-build]] -> [[intents/intent-comprehension]]
-3. gate every phase with a cold, independent, multi-lens review; fix even a single-agent nit. [[principles/principle-03-review-gate]] -> [[intents/intent-trust]]
+3. gate with a cold, independent, multi-lens review every change that EARNS one; fix even a
+   single-agent nit. what earns it is measured, not assumed - a patchwork fix takes the mechanical
+   check alone. [[principles/principle-03-review-gate]] + [[principles/principle-53-rigor-scales-with-the-change]] -> [[intents/intent-trust]]
 4. never fabricate. no fake benchmarks, no invented issues, no fluff. [[principles/principle-04-anti-fabrication]] -> [[intents/intent-trust]]
 5. reuse before you write. find the existing primitive. DRY. net-reduce lines. [[principles/principle-05-reuse-first]] -> [[intents/intent-craft]]
 6. idiomatic per language, house conventions, doc-comment before attributes. [[principles/principle-06-idiomatic-per-language]] -> [[intents/intent-craft]]

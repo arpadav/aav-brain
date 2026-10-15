@@ -18,15 +18,15 @@ When dispatched in **apply mode**, edit the files directly. When dispatched in *
 ## §0 — The target language
 
 This spec is **language-independent**. Every rule below is stated once and applied in
-whatever language the file is written in — Rust, Python, C, C++, CUDA, TypeScript, Bash,
-Nix. What changes per language is only the surface syntax the rule is expressed through:
+whatever language the file is written in — Rust, Python, C, C++, CUDA, WGSL, HTML / CSS,
+TypeScript, Bash, Nix. What changes per language is only the surface syntax the rule is expressed through:
 
-| the rule needs | Rust | Python | C / C++ / CUDA | TypeScript | Bash |
-|---|---|---|---|---|---|
-| line comment | `//` | `#` | `//` | `//` | `#` |
-| doc comment | `///`, `//!` | `"""docstring"""` | `///` or `/** */` | `/** */` (TSDoc) | `#` block above |
-| import stanza | `use` | `import` / `from` | `#include` | `import` | `source` |
-| formatter, run LAST | `cargo fmt` | `ruff format` | `clang-format` | `prettier` | `shfmt` |
+| the rule needs | Rust | Python | C / C++ / CUDA | WGSL | HTML / CSS | TypeScript | Bash |
+|---|---|---|---|---|---|---|---|
+| line comment | `//` | `#` | `//` | `//` | `<!-- -->` / `/* */`, one line each | `//` | `#` |
+| doc comment | `///`, `//!` | `"""docstring"""` | `///` or `/** */` | `///`, above the `@` attributes | `<!-- -->` above the element / `/* */` above the rule | `/** */` (TSDoc) | `#` block above |
+| import stanza | `use` | `import` / `from` | `#include` | none; the `@group`/`@binding` block comes first | `<link>` / `<script>` in `<head>`; css none (one inline `<style>`) | `import` | `source` |
+| formatter, run LAST | `cargo fmt` | `ruff format` | `clang-format` | none exists; skip | none; skip | `prettier` | `shfmt` |
 
 Two hard rules that come with that:
 - **Never transplant one language's syntax into another.** A Python file gets docstrings,

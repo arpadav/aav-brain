@@ -1,6 +1,7 @@
 ---
 name: principle-16-my-stack-my-voice
 kind: principle
+tier: conditional
 rule: tooling is in my stack (rust or bash, never node/mjs); tooling, scripts, architecture and docs are in my voice. agent-speak only in the agent/skill .md peripherals.
 interest: [intent-craft, intent-comprehension]
 confidence: very-high

@@ -1,6 +1,7 @@
 ---
 name: principle-43-report-state-not-changelog
 kind: principle
+tier: conditional
 rule: when work finishes, report STATE - is it done, what is left - not a tour of what was fixed. he reads the diff for the changelog. a how-to gets a one-liner, not a section. the fix that no longer matters is not news.
 interest: [intent-efficiency, intent-comprehension]
 confidence: very-high

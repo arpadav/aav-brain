@@ -1,6 +1,7 @@
 ---
 name: principle-41-rigor-scales-with-purpose
 kind: principle
+tier: conditional
 rule: how hard to enforce idiom is set by what the artifact is FOR. a scratch or testing workspace - skip it. an ephemeral tutorial - adhere lightly, do not be anal. production - be extremely attentive and exhaustive. ask the purpose before writing; never infer it from the code.
 interest: [intent-efficiency, intent-craft]
 confidence: very-high
@@ -51,7 +52,10 @@ conversely, under-applying it in production is what forces a large refactor late
 says HOW HARD to apply them here. [[principle-28-dry-merge-blast-radius]] says merge a real DRY
 violation regardless of blast radius - P41 is what decides whether duplication in this tree IS a
 violation or is the deliverable. [[principle-14-minimal-surface]] is about how much API to expose;
-this is about how much rigor to spend.
+this is about how much rigor to spend. and it is only ONE of the two axes: this one is answered
+once, from the artifact's purpose; [[principle-53-rigor-scales-with-the-change]] is answered at
+every boundary, from what the change did. a production tree is maximum on this axis forever and
+still buys no cold review for a one-line fix.
 
 ## anti-pattern
 applying production instincts to a scratch tree - the failure that produced a `common/` package of

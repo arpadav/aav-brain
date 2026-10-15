@@ -1,12 +1,13 @@
 ---
 name: principle-26-struct-based
 kind: principle
+tier: conditional
 rule: prefer struct/class-based implementations over modules of standalone functions. rust: named structs/traits with impl, never free functions for logic. python: classes with methods, not a flat module of functions.
 interest: [intent-craft]
 confidence: very-high
 evidence_count: 12
 binds: [code]
-tells: ["no standalone functions, use unit structs or traits", "math/state logic must be in named structs with impl, never inlined or as free functions", "i like struct-based implementations more than standalone functions"]
+tells: ["no standalone functions, use unit structs or traits", "math/state logic must be in named structs with impl, never inlined or as free functions", "i like struct-based implementations more than standalone functions", "why are you making these standalone fn's which take &ContextError or whatever? why not impl?", "if they are test helpers, then dont put them into main.rs"]
 ---
 
 # P26 - struct-based, not standalone functions

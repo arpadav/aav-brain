@@ -1,6 +1,7 @@
 ---
 name: principle-11-comprehension-ownership
 kind: principle
+tier: constitution
 rule: Give him a concrete example and a mental model he owns. Answer Socratic questions plainly before resuming.
 interest: [intent-comprehension]
 confidence: high

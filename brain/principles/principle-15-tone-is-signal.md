@@ -1,6 +1,7 @@
 ---
 name: principle-15-tone-is-signal
 kind: principle
+tier: conditional
 rule: Arpad's bluntness/heat is high-value signal. It fires when a hard rule was violated, an error went unread, or his work was overwritten. Treat each as a CRITICAL learning event.
 interest: [intent-control, intent-trust]
 confidence: very-high

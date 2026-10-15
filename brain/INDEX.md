@@ -57,6 +57,15 @@ with [[../bin/brain-recall]] (graph traversal).
 - [[principles/principle-47-copy-raw-fetches-into-the-repo]] : every fetched page lands in the repo's source corpus as it is fetched and the citing row names the copy; an uncopied fetch does not exist
 - [[principles/principle-48-look-at-the-rendered-output]] : green checks are not a pass - rasterise/screenshot and read the pdf, chart, page or app before calling it done, with a scripted audit of what an eye misses
 - [[principles/principle-49-his-interactive-app-shape]] : 3d stage first, click a point for its page on a stack, sliders for what matters, questionnaire-first persisted settings, receipt totals, 90's page + harsh retro scene, touch on his surface pro and phone, settings/filters relay live to every surface at once
+- [[principles/principle-50-the-standing-mission]] : a worker carries the run's END GOAL, not just the phase's ask - work that moves the mission is kept even when it exceeded the sentence
+- [[principles/principle-51-spaghetti-is-a-design-fault]] : when every available fix makes the code worse the DESIGN is the defect - leave the impl loop, subdesign that one part, destructive proposals sanctioned
+- [[principles/principle-52-parallel-dispatch]] : fan two or three independent workers out in ONE message on disjoint file sets or their own worktrees; the tree-wide build/test/lint command stays with the overseer and runs one at a time
+- [[principles/principle-53-rigor-scales-with-the-change]] : the cold multi-lens review is bought by the size and kind of the CHANGE, never by a phase ending - a patchwork fix takes the mechanical check alone
+- [[principles/principle-54-a-count-is-a-measurement]] : a count in a document is a measurement with a timestamp - re-measure, correct it, move on; never a finding, never a gate
+- [[principles/principle-55-the-run-is-visible]] : a long run's state - flow stage, plan phase, what runs, what is left - is a page he can open, hosted locally and kept current
+- [[principles/principle-56-close-out-housekeeping]] : finishing a build includes the cleanup pass unprompted - worktrees, closed items, old plans and docs - and the report says it ran
+- [[principles/principle-57-user-docs-are-an-icd]] : user-facing docs teach usage in an ICD register - bullets/tables/snippets over prose, no code in sentences, mechanisms shown as a story, the smallest format per item
+- [[principles/principle-58-a-correction-is-a-class]] : one flagged instance names a class - fix every instance everywhere in the same pass, and self-check before handing back
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises

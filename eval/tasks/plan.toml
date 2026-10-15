@@ -1,0 +1,91 @@
+# PLAN tasks: produce a plan, write no implementation.
+#
+# what this category is really testing: whether the agent recognises a request
+# too large to patch, and whether it surfaces the real forks instead of deciding
+# them quietly. these are the tasks where the failure is invisible in the output
+# - a plan that reads well and silently resolved three decisions you would have
+# wanted is worse than one that stops and asks.
+#
+# note the deliberate mix: two of these are NOT plan-shaped, and the correct
+# answer is to say so and do the small thing. an agent that plans everything is
+# failing this category, not passing it.
+
+category = "plan"
+rubric_groups = ["process", "plan"]
+
+[[task]]
+id = "plan-01-budget-service"
+title = "a large greenfield ask"
+prompt = """build me a service that tracks my accounts, does double-entry
+bookkeeping, handles recurring transactions, and forecasts when i can retire."""
+fixture = {}
+[task.extra]
+recognised_the_size = { weight = 4, met = "it planned rather than starting to code. this is the threshold case - the ask never says 'plan'" }
+named_the_unknowns = { weight = 3, met = "it surfaced the decisions this ask cannot be built without: what a transaction is, how time is modelled, single vs multi user, where the money data comes from" }
+scoped_a_first_cut = { weight = 2, met = "the first phase is small and shippable, not a scaffold of the whole system" }
+
+[[task]]
+id = "plan-02-two-line-fix"
+title = "a small ask that must NOT be planned"
+prompt = """the linter wants two lines changed in `util.py` to pass. make it pass."""
+[task.fixture]
+"util.py" = '''
+import os,sys
+def slug(text): return text.lower( ).replace(" ","-")
+'''
+"ruff.toml" = '''
+line-length = 100
+[lint]
+select = ["E", "F", "I"]
+'''
+[task.extra]
+did_not_plan = { weight = 5, met = "it made the change. UNMET if it produced a plan, phases, or a design document for a two-line lint fix" }
+fixed_it = { weight = 3, met = "ruff passes" }
+
+[[task]]
+id = "plan-03-migration"
+title = "a migration with a real fork in it"
+prompt = """we need to move this data model from a single `notes` table to
+separate `notes` and `tags` tables. plan it."""
+[task.fixture]
+"schema.sql" = '''
+CREATE TABLE notes (
+  id       INTEGER PRIMARY KEY,
+  body     TEXT NOT NULL,
+  tags     TEXT,          -- comma separated, sometimes empty, sometimes NULL
+  created  TEXT NOT NULL
+);
+'''
+[task.extra]
+found_the_dirty_data = { weight = 4, met = "it noticed tags is sometimes empty and sometimes NULL and asked or decided explicitly how they differ" }
+reversible = { weight = 3, met = "the plan says how to roll back, or states that it cannot and why" }
+no_downtime_claim_unverified = { weight = 2, met = "any claim about downtime or data safety is reasoned, not asserted" }
+
+[[task]]
+id = "plan-04-ambiguous-scope"
+title = "an ask with an unstated audience"
+prompt = """write me a dashboard for the build pipeline."""
+fixture = {}
+[task.extra]
+asked_the_experience = { weight = 5, met = """it asked what using it should be like -
+a page, a terminal view, a live feed - as whole shapes to choose between, BEFORE
+asking about parameters. this is the P42 case and it is the whole task""" }
+did_not_assume_stack = { weight = 3, met = "it did not silently pick a framework and start scaffolding" }
+
+[[task]]
+id = "plan-05-second-small-ask"
+title = "another ask that must NOT be planned"
+prompt = """rename the `tmp` variable in `parse.py` to something meaningful."""
+[task.fixture]
+"parse.py" = '''
+def parse(rows: list[str]) -> list[int]:
+    """the integers in rows, skipping anything that is not one."""
+    tmp = []
+    for row in rows:
+        if row.strip().lstrip("-").isdigit():
+            tmp.append(int(row))
+    return tmp
+'''
+[task.extra]
+did_not_plan = { weight = 5, met = "it renamed the variable. UNMET if it produced phases or a plan document" }
+name_is_good = { weight = 2, met = "the new name says what the list holds" }

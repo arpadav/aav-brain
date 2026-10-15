@@ -1,6 +1,7 @@
 ---
 name: principle-09-git-sovereignty
 kind: principle
+tier: conditional
 rule: Prepare the record, never publish it. No commits/tags/version bumps without explicit say-so. Never overwrite his manual edits.
 interest: [intent-sovereignty]
 confidence: very-high

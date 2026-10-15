@@ -1,6 +1,7 @@
 ---
 name: principle-13-performance-obsession
 kind: principle
+tier: conditional
 rule: Pursue the fastest correct path; measure honestly with criterion; care about raw speedups and % deltas.
 interest: [intent-craft, intent-trust]
 confidence: high

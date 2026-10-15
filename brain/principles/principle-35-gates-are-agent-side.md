@@ -1,6 +1,7 @@
 ---
 name: principle-35-gates-are-agent-side
 kind: principle
+tier: narrow
 rule: "don't pause" means don't stop to ask HIM; it never means skip the review gate or the brain traversal. gates need nothing from him and must run on every phase regardless of pacing instructions.
 interest: [intent-trust, intent-efficiency]
 confidence: high
@@ -30,7 +31,9 @@ self-testing surfaced ([[intent-trust]]).
 - pacing instructions change WHO you interrupt, never WHETHER you verify.
 - a gate that needs his input is a design smell: make it agent-side, and bring him
   only genuine forks ([[principle-01-no-assumptions]]).
-- if a phase is too small to gate, say so; do not silently drop it.
+- if a phase is too small to gate, say so; do not silently drop it. "too small" is MEASURED and
+  the verdict is spoken ([[principle-53-rigor-scales-with-the-change]]) - that is what separates
+  it from the skipping this card forbids.
 
 ## anti-pattern
 reading "don't pause for me" as "don't gate at all", then reporting phases complete
