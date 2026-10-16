@@ -8,7 +8,7 @@ the graph is CONTEXT ("which principles apply"), the flow is SEQUENCE ("what ste
 - `brain/flow/flow.toml` : the authored SOURCE - states + transitions, hand-edited. the flow's data,
   the way the markdown cards are the graph's data.
 - `brain/flow/flow.json` : the BUILT, validated, committed artifact. byte-identical on re-run.
-- `bin/brain-flow.py` reads flow.toml, validates it, writes flow.json. `bin/brain-walk.py` steps
+- `bin/store/brain-flow.py` reads flow.toml, validates it, writes flow.json. `bin/run/brain-walk.py` steps
   flow.json. both share the State/Transition datatypes via brainlib (P31).
 
 ## states

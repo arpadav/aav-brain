@@ -26,6 +26,12 @@ never be cut off by rank
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -35,10 +41,8 @@ from brainlib import Args, Exit, Flag, Layout, Node, Rel, Tier, kind_rank, load_
 # external
 # --------------------------------------------------
 import re
-import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants

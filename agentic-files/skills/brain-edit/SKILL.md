@@ -26,7 +26,7 @@ replace. read, in this order, and stop as soon as the picture is sufficient:
 git -C . log --oneline -15                      # what landed, most recent first
 git -C . status --short && git -C . diff --stat  # what is still uncommitted
 ls plans/ 2>/dev/null                            # the plan the last build followed, if this repo has one
-python3 $AAV_BRAIN/bin/brain-trace.py --against | grep -A2 "$(basename "$PWD")" | head -40  # what that run DECIDED
+python3 $AAV_BRAIN/bin/store/brain-trace.py --against | grep -A2 "$(basename "$PWD")" | head -40  # what that run DECIDED
 ```
 the trace is the part that is easy to skip and expensive to lose: it names the forks the last run
 already resolved. **an edit that reverses one of them without saying so is the failure mode.** if his
@@ -72,7 +72,7 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
 `$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
@@ -103,7 +103,7 @@ looks identical in the transcript while discarding it.
 an edit that leaves no trace entry is invisible to the next brain-edit and to the next self-refine,
 which is how a small change becomes a decision nobody can find later:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-edit \
+python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-edit \
   --decision 'what he asked for' --chosen 'what you did' --affects 'path/to/file'
 ```
 SINGLE-quote every value. his ask routinely contains backticks, `$(...)`, `!` and quotes, and in a

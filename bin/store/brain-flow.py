@@ -21,6 +21,12 @@ its `recall` flag; the graph never calls the flow). see P30
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -30,10 +36,8 @@ from brainlib import Args, Artifact, Entry, Exit, Flag, Layout, Mode, State, Tra
 # external
 # --------------------------------------------------
 import json
-import sys
 import tomllib
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
@@ -58,7 +62,7 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
 `$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
@@ -96,7 +100,7 @@ the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the vo
 overlaps (P30).
 
 the source of truth is `brain/flow/flow.toml` (authored DATA, like the cards are the graph's data).
-`bin/brain-flow.py` reads + validates it and builds `brain/flow/flow.json`; `bin/brain-walk.py` steps
+`bin/store/brain-flow.py` reads + validates it and builds `brain/flow/flow.json`; `bin/run/brain-walk.py` steps
 flow.json deterministically. this whole file is GENERATED from flow.json by `brain-flow.py` - do NOT
 hand-edit it; re-run the builder after editing flow.toml so it can never drift. it is
 drift-gated: `brain-flow.py --check` fails if this file is stale. a state may
@@ -315,7 +319,7 @@ class FlowBuilder(Artifact):
         # --------------------------------------------------
         known: set[str] = {p.name for p in LAYOUT.skills.iterdir() if p.is_dir()} if LAYOUT.skills.is_dir() else set()
         if LAYOUT.bin.is_dir():
-            known |= {p.stem for p in LAYOUT.bin.iterdir() if p.is_file()}
+            known |= {p.stem for p in LAYOUT.bin.rglob("*.py") if "brainlib" not in p.parts}
         if LAYOUT.agents.is_dir():
             known |= {p.stem for p in LAYOUT.agents.rglob("*.md")}
         # --------------------------------------------------

@@ -46,10 +46,10 @@ exempt = ["/brain/principles/", "/brain/intents/"]
 duplicate_type_files = 2
 
 [budget]
-# SECONDARY since the computer-1/computer-2 merge: `brain-gate.py phase` decides
-# whether a phase buys the gate, and this budget only takes the `under_budget`
-# exit on a final phase brain-gate.py deferred. kept until
-# plans/open-items/G01-two-gate-arming-checks.md rules on pruning it.
+# SECONDARY: `brain-gate.py phase` decides whether a phase buys the gate; this
+# budget only takes the `under_budget` exit on a final phase brain-gate.py
+# deferred. plans/open-items/G01-two-gate-arming-checks.md decides whether it
+# stays.
 #
 # the phase gate is ARMED when a phase's accumulated change crosses either of
 # these. under both, the phase still ends with VERIFY and STYLE - it just does
@@ -84,7 +84,8 @@ suffixes = [
 
 # the suffixes above whose contents are PROSE. they are measured for length and
 # for folder fan-out like anything else, and they are never scanned for a type
-# declaration - but their churn may not ARM a cold review. a handoff document
+# declaration - but their churn may not ARM a cold review, here or in
+# brain-gate.py, which reads this same list. a handoff document
 # rewritten in place is hundreds of changed lines that no code lens reads, and
 # arming on it spends five reviewers on a diff with no code in it.
 prose = [".md", ".markdown", ".rst", ".txt"]

@@ -28,21 +28,21 @@ TIER 2 - corpus (retrieved on demand via the graph)
 TIER 2.5 - graph = CONTEXT (the knowledge graph; "which principles apply")
   brain/graph/graph.json     nodes (principle + interest) + edges (serves/served_by/relates/tension)
   brain/graph/graph.cypher   optional neo4j export for a visual; nothing depends on neo4j
-  built by bin/brain-graph.py, walked by bin/brain-recall.py
+  built by bin/store/brain-graph.py, walked by bin/run/brain-recall.py
 
 TIER 2.6 - flow = SEQUENCE (the execution flow; "what step is next") - SEPARATE from the graph
   brain/flow/flow.toml       AUTHORED data: states (work phases) + transitions (guarded edges)
   brain/flow/flow.json       the built, validated machine; committed
-  built by bin/brain-flow.py (also generates docs/DEV_FLOWCHART.md), stepped by bin/brain-walk.py
+  built by bin/store/brain-flow.py (also generates docs/DEV_FLOWCHART.md), stepped by bin/run/brain-walk.py
   cyclic by design (P03): PLAN..PLANGATE, PHASEGATE/VERIFY loop through REMEDIATE until a metric
   threshold holds, only then advance one phase
 
 TIER 2.7 - trace = the brain's own reasoning history (append-only; PRIVATE, out of repo)
   <find_data>/trace/decisions.jsonl   one line per decision: chosen, what it rejected + why, affects
-  written/read by bin/brain-trace.py; brain-meta-curate + brain-self-refine consult the decided-AGAINST
+  written/read by bin/store/brain-trace.py; brain-meta-curate + brain-self-refine consult the decided-AGAINST
   entries to know WHERE a past call was made before re-litigating it
 
-TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with bin/brain-extract.py)
+TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with bin/store/brain-extract.py)
   <find_data>/evidence/prompts.jsonl   EVERY human turn, bucketed + multi-label classed; nothing dropped
   <find_data>/evidence/corpus-stats.json   tone %, class counts, sequencing histogram, opening verbs
   <find_data>/evidence/*.jsonl         back-compat views (rejections, interruptions, approvals, directives, denials)
@@ -77,7 +77,7 @@ claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled i
 every skill EXECUTES the bundled scripts rather than reading flow.json/graph.json and reasoning by hand -
 running a script keeps its code out of context and is deterministic. the discovery preamble
 (`eval "$(brain-find --export)"`, brain-find on PATH) sets `$AAV_BRAIN` with no hardcoded path on any
-machine; the skill then invokes `$AAV_BRAIN/bin/<script>.py` - no layout-assuming per-skill symlink (P32).
+machine; the skill then invokes `$AAV_BRAIN/bin/<store|run|check>/<script>.py` - no layout-assuming per-skill symlink (P32).
 
 the 5 ENTRIES (call these) - each enters the unified flow at its own node and walks to a terminal:
 | entry | enters flow at | what it does |
@@ -87,6 +87,9 @@ the 5 ENTRIES (call these) - each enters the unified flow at its own node and wa
 | brain-edit | EDIT | a small follow-up change to what a previous run built, without replanning; he sets the rigor |
 | brain-review | REVIEW | cold multi-lens review of the current diff, into the shared gate loop |
 | brain-self-refine | SR_SCAN | turn the review lens on the brain itself; findings+questions, then edit |
+
+one more user-callable skill sits OUTSIDE the flow: `brain-measure` runs the 25 eval tasks with the
+brain's cards and without, and hands him one file to grade (`eval/brain-eval.py`).
 
 the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directly):
 | brain-meta-* | role |
@@ -138,9 +141,9 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
 (SANCTION) is the one flip from ask-first to execute-through, on the plan->build path.
 
 ## 4. data flow end to end
-1. learn: bin/brain-extract.py mines ~/.codex (sessions + archived_sessions) + ~/.claude/projects ->
+1. learn: bin/store/brain-extract.py mines ~/.codex (sessions + archived_sessions) + ~/.claude/projects ->
    tier-3 evidence (every turn). brain-meta-curate distills durable lessons into tier-2 cards, then
-   bin/brain-graph.py rebuilds the graph. explicit signal only.
+   bin/store/brain-graph.py rebuilds the graph. explicit signal only.
 2. recall: a task arrives -> brain-recall walks the graph and returns the relevant cards -> they
    become the working context. small, targeted (context hygiene, P12).
 3. act: brain-execute drives the loop, dispatching workers via brain-meta-author-prompt, gating with the

@@ -16,6 +16,12 @@ matches is how the brain knows, without asking, which items carry his answer
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -26,8 +32,6 @@ from brainlib import Args, Exit
 # --------------------------------------------------
 import hashlib
 import re
-import sys
-from pathlib import Path
 
 # --------------------------------------------------
 # constants

@@ -2,7 +2,7 @@
 
 the queryable store. tiered after memgpt/letta: a small always-loaded core, a larger retrieved
 corpus, a deterministic graph over that corpus, and evidence derived from raw transcripts. query it
-with [[../bin/brain-recall]] (graph traversal).
+with [[../bin/run/brain-recall]] (graph traversal).
 
 ## tier 1: core (always loaded when the brain acts)
 - [[CONSTITUTION]] : prime rule, who i am, the operating loop, the hard rules, voice.
@@ -74,6 +74,7 @@ with [[../bin/brain-recall]] (graph traversal).
 - [[principles/principle-64-resume-after-interruption-verifies-then-redispatches]] : after a restart verify each worker, recover its output or re-dispatch; never assume done
 - [[principles/principle-65-numbered-recommendations-get-one-word-replies]] : numbered items with a recommended default so he can answer "affirm"; overrules are about extensibility or configurability
 - [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (brain-open-items.py)
+- [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises
@@ -89,10 +90,10 @@ with [[../bin/brain-recall]] (graph traversal).
 
 ## tier 2.5: the graph (deterministic, built from the cards)
 - `graph/graph.json` : nodes (principle + interest) + edges (serves / served_by / relates / tension), built by
-  `bin/brain-graph.py`, committed, byte-identical on re-run. `brain-graph.py --check` fails on drift.
+  `bin/store/brain-graph.py`, committed, byte-identical on re-run. `brain-graph.py --check` fails on drift.
 - `graph/graph.cypher` : optional neo4j export for a visual; nothing depends on neo4j.
 
-## tier 3: evidence (machine-derived; regenerate with `python3 bin/brain-extract.py`)
+## tier 3: evidence (machine-derived; regenerate with `python3 bin/store/brain-extract.py`)
 - evidence/prompts.jsonl : EVERY human turn, one per line, with a primary bucket + multi-label classes.
   the canonical corpus - nothing dropped.
 - evidence/corpus-stats.json : quantitative fingerprint (tone %, class counts, sequencing histogram,

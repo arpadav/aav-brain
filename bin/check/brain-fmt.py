@@ -37,6 +37,12 @@ it stays silent on an unquoted symbol rather than flag an ordinary word
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -47,10 +53,8 @@ from brainlib import Args, Flag, read_text, write_text
 # --------------------------------------------------
 import re
 import subprocess
-import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants

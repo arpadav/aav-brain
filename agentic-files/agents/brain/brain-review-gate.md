@@ -16,7 +16,7 @@ the letter. Load it from
    - **The diff**, for correctness and idiom: the git range between the previous phase and now
      (`git diff <prevphase>..HEAD` or the working tree). Use context-mode / think-in-code to gather
      it without flooding context.
-   - **The whole tree**, for structure and duplication. Run `python3 $AAV_BRAIN/bin/brain-shape.py
+   - **The whole tree**, for structure and duplication. Run `python3 $AAV_BRAIN/bin/check/brain-shape.py
      <repo>` and treat its output as a first-class input: every file past the line limit, every
      folder past the fan-out limit, every type name declared in more than one file. **None of these
      is visible in a diff.** A phase that adds 800 lines to a 6700-line file produces a hunk that
@@ -80,6 +80,10 @@ the letter. Load it from
      stated contract:
      · **valid** — a real defect. **A nit raised by only ONE reviewer still gets fixed**; there is no
        "minor enough to skip."
+     · **design fault** — real, and every available fix makes the code WORSE (adds a branch, flag or
+       special case and removes none; the same seam keeps producing findings; the fix must know
+       something it should not). Not patched: it routes to DESIGN, which redesigns that ONE part
+       (P51).
      · **invalid** — it contradicts the contract. Deliberate incompleteness is the big one:
        "this is unimplemented", "the tests are red", "these stubs are unfinished" against an artifact
        whose *deliverable* is exactly that. **Reject with a reason.** Fixing it destroys the artifact,
@@ -98,7 +102,8 @@ the letter. Load it from
    rather than a silent drop); and a gate decision: **CLEAN** (advance) or **BLOCKED** (list the nits
    that must be fixed first). The gate is CLEAN when `open_nits` is empty — where `open_nits` counts
    **adjudicated-valid** findings only. All findings rejected as invalid or deferred is a CLEAN gate,
-   not a blocked one.
+   not a blocked one. A design fault is reported apart from the nits, naming the ONE part to
+   redesign; it blocks the gate and goes to DESIGN, not to a fix list.
 
 ## Superposition with the would-arpad pass (keep your half cold)
 On a brain task this cold gate is only ONE layer of a superposition (P29). You run exactly as

@@ -8,7 +8,7 @@
 # carry for `uv run`. line-length 120 fits the existing code (longest line 128,
 # only two over 120) without reflowing every signature.
 #
-# ruff is one of four checkers; bin/brain-lint.py runs every one that is
+# ruff is one of four checkers; bin/check/brain-lint.py runs every one that is
 # installed. ruff owns lint and idiom, and cannot see types - a bare `dict`
 # annotation is invisible to all 956 of its rules, which is why ty, mypy and
 # basedpyright carry their own pinned configs beside this one.
@@ -62,6 +62,12 @@ ignore = [
     # typing.Union, which is valid py39 without it
     "FA100",
     "FA102",
+    # --------------------------------------------------
+    # a header this repo does not carry
+    # --------------------------------------------------
+    # CPY001 wants a copyright notice atop every file. no file here has one and
+    # none was asked for; authorship is the `Author:` line in each docstring
+    "CPY001",
     # --------------------------------------------------
     # formatter conflicts
     # --------------------------------------------------

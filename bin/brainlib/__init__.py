@@ -33,7 +33,7 @@ same as it always did and no caller had to change:
   every jsonl corpus, so "a log may only ever grow" lives in one place; Decision
   (one logged fork); PrunePolicy (how old an entry must be to be eligible to be
   judged stale, scaled by how fast the repo moves); ShapePolicy (the numbers
-  behind P27 and P28 and the change budget that arms a phase gate); and git(),
+  behind P27 and P28 and the secondary change budget); and git(),
   the ONE read-only shell-out, returning None (could not run) distinctly from ""
   (ran, said nothing)
 

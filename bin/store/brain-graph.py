@@ -19,6 +19,12 @@ the graph is KNOWLEDGE, kept separate from the execution FLOW (brain-flow.py)
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -44,7 +50,6 @@ from brainlib import (
 import json
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants

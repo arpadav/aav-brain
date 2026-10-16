@@ -10,7 +10,7 @@ the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
 discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 
 load his style: `$AAV_BRAIN/brain/voice/VOICE.md` and `LEXICON.md`, plus
-the relevant cards via `python3 $AAV_BRAIN/bin/brain-recall.py "<work unit>"`.
+the relevant cards via `python3 $AAV_BRAIN/bin/run/brain-recall.py "<work unit>"`.
 
 ## input -> output
 you get an interest + a unit of work. you output a dispatch prompt for a specific worker agent that,
@@ -99,7 +99,7 @@ and a better lens fits, choose it and note why.
 picking a lens or an agent REJECTS the others - "if a better lens fits, choose it and note
 why" is a fork. log it when you choose, not at the end:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-meta-author-prompt --decision "<what to dispatch>" \
+python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-meta-author-prompt --decision "<what to dispatch>" \
     --chosen "<agent/lens>" --reject "<alternative>=<why not>" --principle P18
 ```
 

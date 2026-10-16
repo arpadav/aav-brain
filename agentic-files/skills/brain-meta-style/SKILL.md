@@ -13,7 +13,7 @@ the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
 discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 
 load: `$AAV_BRAIN/brain/CONSTITUTION.md`, pull task cards with
-`python3 $AAV_BRAIN/bin/brain-recall.py "<subject>"`. cite cards by name.
+`python3 $AAV_BRAIN/bin/run/brain-recall.py "<subject>"`. cite cards by name.
 
 ## plan lens (architectural scrutiny, before execution)
 for each new artifact (struct/type/module/function/file):
@@ -76,7 +76,7 @@ remediation into an unbounded redesign, which is the failure in the other direct
 
 log every rejection so the next pass inherits it rather than re-litigating:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --skill <entry> --decision "<finding>" \
+python3 $AAV_BRAIN/bin/store/brain-trace.py --skill <entry> --decision "<finding>" \
     --chosen "rejected" --reject "<finding>=<why it is invalid here>"
 ```
 emit `design_fault` if any finding earned that verdict, else `valid_remain` if anything survived,
@@ -92,15 +92,15 @@ else `all_invalid` / `deferred` - the walk routes on it.
 - comment hygiene is SCRIPTED, not eyeballed (P19). EXECUTE the bundled formatter on the touched
   files - dont hand-strip trailing periods or re-count separator hyphens:
   ```bash
-  python3 $AAV_BRAIN/bin/brain-fmt.py --check <files>   # report what would change
-  python3 $AAV_BRAIN/bin/brain-fmt.py <files>           # strip trailing-period comments, normalise separators
-  python3 $AAV_BRAIN/bin/brain-fmt.py --stale <files>   # comments naming a symbol the file no longer has (P37)
+  python3 $AAV_BRAIN/bin/check/brain-fmt.py --check <files>   # report what would change
+  python3 $AAV_BRAIN/bin/check/brain-fmt.py <files>           # strip trailing-period comments, normalise separators
+  python3 $AAV_BRAIN/bin/check/brain-fmt.py --stale <files>   # comments naming a symbol the file no longer has (P37)
   ```
 - the language toolchain is SCRIPTED too (P06, P19). for python, one command runs every checker
   that is installed against its own pinned config, and names any it had to skip:
   ```bash
-  python3 $AAV_BRAIN/bin/brain-lint.py <paths>          # ruff + ty + mypy + basedpyright
-  python3 $AAV_BRAIN/bin/brain-lint.py --list           # which of them this machine can reach
+  python3 $AAV_BRAIN/bin/check/brain-lint.py <paths>          # ruff + ty + mypy + basedpyright
+  python3 $AAV_BRAIN/bin/check/brain-lint.py --list           # which of them this machine can reach
   ```
   ruff is a LINTER and cannot see types - a bare `dict` annotation is invisible to all 956 of its
   rules - so a green ruff is not a green check.

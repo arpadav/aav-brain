@@ -34,7 +34,7 @@ eval "$(brain-find --export)"   # sets $AAV_BRAIN
 ```
 
 ## EXECUTE, do not read-and-reason (the cardinal rule)
-the flow is a program; you RUN it, you do not interpret it. you MUST execute `$AAV_BRAIN/bin/brain-walk.py` for
+the flow is a program; you RUN it, you do not interpret it. you MUST execute `$AAV_BRAIN/bin/run/brain-walk.py` for
 every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.json`/`flow.toml` and reason about
 transitions yourself - that re-derives the machine by hand, non-deterministically, and is the exact bug
 this design exists to prevent. if a script errors, FIX the error; never fall back to reading the data
@@ -42,9 +42,9 @@ file and guessing. same for brain-recall: run it, use its output; do not hand-wa
 
 ## the trampoline (the engine itself) - loop from `$STATE` until a terminal
 ```bash
-step=$(python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE")     # the state's owner + recall flag
+step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE")     # the state's owner + recall flag
 ```
-- if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/brain-recall.py "<active task>"` FIRST to load
+- if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/run/brain-recall.py "<active task>"` FIRST to load
   the relevant cards. this is the ONLY call into the graph (context); the graph never decides the next
   step.
 - **LOAD THE OWNER. this is the step that gets skipped.** `brain-walk.py` prints the literal call
@@ -66,7 +66,7 @@ step=$(python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE")     # the state's 
   `drafted`, ...).
 - get the next state from the data, never from your own judgement:
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" --on "$EVENT"
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --on "$EVENT"
 ```
 
 ## cyclic refinement is REQUIRED (P03) - the gate loops never advance dirty

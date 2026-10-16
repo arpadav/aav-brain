@@ -32,8 +32,9 @@ is the authority on what survives - "keep final prompt though", "keep those plan
 bounded by it, never by the agent's guess at what looks dead.
 
 ## how to apply
-run it at the last gate; verify a merge created a commit before removing its worktree; one line in
-the report ("cleanup: N worktrees, M plans retired"), not a tour. project-specific limits live in
+run it at CLEANUP, the flow state between STYLE and RECORD (below); verify a merge created a
+commit before removing its worktree; one line in the report ("cleanup: N worktrees, M plans
+retired"), not a tour. project-specific limits live in
 the project memory (clean-worktree-targets).
 
 - the test is obsolescence, not provenance: he sanctioned deleting plans and docs that predate this run when

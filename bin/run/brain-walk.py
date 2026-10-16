@@ -19,6 +19,12 @@ knowledge (the graph) separate
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -27,10 +33,8 @@ from brainlib import Args, Entry, Exit, Flag, Layout, Mode, State, Transition, l
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
@@ -95,7 +99,7 @@ class Flow:
 # owners that must NOT produce a load directive
 #   `-`                  a state with no owner
 #   brain-recall         a SCRIPT interface by design: `recall = true` runs
-#                        bin/brain-recall.py rather than loading a skill
+#                        bin/run/brain-recall.py rather than loading a skill
 #   an ENTRY skill       already in context whenever its own region is being
 #                        walked - it is the caller - so directing it to load
 #                        itself is noise at best and re-entry at worst
@@ -185,7 +189,7 @@ def recall_directive(binds: Sequence[str], *, recall: bool) -> list[str]:
         return []
     bound = "".join(f" --binds {context}" for context in binds)
     return [
-        f'  RECALL FIRST:  python3 $AAV_BRAIN/bin/brain-recall.py "<active task>"{bound}',
+        f'  RECALL FIRST:  python3 $AAV_BRAIN/bin/run/brain-recall.py "<active task>"{bound}',
         "  ^ run it before this state's work; the cards it returns ARE the method.",
     ]
 

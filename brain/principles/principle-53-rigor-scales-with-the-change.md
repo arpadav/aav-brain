@@ -20,18 +20,22 @@ does. two exits, and the measurement picks one:
 | a flag on a struct, a corrected number, a renamed local, a typo | the mechanical check + the task's own acceptance clause |
 | a type moved between modules, a signature its callers depend on, a new door, money / authorization / an audit trail | the cold multi-lens review |
 
-the budget is a NUMBER in authored config, not a judgement made fresh each time - the same reason
-[[principle-27-organization-reorg]] has thresholds instead of the adjective "too long". over it,
-ARMED. under it, the change still gets verified and styled; it just does not commission reviewers.
-an unresolvable measurement ARMS, because a review is not cancelled by a typo.
+the budget is a NUMBER, not a judgement made fresh each time - the same reason
+[[principle-27-organization-reorg]] has thresholds instead of the adjective "too long".
+`brain-gate.py phase` scores the change (code lines, plus a weight per added, deleted or renamed
+file; prose scores nothing) and prints `gate N` or `defer`. under it, the change still gets
+verified and styled; it just does not commission reviewers. a ref git cannot resolve stops the
+script with a usage error - that is never a `defer`.
 
-**the ref you measure from is the last review that ACTUALLY RAN, never the last commit.** that is
-what makes small changes accumulate instead of each one dodging the review on its own: two
-under-budget changes in a row are measured together against the third. nothing remembers it for
-you - carry the ref forward until a review runs, then reset it there.
+**small changes accumulate; they do not each dodge the review.** brain-gate.py keeps the pending
+score per checkout from the last review that ACTUALLY RAN, so two deferred phases are measured
+together with the third. `--last` on the final phase gates whatever is still pending.
+`brain-shape.py --since` is a second, cruder budget kept beside it while
+plans/open-items/G01-two-gate-arming-checks.md is open; where they disagree, brain-gate.py wins.
 
-**KIND overrides size in one direction only.** a two-line change to an authorization door is ARMED;
-a thousand lines of prose is not. size can promote, it can never demote.
+**KIND overrides size in one direction only.** a two-line change to an authorization door is ARMED
+- tag its phase `L` and the plan's expected size outranks the small diff. a thousand lines of
+prose is not. size can promote, it can never demote.
 
 ## why
 the review used to cost the same whether the phase was thousands of new lines or two lines of
@@ -50,8 +54,8 @@ carefully, and the findings that matter arrive in the same list as the ones that
   [[principle-35-gates-are-agent-side]] asks for when it says a phase too small to gate must SAY so.
 - a remediation is a change like any other: it re-enters the loop and is re-measured, never waved
   through because a review already looked at the thing it fixes.
-- bound the rounds up front. one cold pass; a second only when the first changed a RULE rather than
-  a line; cap at three.
+- the rounds are bounded by `brain-gate.py round`: two per gate. a round-2 decrease is fixed and
+  verified with no third review; no decrease goes to DESIGN ([[principle-51-spaghetti-is-a-design-fault]]).
 
 ## documentation never buys a cold gate
 user-facing documentation (a book, a guide) gets the mechanical checks (build, the page checker,

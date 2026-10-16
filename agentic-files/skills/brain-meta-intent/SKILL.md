@@ -12,7 +12,7 @@ discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 load the method:
 - `$AAV_BRAIN/docs/INTENT_MAP.md` (the positions->interests table; Fisher & Ury: focus on interests not positions; BATNA)
 - `$AAV_BRAIN/brain/intents/*.md` (the six interest cards)
-- `python3 $AAV_BRAIN/bin/brain-recall.py "<request>"` for task-specific cards
+- `python3 $AAV_BRAIN/bin/run/brain-recall.py "<request>"` for task-specific cards
 
 ## what to produce
 0. PURPOSE, asked at the beginning. what is this artifact FOR - a scratch/learning workspace, a
@@ -89,7 +89,7 @@ a `blocked` transition is for when NOTHING can proceed without it, which is rare
 choosing WHICH reading of an ambiguous request wins is a fork that rejected a real option, so
 it is logged at the moment it is decided - never deferred:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-meta-intent --decision "<the ambiguity>" \
+python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-meta-intent --decision "<the ambiguity>" \
     --chosen "<the reading taken>" --reject "<other reading>=<why not>" --principle P01
 ```
 this skill had ZERO trace entries across 531 recorded decisions - an unlogged fork gets

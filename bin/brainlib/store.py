@@ -16,7 +16,7 @@ from brainlib.vocab import ENCODING, GIT_TIMEOUT
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import datetime
+import datetime as dt
 import hashlib
 import json
 import os
@@ -381,7 +381,7 @@ class PrunePolicy:
         """
         return self.fast_days if rate >= self.busy_commits_per_week else self.slow_days
 
-    def cutoff(self, rate: float, now: datetime.datetime | None = None) -> str:
+    def cutoff(self, rate: float, now: dt.datetime | None = None) -> str:
         """the iso timestamp an entry must predate to be eligible.
 
         # Arguments
@@ -395,12 +395,12 @@ class PrunePolicy:
 
         # Example
 
-            >>> at = datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
+            >>> at = dt.datetime(2026, 3, 1, tzinfo=dt.UTC)
             >>> PrunePolicy().cutoff(1.0, at)
             '2025-12-31T00:00:00.000000Z'
         """
-        moment = now or datetime.datetime.now(datetime.UTC)
-        back = datetime.timedelta(days=self.window_days(rate))
+        moment = now or dt.datetime.now(dt.UTC)
+        back = dt.timedelta(days=self.window_days(rate))
         # microseconds, matching iso_now: a record and this cutoff are compared
         # as STRINGS, and at second precision `.` sorts below `Z`, so a record
         # stamped inside the cutoff second would read as older than it
@@ -447,7 +447,7 @@ def git(repo: Path, *argv: str) -> str | None:
 
 @dataclass(frozen=True)
 class ShapePolicy:
-    """the numbers behind P27 and P28, and the budget that arms a phase gate.
+    """the numbers behind P27 and P28, and the secondary change budget.
 
     P27 says a file that is "too long" should split to a tree and P28 says a
     datatype defined twice should merge. both are adjectives, and a worker

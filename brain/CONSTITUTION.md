@@ -94,6 +94,6 @@ summary. full guide: [[voice/VOICE]], idioms: [[voice/LEXICON]].
 every human turn is a training signal - not just the rejections. plans, build requests, decisions,
 questions, naming, and my dominant sequencing tell all count. the brain-meta-curate skill watches sessions
 and writes new cards / updates existing ones (self-editing memory). to refresh:
-1. `python3 bin/brain-extract.py` - re-mine every prompt from ~/.codex + ~/.claude into the evidence.
-2. `python3 bin/brain-graph.py` - rebuild the knowledge graph so recall sees the new cards.
+1. `python3 bin/store/brain-extract.py` - re-mine every prompt from ~/.codex + ~/.claude into the evidence.
+2. `python3 bin/store/brain-graph.py` - rebuild the knowledge graph so recall sees the new cards.
 the store only gets sharper.

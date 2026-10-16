@@ -44,7 +44,7 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
 `$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
@@ -114,27 +114,33 @@ PHASEGATE is no longer bought by finishing a phase - it is bought by the SIZE of
 changed. at each phase boundary run:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-shape.py <repo> --since <the ref this phase started from>
+python3 $AAV_BRAIN/bin/run/brain-gate.py phase --tag <the plan's S|M|L for this phase>   # --last on the final phase
 ```
 
-ARMED -> emit `implemented` and take the gate. under budget -> emit `under_budget`, which goes
-straight to VERIFY and STYLE with no cold multi-lens review. the budget lives in `shape.toml`
-(4 changed source files or 400 changed lines by default); an unresolvable ref ARMS, because a gate
-is not cancelled by a typo.
+and emit what it prints: `gate N` -> `implemented`, PHASEGATE with N reviewers (2-6); `defer` ->
+`phase_done`, the next phase. its word is final. the score is code lines plus a weight per added,
+deleted or renamed file; PROSE scores nothing (`shape.toml`'s `[scan] prose`), so a doc-only build
+never buys the cold review - it gets STYLE. the tag is the plan's expected size and outranks a small
+diff, which is how a two-line change to an authorization door still buys the gate.
 
-**the ref you pass is the last GATED point, not the last commit.** that is what makes small phases
-accumulate instead of each one dodging the gate on its own: two under-budget phases in a row are
-measured together against the third's boundary. nothing in the machine remembers it for you - carry
-the ref forward yourself until a gate actually runs, then reset it to that point.
+**small phases accumulate, and the script remembers them.** it keeps the pending score per checkout
+from the last gate that actually ran, so three deferred phases are reviewed together; `--last`
+gates whatever is still pending. a ref git cannot resolve stops it with a usage error - never read
+that as `defer`.
+
+`brain-shape.py --since <the last gated ref>` is the SECONDARY budget (4 changed source files or 400
+changed lines, in `shape.toml`): run it beside, and when brain-gate.py says `defer` on the final
+phase its under-budget verdict emits `under_budget`, straight to VERIFY. where the two disagree,
+brain-gate.py wins and the disagreement goes into plans/open-items/G01-two-gate-arming-checks.md,
+which decides whether the second budget stays.
 
 this exists because the gate used to cost the same whether the phase was 5885 new lines or two
 lines of formatter appeasement, so a trivial fix bought a full multi-lens review and the review
 budget went where the phases were, not where the risk was
 ([[principle-53-rigor-scales-with-the-change]]). a stale count in a doc is the canonical false
-arm: re-measure it, correct it, move on ([[principle-54-a-count-is-a-measurement]]). PROSE churn
-does not arm at all - `shape.toml`'s `[scan] prose` keeps a rewritten document out of the count.
+arm: re-measure it, correct it, move on ([[principle-54-a-count-is-a-measurement]]).
 
-the same script with no `--since` is the gate's STRUCTURE input - file lengths, folder fan-out,
+`brain-shape.py` with no `--since` is the gate's STRUCTURE input - file lengths, folder fan-out,
 duplicated datatypes - and that half runs at every gate, armed or not, because none of it is
 visible in a diff (P27, P28).
 

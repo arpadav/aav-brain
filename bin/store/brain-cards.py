@@ -18,6 +18,12 @@ cross-cutting tells are allowed by design, not linted
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -27,10 +33,8 @@ from brainlib import Args, Confidence, Exit, Flag, Frontmatter, Kind, Layout, Ti
 # external
 # --------------------------------------------------
 import re
-import sys
 import tomllib
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants

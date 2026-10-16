@@ -215,7 +215,8 @@
         "did you say the style landed on feat/hml-deploy ? im on that one not v2",
         "is this built ontop of main or feat/hml-deploy ?",
         "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2",
-        "i edited re-read"
+        "i edited re-read",
+        "yo i never NEVER asked you to commit, let me change the commit message"
       ],
       "body_links": [
         "principle-15-tone-is-signal",
@@ -1380,7 +1381,8 @@
         "principle-03-review-gate",
         "principle-27-organization-reorg",
         "principle-35-gates-are-agent-side",
-        "principle-41-rigor-scales-with-purpose"
+        "principle-41-rigor-scales-with-purpose",
+        "principle-51-spaghetti-is-a-design-fault"
       ],
       "path": "brain/principles/principle-53-rigor-scales-with-the-change.md"
     },
@@ -1529,7 +1531,8 @@
         "i hate that i have to repeat myself",
         "dont patch-apply my recommendations, i expect you to be pro-active",
         "can you PLEASE review every page and every sentence?",
-        "pro-actively check once, twice, three times over what you have written"
+        "pro-actively check once, twice, three times over what you have written",
+        "dude i already asked you to use arpadav@gmail.com, please amend the author of the logs and brain commits to use the right email. dont make me repeat myself please"
       ],
       "body_links": [
         "principle-40-idiom-needs-exemplars"
@@ -1691,12 +1694,16 @@
       "binds": [],
       "tells": [
         "1. affirm 2. affirm 3. no, this structure is fine in case more services are added 4. affirm 5. affirm 6. affirm 7. affirm 8. make this configurable.",
-        "phase/stage in brain and in plan?"
+        "phase/stage in brain and in plan?",
+        "i trust your merge",
+        "picked the (Recommended) option on 6 of 7 merge/refactor questions: fold into one card each; one step, both triggers; by job, 3 folders; verifier runs it",
+        "overrule: id like to keep both, but prioritize c1"
       ],
       "body_links": [
         "principle-43-report-state-not-changelog",
         "principle-49-his-interactive-app-shape",
-        "principle-51-spaghetti-is-a-design-fault"
+        "principle-51-spaghetti-is-a-design-fault",
+        "principle-67-merge-keeps-both-prioritises-one"
       ],
       "path": "brain/principles/principle-65-numbered-recommendations-get-one-word-replies.md"
     },
@@ -1727,6 +1734,33 @@
         "principle-65-numbered-recommendations-get-one-word-replies"
       ],
       "path": "brain/principles/principle-66-open-items-are-one-file-each.md"
+    },
+    {
+      "id": "principle-67-merge-keeps-both-prioritises-one",
+      "kind": "principle",
+      "tier": "conditional",
+      "headline": "when consolidating two machines' diverged work, where both built a real mechanism for the same job, keep both with a stated priority and let the redundant one be pruned later on evidence - do not pick a winner and delete the loser in the merge. a merge ends with everything on main.",
+      "interest": [
+        "intent-sovereignty",
+        "intent-craft"
+      ],
+      "confidence": "medium",
+      "binds": [
+        "git",
+        "brain"
+      ],
+      "tells": [
+        "id like to keep both, but prioritize c1? and if c2 was redudant then it can be pruned/removed later",
+        "i want all merged stuff to be on main at the end",
+        "push computer-2 where it encompasses computer-1 changes, and prune computer-1",
+        "i trust your merge"
+      ],
+      "body_links": [
+        "principle-09-git-sovereignty",
+        "principle-28-dry-merge-blast-radius",
+        "principle-65-numbered-recommendations-get-one-word-replies"
+      ],
+      "path": "brain/principles/principle-67-merge-keeps-both-prioritises-one.md"
     }
   ],
   "edges": [
@@ -2521,6 +2555,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-53-rigor-scales-with-the-change",
+      "dst": "principle-51-spaghetti-is-a-design-fault",
+      "type": "relates"
+    },
+    {
       "src": "principle-54-a-count-is-a-measurement",
       "dst": "principle-04-anti-fabrication",
       "type": "relates"
@@ -2676,6 +2715,11 @@
       "type": "relates"
     },
     {
+      "src": "principle-65-numbered-recommendations-get-one-word-replies",
+      "dst": "principle-67-merge-keeps-both-prioritises-one",
+      "type": "relates"
+    },
+    {
       "src": "principle-66-open-items-are-one-file-each",
       "dst": "principle-04-anti-fabrication",
       "type": "relates"
@@ -2692,6 +2736,21 @@
     },
     {
       "src": "principle-66-open-items-are-one-file-each",
+      "dst": "principle-65-numbered-recommendations-get-one-word-replies",
+      "type": "relates"
+    },
+    {
+      "src": "principle-67-merge-keeps-both-prioritises-one",
+      "dst": "principle-09-git-sovereignty",
+      "type": "relates"
+    },
+    {
+      "src": "principle-67-merge-keeps-both-prioritises-one",
+      "dst": "principle-28-dry-merge-blast-radius",
+      "type": "relates"
+    },
+    {
+      "src": "principle-67-merge-keeps-both-prioritises-one",
       "dst": "principle-65-numbered-recommendations-get-one-word-replies",
       "type": "relates"
     },

@@ -25,6 +25,13 @@ artifact diff)
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up; shared so this build tooling reuses the
+# Artifact drift-gate instead of hand-rolling a second copy (P31)
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -34,14 +41,7 @@ from brainlib import Args, Artifact, Flag, Layout, read_text
 # external
 # --------------------------------------------------
 import re
-import sys
 from dataclasses import dataclass
-from pathlib import Path
-
-# the brain's shared library is a sibling in this same bin/. add this dir to the
-# path so this build TOOLING shares the Artifact drift-gate instead of hand-rolling
-# a second copy (P31)
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # --------------------------------------------------
 # constants

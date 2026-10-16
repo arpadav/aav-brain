@@ -18,7 +18,7 @@ eval "$(brain-find --export)"   # sets $AAV_BRAIN
 
 **1. machine pass - EXECUTE, never hand-summarise a transcript.**
 ```bash
-python3 $AAV_BRAIN/bin/brain-extract.py --archive
+python3 $AAV_BRAIN/bin/store/brain-extract.py --archive
 ```
 `--archive` cold-stores unseen transcripts before reading them; the sources expire on their own
 schedule (~26 days) and evidence not captured before then is gone from every source forever. the
@@ -32,7 +32,7 @@ update an existing card before creating a new one.
 
 **3. rebuild, so recall can actually see what you wrote.**
 ```bash
-python3 $AAV_BRAIN/bin/brain-graph.py && python3 $AAV_BRAIN/bin/brain-cards.py
+python3 $AAV_BRAIN/bin/store/brain-graph.py && python3 $AAV_BRAIN/bin/store/brain-cards.py
 ```
 a card that is not in the graph is a card recall will never emit.
 
@@ -46,8 +46,8 @@ a refine session prunes trace entries it judged to be about an architecture the 
 judgement can be wrong, and this run is the evidence: if what he asked for here is what a pruned
 entry was about, the pruning was premature and the entry is live again.
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --pruned          # what a refine session decided to forget
-python3 $AAV_BRAIN/bin/brain-trace.py --restore <ts>    # bring it back AND pin it
+python3 $AAV_BRAIN/bin/store/brain-trace.py --pruned          # what a refine session decided to forget
+python3 $AAV_BRAIN/bin/store/brain-trace.py --restore <ts>    # bring it back AND pin it
 ```
 `--restore` also PINS, so no later prune can take it again - a topic he has now raised twice is
 settled, not a close call to be re-decided every refine. restore on a real match only: an entry that

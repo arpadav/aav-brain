@@ -79,11 +79,11 @@ can trust it without reading every line."*
   the cosmetic class wholesale with a logged reason, and stop. A gate whose mechanical prover
   contradicts the repo's house convention is unreachable by construction - substitute a
   measurement that fits the repo and log the substitution, never loop on it.
+  He states the bound himself: *"after this review it should be good"* (2026-09-30) - one review
+  is the expected budget; a second full round on the same diff is a sign scope widened.
 - **A stale count is not a finding.** A doc block whose number disagrees with the tree is a
   measurement with a timestamp, not a defect: re-measure, correct it in passing, and do not spend
   a round on it ([[principle-54-a-count-is-a-measurement]]).
-  He states the bound himself: *"after this review it should be good"* (2026-09-30) - one review
-  is the expected budget; a second full round on the same diff is a sign scope widened.
 - **A climbing count is a design verdict, not a queue.** Findings that rise across rounds on a small diff
   (22, 36, 40, 22 on about 450 lines) mean the machinery is wrong; he said "many bugs = bad design, so go
   back to a plan/design phase" - rebuild per [[principle-51-spaghetti-is-a-design-fault]]. For

@@ -9,7 +9,8 @@ a recurring deterministic check (P19), and the one measurement the phase gate
 never had. it reports four crossings against shape.toml - a file past
 `file_lines`, a folder past `folder_files`, a folder small enough to collapse
 back to flat, and a type name declared in `duplicate_type_files` or more files
-- plus, under --since, the accumulated change that ARMS a cold review.
+- plus, under --since, the SECONDARY change budget (brain-gate.py decides whether
+a phase boundary buys a cold review).
 
 it exists because a review scoped to a diff cannot see any of them. a phase that
 adds 800 lines to a 6700-line file produces a diff that reads fine; the FILE is
@@ -25,10 +26,16 @@ having measured nothing is the failure this tool was written to end
 
     python3 brain-shape.py [PATH]              report every crossing
     python3 brain-shape.py [PATH] --check      exit 1 if anything crossed
-    python3 brain-shape.py [PATH] --since REF  the change budget since a ref
+    python3 brain-shape.py [PATH] --since REF  the secondary change budget since a ref
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -38,11 +45,9 @@ from brainlib import Args, Exit, Flag, Layout, ShapePolicy, git, read_text
 # external
 # --------------------------------------------------
 import re
-import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import StrEnum
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
@@ -101,7 +106,7 @@ class Crossing:
     "ledger.rs is long" is the sentence twelve gate commits already failed to
     act on, and "ledger.rs 7540 lines, limit 2000" is not
 
-    it is deliberately NOT named `Finding`: bin/brain-fmt.py already has a
+    it is deliberately NOT named `Finding`: bin/check/brain-fmt.py already has a
     `Finding`, of a different shape, and two datatypes sharing a name is the
     collision this tool reports on other people's code
     """
@@ -290,7 +295,8 @@ class Shape:
         first draft of this rule reported six of them, which is the cry-wolf
         failure the whole tool exists to avoid. the level is only pointless when
         the PARENT already holds source files directly, so collapsing loses no
-        separation
+        separation - and never when it has folders of its own, whose grouping
+        collapsing would spill into the parent (`bin/` over `store/ run/ check/`)
 
         # Arguments
 
@@ -300,9 +306,12 @@ class Shape:
 
         # Returns
 
-        true when the folder is small AND its parent already holds source
+        true when the folder is small, has no measured subfolder, AND its
+        parent already holds source
         """
         if folder.as_posix() in {"", "."}:
+            return False
+        if any(other.parent == folder for other in tree):
             return False
         if len(sizes) > self.policy.collapse_files or sum(sizes) > self.policy.collapse_lines:
             return False
@@ -311,9 +320,10 @@ class Shape:
     def budget(self, ref: str) -> Budget:
         """the change accumulated since a git ref, and whether it arms a gate.
 
-        this is the milestone half of the gate. PHASEGATE fired once per phase
-        whether the phase was 5885 new lines or two lines of formatter
-        appeasement, so the same cold multi-lens review was spent on both
+        this is the secondary half of the gate measurement; brain-gate.py
+        decides. PHASEGATE fired once per phase whether the phase was 5885 new
+        lines or two lines of formatter appeasement, so the same cold
+        multi-lens review was spent on both
 
         counted the way the tree is counted: only files shape.toml admits, only
         under the measured path, and untracked new files included. a regenerated
@@ -360,8 +370,8 @@ class Shape:
 def main() -> None:
     """measure the named repo, report every crossing, and gate --check on them.
 
-    `--since REF` adds the change budget that decides whether the next phase
-    boundary buys a cold review
+    `--since REF` adds the SECONDARY change budget; brain-gate.py decides whether
+    a phase boundary buys a cold review
     """
     args = Args.from_argv()
     args.gate(TOOL, __doc__, Flag.CHECK, Flag.SINCE)

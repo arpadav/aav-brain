@@ -64,6 +64,7 @@ CREATE (:Principle {id:'principle-63-brainstorming-does-not-change-the-plan', he
 CREATE (:Principle {id:'principle-64-resume-after-interruption-verifies-then-redispatches', headline:'after a crash or restart, resuming means verifying what actually finished; recover the subagent output if it exists, otherwise re-dispatch. never assume done and never skip the unfinished piece.'});
 CREATE (:Principle {id:'principle-65-numbered-recommendations-get-one-word-replies', headline:'put findings/decisions to him as a numbered list, each with a recommended default, so he can reply "affirm" or overrule by number. his overrules are usually about keeping extensibility structure or making a value configurable.'});
 CREATE (:Principle {id:'principle-66-open-items-are-one-file-each', headline:'a decision that outlives the session is one file, plans/open-items/<ID>-<slug>.md - title states the problem in one line, then What / Issue / Decisions (recommended option plus an A/B/C table) / Your call, every term defined with "e.g." on first use, and a sha256 footer so an edit by him is detected, not asked about.'});
+CREATE (:Principle {id:'principle-67-merge-keeps-both-prioritises-one', headline:'when consolidating two machines\' diverged work, where both built a real mechanism for the same job, keep both with a stated priority and let the redundant one be pruned later on evidence - do not pick a winner and delete the loser in the merge. a merge ends with everything on main.'});
 MATCH (a {id:'principle-01-no-assumptions'}),(b {id:'principle-10-autonomy-after-sanction'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-01-no-assumptions'}),(b {id:'principle-15-tone-is-signal'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-02-plan-before-build'}),(b {id:'principle-03-review-gate'}) CREATE (a)-[:RELATES]->(b);
@@ -222,6 +223,7 @@ MATCH (a {id:'principle-53-rigor-scales-with-the-change'}),(b {id:'principle-03-
 MATCH (a {id:'principle-53-rigor-scales-with-the-change'}),(b {id:'principle-27-organization-reorg'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-53-rigor-scales-with-the-change'}),(b {id:'principle-35-gates-are-agent-side'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-53-rigor-scales-with-the-change'}),(b {id:'principle-41-rigor-scales-with-purpose'}) CREATE (a)-[:RELATES]->(b);
+MATCH (a {id:'principle-53-rigor-scales-with-the-change'}),(b {id:'principle-51-spaghetti-is-a-design-fault'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-54-a-count-is-a-measurement'}),(b {id:'principle-04-anti-fabrication'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-54-a-count-is-a-measurement'}),(b {id:'principle-53-rigor-scales-with-the-change'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-55-the-run-is-visible'}),(b {id:'principle-42-plain-english-questions'}) CREATE (a)-[:RELATES]->(b);
@@ -253,10 +255,14 @@ MATCH (a {id:'principle-64-resume-after-interruption-verifies-then-redispatches'
 MATCH (a {id:'principle-65-numbered-recommendations-get-one-word-replies'}),(b {id:'principle-43-report-state-not-changelog'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-65-numbered-recommendations-get-one-word-replies'}),(b {id:'principle-49-his-interactive-app-shape'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-65-numbered-recommendations-get-one-word-replies'}),(b {id:'principle-51-spaghetti-is-a-design-fault'}) CREATE (a)-[:RELATES]->(b);
+MATCH (a {id:'principle-65-numbered-recommendations-get-one-word-replies'}),(b {id:'principle-67-merge-keeps-both-prioritises-one'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-66-open-items-are-one-file-each'}),(b {id:'principle-04-anti-fabrication'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-66-open-items-are-one-file-each'}),(b {id:'principle-56-close-out-housekeeping'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-66-open-items-are-one-file-each'}),(b {id:'principle-57-user-docs-are-an-icd'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-66-open-items-are-one-file-each'}),(b {id:'principle-65-numbered-recommendations-get-one-word-replies'}) CREATE (a)-[:RELATES]->(b);
+MATCH (a {id:'principle-67-merge-keeps-both-prioritises-one'}),(b {id:'principle-09-git-sovereignty'}) CREATE (a)-[:RELATES]->(b);
+MATCH (a {id:'principle-67-merge-keeps-both-prioritises-one'}),(b {id:'principle-28-dry-merge-blast-radius'}) CREATE (a)-[:RELATES]->(b);
+MATCH (a {id:'principle-67-merge-keeps-both-prioritises-one'}),(b {id:'principle-65-numbered-recommendations-get-one-word-replies'}) CREATE (a)-[:RELATES]->(b);
 MATCH (a {id:'principle-01-no-assumptions'}),(b {id:'principle-10-autonomy-after-sanction'}) CREATE (a)-[:TENSION]->(b);
 MATCH (a {id:'principle-03-review-gate'}),(b {id:'principle-60-device-facing-code-is-gated-by-a-live-run'}) CREATE (a)-[:TENSION]->(b);
 MATCH (a {id:'principle-05-reuse-first'}),(b {id:'principle-20-refactors-welcome'}) CREATE (a)-[:TENSION]->(b);

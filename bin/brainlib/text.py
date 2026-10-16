@@ -13,7 +13,7 @@ from brainlib.vocab import ENCODING, Frontmatter, Kind
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import datetime
+import datetime as dt
 import os
 import re
 from pathlib import Path
@@ -47,7 +47,7 @@ def iso_now() -> str:
     # Returns
     the stamp, e.g. `2026-08-17T13:24:41.290526Z`
     """
-    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def kind_rank(kind: str) -> int:

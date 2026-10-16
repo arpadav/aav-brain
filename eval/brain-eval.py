@@ -36,6 +36,12 @@ covers.
 
 Author: aav
 """
+# brainlib lives in bin/, a sibling of this folder
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -48,10 +54,8 @@ import json
 import shutil
 import statistics
 import subprocess
-import sys
 import tomllib
 from dataclasses import dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
@@ -240,7 +244,7 @@ def cmd_pack(run: str) -> None:
     if not (root / "run.json").is_file():
         print(f"{TOOL}: no run {run!r} - init it first", file=sys.stderr)
         sys.exit(Exit.USAGE)
-    recall = LAYOUT.bin / "brain-recall.py"
+    recall = LAYOUT.bin / "run" / "brain-recall.py"
     packed = 0
     for task in load_tasks():
         for arm in ARMS:

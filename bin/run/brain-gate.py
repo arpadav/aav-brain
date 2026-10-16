@@ -25,16 +25,23 @@ the agent's mood (P30):
     python3 brain-gate.py reset
         delete this repo's gate state (CLEANUP runs it; the run leaves no residue)
 
-the score: changed lines in code at 1, in docs at 0.25, plus a structural weight
-per added, deleted or renamed file. the plan's S/M/L tag is the expected size;
-the measured diff overrides it when the phase is bigger than tagged
+the score: changed lines in code at 1, plus a structural weight per added,
+deleted or renamed file. prose (shape.toml's `[scan] prose`) scores nothing: a
+doc never buys the cold review, it gets the style gate. the plan's S/M/L tag is
+the expected size; the measured diff overrides it when the phase is bigger
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, find_gate_state
+from brainlib import Args, Exit, Flag, Layout, ShapePolicy, find_gate_state
 
 # --------------------------------------------------
 # external
@@ -42,9 +49,7 @@ from brainlib import Args, Exit, Flag, find_gate_state
 import hashlib
 import json
 import subprocess
-import sys
 from dataclasses import asdict, dataclass, field
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
@@ -64,9 +69,8 @@ ROUND_ARGS = 2
 SERIOUS_LIMIT = 5
 # the plan's expected size per tag
 TAG_SCORE = {"S": 50.0, "M": 200.0, "L": 600.0}
-# per-line weight of a doc file; prose is cheap to review
-DOC_WEIGHT = 0.25
-DOC_SUFFIXES = frozenset({".md", ".rst", ".txt", ".adoc"})
+# prose suffixes score nothing; the list is shape.toml's, spelled once
+PROSE = ShapePolicy.load(Layout.discover().shape_toml).prose
 # structural weight per file event: a new or moved module reshapes the tree
 ADDED_WEIGHT = 40.0
 DELETED_WEIGHT = 20.0
@@ -160,14 +164,14 @@ def line_weight(path: str) -> float:
 
     # Returns
 
-    DOC_WEIGHT for a doc file, 1.0 otherwise
+    0.0 for a prose file, 1.0 otherwise
 
     # Example
 
         >>> line_weight("book/intro.md"), line_weight("src/lib.rs")
-        (0.25, 1.0)
+        (0.0, 1.0)
     """
-    return DOC_WEIGHT if Path(path).suffix in DOC_SUFFIXES else 1.0
+    return 0.0 if Path(path).suffix in PROSE else 1.0
 
 
 def score_numstat(numstat: str) -> float:
@@ -184,7 +188,7 @@ def score_numstat(numstat: str) -> float:
     # Example
 
         >>> score_numstat("10\t2\tsrc/a.rs\n8\t0\tREADME.md\n-\t-\tlogo.png\n")
-        24.0
+        22.0
     """
     total = 0.0
     for row in numstat.splitlines():
@@ -205,15 +209,19 @@ def score_status(name_status: str) -> float:
 
     # Returns
 
-    the added, deleted and renamed file weights summed
+    the added, deleted and renamed file weights summed; a prose file's event is free
 
     # Example
 
-        >>> score_status("A\tsrc/new.rs\nM\tsrc/a.rs\nR094\tsrc/b.rs\tsrc/c.rs\n")
+        >>> score_status("A\tsrc/new.rs\nM\tsrc/a.rs\nR094\tsrc/b.rs\tsrc/c.rs\nA\tdocs/x.md\n")
         80.0
     """
     weights = {"A": ADDED_WEIGHT, "D": DELETED_WEIGHT, "R": RENAMED_WEIGHT}
-    return sum(weights.get(row[:1], 0.0) for row in name_status.splitlines() if row)
+    return sum(
+        weights.get(row[:1], 0.0)
+        for row in name_status.splitlines()
+        if row and line_weight(row.rsplit("\t", 1)[-1])
+    )
 
 
 def measure(since: str) -> float:
@@ -233,15 +241,20 @@ def measure(since: str) -> float:
     total = score_numstat(git("diff", "--numstat", "--find-renames", since))
     total += score_status(git("diff", "--name-status", "--find-renames", since))
     # --------------------------------------------------
-    # untracked: each is a new file of its full length
+    # untracked: each non-prose file is a new file of its full length
     # --------------------------------------------------
     for path in git("ls-files", "--others", "--exclude-standard").splitlines():
+        # --------------------------------------------------
+        # skip prose: it scores nothing, it gets the style gate
+        # --------------------------------------------------
+        if not line_weight(path):
+            continue
         try:
             lines = len(Path(path).read_text().splitlines())
         except (UnicodeDecodeError, OSError):
             total += BINARY_WEIGHT + ADDED_WEIGHT
             continue
-        total += lines * line_weight(path) + ADDED_WEIGHT
+        total += lines + ADDED_WEIGHT
     return total
 
 

@@ -5,8 +5,8 @@ tier: conditional
 rule: Prepare the record, never publish it. No commits/tags/version bumps without explicit say-so. Never overwrite his manual edits.
 interest: [intent-sovereignty]
 confidence: very-high
-evidence_count: 13
-tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read"]
+evidence_count: 14
+tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read", "yo i never NEVER asked you to commit, let me change the commit message"]
 ---
 
 # P09 - Git sovereignty (prepare, don't publish)
@@ -47,6 +47,12 @@ applied after i approve them, then i should be the one to stage+commit things. b
 control reign locally."* The line is where the work LANDS: once it is applied onto his branch it is
 uncommitted until he stages and commits it himself. Say which commits are local saves; never push; never
 treat the worktree's history as the record ([[principle-51-spaghetti-is-a-design-fault]]).
+
+**"merge X into Y" is resolve-and-stage, not a commit (2026-10-15).** a merge commit on his branch is a commit
+like any other: `git merge --no-commit`, resolve, stage, stop. he writes the message. pushing what already exists
+is not consent to create anything to push: *"yo i never NEVER asked you to commit, let me change the commit
+message"*. the same holds for the identity a commit carries - an agent-made commit under the wrong author is
+his to amend, and is avoided by not making it.
 
 **Name the base, and whether his checkout was touched (2026-10-01).** while the work lives in a scratch
 worktree or a patch, every handover says three things up front: which branch it sits on, that his checkout is

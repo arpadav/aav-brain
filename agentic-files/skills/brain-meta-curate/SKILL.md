@@ -20,17 +20,17 @@ the brain logs its reasoning to the PRIVATE data dir (`$XDG_DATA_HOME/aav-brain/
 outside the repo). before you re-open a topic, EXECUTE the
 trace reader and check whether the brain already decided something here:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --against          # decisions that rejected an option
-python3 $AAV_BRAIN/bin/brain-trace.py --low-confidence   # decisions worth revisiting
+python3 $AAV_BRAIN/bin/store/brain-trace.py --against          # decisions that rejected an option
+python3 $AAV_BRAIN/bin/store/brain-trace.py --low-confidence   # decisions worth revisiting
 ```
 if a past entry's `affects` pointer covers what you're about to change, the call was already made
 THERE: either reinforce it (strengthen the card/prompt wording), revise it (the `--reject` reasons no
 longer hold -> change the card / graph link / flow), or escalate to arpad. then log YOUR decision:
 ```bash
-python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-meta-curate --decision "<what>" --chosen "<what won>" \
+python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-meta-curate --decision "<what>" --chosen "<what won>" \
   --reject "<option>=<why rejected>" --affects "<path>" --principle P29
 ```
-run `python3 $AAV_BRAIN/bin/brain-cards.py` and resolve any `error:` findings (warnings are advisory).
+run `python3 $AAV_BRAIN/bin/store/brain-cards.py` and resolve any `error:` findings (warnings are advisory).
 
 ## prime rule (dont violate)
 consent is explicit; learn only from spoken signal. capture from his words: prompts, interruptions,
@@ -47,7 +47,7 @@ call, or code that merely exists. an applied diff is not a preference.
    unread-error / fabrication / trampled-work) and harden the matching card.
 4. interruptions + redirects -> note the pattern.
 5. machine evidence -> when asked to refresh, EXECUTE
-   `python3 $AAV_BRAIN/bin/brain-extract.py` (or `uv run` it) to rebuild
+   `python3 $AAV_BRAIN/bin/store/brain-extract.py` (or `uv run` it) to rebuild
    evidence/ from ~/.codex + ~/.claude. do not summarise transcripts by hand.
 
 ## how to write a card (two-step)
@@ -56,7 +56,7 @@ call, or code that merely exists. an applied diff is not a preference.
 2. add/keep its pointer line in brain/INDEX.md.
 
 ## hygiene
-- dont duplicate. check for an existing card first (`python3 $AAV_BRAIN/bin/brain-recall.py --tells <phrase>`
+- dont duplicate. check for an existing card first (`python3 $AAV_BRAIN/bin/run/brain-recall.py --tells <phrase>`
   + grep brain/principles). update beats create.
 - dont always ADD. gauge first whether an existing principle should be EXPANDED instead of adding a
   new card (P29). new cards must be atomic and orthogonal to the existing set.

@@ -21,7 +21,7 @@ recovering a line from a backup that was never taken
     # append a decision (each --reject is option=why it was rejected). SINGLE-quote
     # every value: a decision text is data, not something for the shell to expand
     python3 brain-trace.py --skill brain-plan --decision '...' --chosen '...' \
-        --reject 'three scripts=violates P19' --affects bin/brain-fmt.py --principle P19
+        --reject 'three scripts=violates P19' --affects bin/check/brain-fmt.py --principle P19
     #   optional: --confidence high|medium|low   --supersedes TS   --session ID
 
     # read decisions worth revisiting (--against and --reject are kept distinct:
@@ -37,6 +37,12 @@ recovering a line from a backup that was never taken
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -45,10 +51,8 @@ from brainlib import Args, DataLayout, Decision, Env, Exit, Flag, Layout, Ledger
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import sys
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 from typing import Any
 
 # --------------------------------------------------

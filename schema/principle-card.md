@@ -61,5 +61,5 @@ tells: ["verbatim phrase", ...]    # exact phrases that signal this card; used b
 
 ## lifecycle
 - the brain-meta-curate skill creates/updates cards from new feedback (self-editing memory).
-- evidence_count and tells are refreshed when `bin/brain-extract.py` re-runs.
+- evidence_count and tells are refreshed when `bin/store/brain-extract.py` re-runs.
 - wrong/outdated cards are deleted, not left to rot.

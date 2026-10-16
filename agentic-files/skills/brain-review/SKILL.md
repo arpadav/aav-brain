@@ -42,7 +42,7 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
 `$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
@@ -73,7 +73,7 @@ looks identical in the transcript while discarding it.
 the cold gate above is only HALF of a brain review. it has no brain memory by design. so, INDEPENDENTLY
 and after it, run a second brain-guided pass on the same diff - this is the superposition, not a
 replacement, and the cold pass is never warmed by it:
-- recall the cards the diff touches: `python3 $AAV_BRAIN/bin/brain-recall.py "<what the diff changes>"`.
+- recall the cards the diff touches: `python3 $AAV_BRAIN/bin/run/brain-recall.py "<what the diff changes>"`.
 - with that memory loaded, interrogate the diff at EVERY granularity - "would arpad write THIS file
   like this? this folder structure like this? this individual function like this?" (P29). a "no" is
   binding only with a reason - cite the card it violates.

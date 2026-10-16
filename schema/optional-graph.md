@@ -4,12 +4,12 @@ the brain ships a real, deterministic knowledge graph - not a grep, not a handwa
 how it works and where neo4j fits (it is an optional export, never a runtime dependency).
 
 ## what it is
-`bin/brain-graph.py` parses every card and emits, into `brain/graph/`:
+`bin/store/brain-graph.py` parses every card and emits, into `brain/graph/`:
 - `graph.json` : the canonical artifact. nodes = principle + interest cards; edges = derived
   relationships. committed to the repo. byte-identical on re-run given the same cards.
 - `graph.cypher` : a deterministic neo4j CREATE script. load it for a visual, ignore it otherwise.
 
-`bin/brain-recall.py` reads `graph.json` and never re-walks the cards - the graph is the index.
+`bin/run/brain-recall.py` reads `graph.json` and never re-walks the cards - the graph is the index.
 
 ## nodes
 | kind | source | fields |
@@ -38,7 +38,7 @@ serve to an unknown interest) and orphan nodes as `warnings` - the graph audits 
    timestamps or host paths beyond the repo-relative `path`.
 4. `graph.cypher` emitted in the same stable order, so it is byte-identical too.
 
-`python3 bin/brain-graph.py --check` rebuilds in memory and exits 1 if it differs from the committed
+`python3 bin/store/brain-graph.py --check` rebuilds in memory and exits 1 if it differs from the committed
 `graph.json`. wire it into a pre-commit hook so the graph can never silently drift from the cards.
 
 ## query (deterministic)

@@ -29,7 +29,7 @@ this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
 mandatory - a summary of what the engine does is NOT a substitute for running it:
 
 ```bash
-python3 $AAV_BRAIN/bin/brain-walk.py --state "$STATE" $MODE   # paste the output
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
 ```
 
 `$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
@@ -122,7 +122,7 @@ the brain-plan-specific work at each:
   when one exists). converge both; below_threshold loops to PLAN.
 - SANCTION: cross ONLY when open-question-free AND the worked example traces end-to-end. LOG each
   decided-against fork per the SANCTION state doc:
-  `python3 $AAV_BRAIN/bin/brain-trace.py --skill brain-plan --decision "<fork>" --chosen "<won>"
+  `python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-plan --decision "<fork>" --chosen "<won>"
   --reject "<opt>=<why>" --affects "<plan path>" --principle <P>`. then STOP - planning ends here;
   execution is brain-execute's job once he blesses it.
 

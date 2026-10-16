@@ -24,6 +24,12 @@ itself reported - this script never counts findings on a tool's behalf
 
 Author: aav
 """
+# brainlib lives in bin/, one folder up
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
@@ -36,10 +42,8 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 
 # --------------------------------------------------
 # constants
