@@ -75,6 +75,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-65-numbered-recommendations-get-one-word-replies]] : numbered items with a recommended default so he can answer "affirm"; overrules are about extensibility or configurability
 - [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (brain-open-items.py)
 - [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
+- [[principles/principle-68-a-simplicity-restriction-is-droppable-when-free]] : a "(for now)" / "to keep it simple" restriction is a cost-limiter - lift it, scoped to the one feature that needs it, when lifting is as cheap; ask once if the cost is unknown
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises
