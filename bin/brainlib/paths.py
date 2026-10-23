@@ -164,14 +164,14 @@ class Layout:
         return self.flow_dir / "flow.toml"
 
     @property
-    def flow_json(self) -> Path:
-        """the built flow the engine walks.
+    def flow_template(self) -> Path:
+        """the hand-written frame DEV_FLOWCHART.md is populated from.
 
         # Returns
 
-        `<root>/brain/flow/flow.json`
+        `<root>/docs/templates/DEV_FLOWCHART.md`
         """
-        return self.flow_dir / "flow.json"
+        return self.docs / "templates" / "DEV_FLOWCHART.md"
 
     @property
     def graph_dir(self) -> Path:
@@ -192,16 +192,6 @@ class Layout:
         `<root>/brain/graph/graph.json`
         """
         return self.graph_dir / "graph.json"
-
-    @property
-    def graph_cypher(self) -> Path:
-        """the graph's cypher rendering.
-
-        # Returns
-
-        `<root>/brain/graph/graph.cypher`
-        """
-        return self.graph_dir / "graph.cypher"
 
     @property
     def docs(self) -> Path:

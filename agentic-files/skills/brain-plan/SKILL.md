@@ -23,38 +23,7 @@ reimplement - that is `brain-meta-drive`'s job. you only:
   -> PLANPROBE -> PLANGATE -> SANCTION, recalling per state and dispatching each owner. brain-plan does
   NOT cross into IMPL - planning ends at SANCTION; execution is brain-execute's job once he blesses it.
 
-<!-- GENERATED: handoff (brain-flow.py) - do not hand-edit -->
-
-this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
-mandatory - a summary of what the engine does is NOT a substitute for running it:
-
-```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
-```
-
-`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
-and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
-differently by mode, so a walk that drops it takes the build branch and a
-phase-less run can be sent back to DOCTRINE for a phase that does not exist.
-set it once at the entry and pass it on every walk call - the engine forwards
-it verbatim and never infers it.
-
-**you may not proceed until that output is in the transcript.** it names the
-state's owner and its transitions; if it is absent, the walk did not happen.
-then, and only then:
-
-```
-Skill(brain-meta-drive)          # the literal tool call, not a Read
-```
-
-the engine steps `flow.json`, recalls per state, dispatches each owner, and
-loops the gates to a terminal. you do not re-implement that loop here.
-
-every state the engine reaches prints its own directive the same way - a
-`Skill(...)` or `Agent(...)` line under the state. make that call before doing
-the state's work; the owner skill IS the method, and hand-rolling it inline
-looks identical in the transcript while discarding it.
-<!-- END GENERATED: handoff -->
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode build` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 at the plan-region states the engine dispatches, brain-plan IS the owner - the rest of this file is that
 state-work: **at PLAN** produce the artifact below; **at PLANPROBE** trace it; **at PLANGATE/SANCTION**
@@ -84,9 +53,13 @@ dialogue at the start, not a delivery.
 
 ## at PLAN: the artifact (write it to plans/NN-name.md)
 1. goal. one or two sentences, tight scope. dont over-architect the first cut.
-2. worked example FIRST. a concrete instance of the design in use: a struct exercising the new api,
-   a sample invocation, a tiny flowchart, with comments. he validates abstractions against
-   instances. give him one.
+2. worked example FIRST, and it starts with the COMMANDS he would type: run one unit on one input,
+   run many, each output. derive the layout from those, never the reverse. then a struct exercising
+   the new api, a tiny flowchart, with comments. he validates abstractions against instances.
+   before PLANGATE, run the reviewer's three tests on your own plan: extension (add/delete one
+   pluggable unit touches only its folder + one config entry), use (one-line run-one command), name
+   (every file/folder/type/flag explained in one plain sentence; no near-twins, no path stutter).
+   the PLANGATE dispatch quotes his asks verbatim; plan conformance is never the criterion.
 3. phases. atomic, ordered. each states: what changes, which files, the acceptance check, and a
    size tag S | M | L (S: a few files, no new types or modules; M: one module's worth, or a new type;
    L: new modules, moved code, or a public surface change). phase count follows the work, never the

@@ -15,7 +15,8 @@ deterministic: keyword-seed the nodes, traverse serves/served_by/relates/
 tension edges one hop, rank with a fixed tie-break. same task always yields
 the same ranked cards. it reads the Node datatype that brain-graph wrote, from
 the shared brainlib (one definition, not a second node representation), and
-reads only brain/graph/graph.json - run brain-graph.py first
+reads only brain/graph/graph.json, rebuilt in-process by brain-graph's
+GraphBuilder whenever it is missing or older than any card it is built from
 
 how many cards come back is a property of the task, not a constant: the window
 is the constitution (always, unranked) plus every card explaining at least its
@@ -35,11 +36,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Layout, Node, Rel, Tier, kind_rank, load_json
+from brainlib import Args, Exit, Flag, Layout, Node, Rel, Tier, kind_rank, load_json, write_text
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
+import importlib.util
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -49,6 +51,13 @@ from dataclasses import dataclass, field
 # --------------------------------------------------
 # this tool's own name, for its messages; derived so a rename cannot desync them
 TOOL = Path(__file__).stem
+# the one-liners are an index, not the method: the agent reads the cards it judges relevant
+RECALL_FOLLOW_UP = """
+---
+these cards are the rules this work must abide by; the % is how much of the task each explains.
+the one-liners above are an INDEX, not the method. READ the cards you judge relevant (open the
+path) before doing the state's work, and cite each card you applied in the state's output,
+with the evidence: `P27: bench/ has 14 files, limit 12`. an uncited card was not applied."""
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 # the shortest token worth seeding on; two letters carry no topic
@@ -489,6 +498,32 @@ def dump_neighbors(index: RecallIndex, token: str) -> None:
         print(f"  -{etype}-> {dst}")
 
 
+def fresh_graph() -> Path:
+    """the graph.json path, rebuilt first when stale.
+
+    the one staleness rule: graph.json is stale when it is missing or older than
+    any card in brain-graph's CARD_DIRS. brain-graph.py is loaded by path since
+    its hyphenated name is not importable
+
+    # Returns
+    the path of a graph.json current with the cards
+    """
+    source = Path(__file__).resolve().parents[1] / "store" / "brain-graph.py"
+    spec = importlib.util.spec_from_file_location("brain_graph", source)
+    if spec is None or spec.loader is None:
+        sys.exit(f"{TOOL}: cannot load brain-graph.py to rebuild graph.json")
+    graph = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(graph)
+    cards = [path for directory, _ in graph.CARD_DIRS for path in directory.glob("*.md")]
+    built = LAYOUT.graph_json.stat().st_mtime if LAYOUT.graph_json.exists() else None
+    if built is None or any(card.stat().st_mtime > built for card in cards):
+        builder = graph.GraphBuilder(out_dir=LAYOUT.graph_dir, store=LAYOUT.store).load().build()
+        builder.out_dir.mkdir(parents=True, exist_ok=True)
+        for path, content in builder.targets():
+            write_text(path, content)
+    return LAYOUT.graph_json
+
+
 def main() -> None:
     """dispatch the requested recall mode."""
     args = Args.from_argv()
@@ -496,7 +531,7 @@ def main() -> None:
         print(f"{TOOL}: needs a task, or a lookup flag; `--help` lists what it accepts", file=sys.stderr)
         sys.exit(Exit.USAGE)
     args.gate(TOOL, __doc__, Flag.ALL, Flag.N, Flag.TELLS, Flag.NEIGHBORS, Flag.BINDS)
-    index = RecallIndex.load(LAYOUT.graph_json)
+    index = RecallIndex.load(fresh_graph())
     # --------------------------------------------------
     # the three lookup modes, each terminal
     # --------------------------------------------------
@@ -538,6 +573,7 @@ def main() -> None:
         elif node_id in why:
             print(f"   {why[node_id]}")
         print(f"   {node.path}")
+    print(RECALL_FOLLOW_UP)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 name: principle-30-deterministic-flow
 kind: principle
 tier: narrow
-rule: when executing, deterministically follow the execution flow (brain/flow/flow.json). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.
+rule: when executing, deterministically follow the execution flow (brain/flow/flow.toml). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.
 interest: [intent-control, intent-efficiency]
 confidence: very-high
 evidence_count: 3
@@ -15,7 +15,7 @@ tells: ["does it deterministically follow a flow chart", "the brain flow chart w
 two distinct artifacts, never conflated:
 - the GRAPH (brain/graph/graph.json) = the context fetcher/manager. nodes are cards, edges are
   serves/relates. brain-recall traverses it to answer "which principles apply." it is KNOWLEDGE.
-- the FLOW (brain/flow/flow.json) = the execution sequence. states are work phases, transitions are
+- the FLOW (brain/flow/flow.toml) = the execution sequence. states are work phases, transitions are
   guarded edges. brain-walk steps it to answer "what is the next step." it is SEQUENCE.
 when executing a task, deterministically FOLLOW the flow: to take any step, query brain-walk against
 the committed flow file. the brain does not invent the sequence; it reads it.

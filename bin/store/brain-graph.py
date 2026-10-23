@@ -5,15 +5,15 @@
 # ///
 """brain-graph: build the deterministic knowledge graph from the cards.
 
-    python3 brain-graph.py            build brain/graph/graph.json + graph.cypher
+    python3 brain-graph.py            build brain/graph/graph.json
     python3 brain-graph.py --check    build to memory, fail if it drifts from disk
 
 the graph IS the queryable context layer. nodes are the cards, edges are
 derived (never authored) from frontmatter and [[wikilinks]]. the Node/Edge
 datatypes, the frontmatter parser, and the drift-gate are shared via brainlib -
 brain-graph writes Node.to_dict, brain-recall reads Node.from_dict, one
-definition. output is byte-identical on re-run, committed, and `--check`-guarded
-a neo4j cypher export is emitted too; nothing depends on neo4j
+definition. output is byte-identical on re-run; graph.json is gitignored and
+brain-recall rebuilds it through GraphBuilder whenever a card is newer
 
 the graph is KNOWLEDGE, kept separate from the execution FLOW (brain-flow.py)
 
@@ -114,28 +114,6 @@ def listed(front: Frontmatter, key: str) -> list[str]:
     """
     value = front.get(key, [])
     return value if isinstance(value, list) else []
-
-
-def cypher_label(kind: str) -> str:
-    """the neo4j node label for a card kind.
-
-    # Arguments
-
-    * `kind` - the kind string as read from a card
-
-    # Returns
-
-    the kind's label, or `Card` when the kind is unrecognised
-
-    # Example
-
-        >>> cypher_label("principle"), cypher_label("bogus")
-        ('Principle', 'Card')
-    """
-    try:
-        return Kind(kind).label
-    except ValueError:
-        return "Card"
 
 
 @dataclass
@@ -278,35 +256,13 @@ class GraphBuilder(Artifact):
                      "warnings": self.warnings}
         return json.dumps(graph, indent=2, ensure_ascii=False) + "\n"
 
-    def to_cypher(self) -> str:
-        """render the graph as a deterministic neo4j CREATE script.
-
-        # Returns
-        a cypher string; load with `cypher-shell < graph.cypher` for a visual
-        """
-        lines: list[str] = []
-        # --------------------------------------------------
-        # node creates, sorted like the json
-        # --------------------------------------------------
-        for node in self.ordered_nodes():
-            headline = node.headline.replace("\\", "\\\\").replace("'", "\\'")
-            lines.append(f"CREATE (:{cypher_label(node.kind)} {{id:'{node.id}', headline:'{headline}'}});")
-        # --------------------------------------------------
-        # relationship creates, in the same stable edge order
-        # --------------------------------------------------
-        lines.extend(f"MATCH (a {{id:'{edge.src}'}}),(b {{id:'{edge.dst}'}}) "
-                     f"CREATE (a)-[:{edge.type.label}]->(b);"
-                     for edge in self.edges)
-        return "\n".join(lines) + "\n"
-
     def targets(self) -> list[tuple[Path, str]]:
-        """the committed artifacts: graph.json and graph.cypher.
+        """the built artifact: graph.json.
 
         # Returns
         a list of (path, content) pairs
         """
-        return [(LAYOUT.graph_json, self.to_json()),
-                (LAYOUT.graph_cypher, self.to_cypher())]
+        return [(LAYOUT.graph_json, self.to_json())]
 
     def summary(self) -> str:
         """a one-line (plus warnings) build summary.

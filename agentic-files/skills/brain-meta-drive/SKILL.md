@@ -1,12 +1,12 @@
 ---
 name: brain-meta-drive
-description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.json from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
+description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.toml from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
 ---
 
 # brain-meta-drive: the shared flow-traversal engine
 
 every entry skill is thin and ends the same way: *reconstruct my region's state -> set `$STATE` (entry
-node) + `$REGIME` -> load this engine.* brain-meta-drive owns ONLY the walk: it steps `flow.json` from
+node) + `$REGIME` -> load this engine.* brain-meta-drive owns ONLY the walk: it steps `flow.toml` from
 `$STATE` to a terminal, running each state's owner. it is the ONE trampoline (P31) - the entries
 never reimplement it.
 
@@ -18,13 +18,27 @@ the caller (`brain-plan` @IDEATION, `brain-execute` @DOCTRINE, `brain-edit` @EDI
   **the engine reconstructs nothing.**
 - set `$STATE` = its entry node, `$REGIME` = ask-first | execute-through (read it from the entry, do
   NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it),
-  and `$MODE` = `--self-refine` for the refine entry, `--edit` for brain-edit, EMPTY for the rest.
+  and `$MODE` = its mode, the `mode` of its `[[entries]]` row in flow.toml (`build`, `edit`,
+  `self-refine`, ...). brain-walk rejects a mode flow.toml does not declare.
 
-**forward `$MODE` verbatim on every walk call; never infer it.** a guarded transition resolves by
+**pass `--mode "$MODE"` verbatim on every walk call; never infer it.** a guarded transition resolves by
 mode, so the same (state, event) leads somewhere different per entry - `VERIFY --more_phases-->
 DOCTRINE` is guarded `build` and exists for neither a refine nor an edit run, both of which are
-phase-less. dropping the flag silently takes the build branch and can send a two-line edit back to
+phase-less. a wrong mode silently takes the build branch and can send a two-line edit back to
 DOCTRINE for a phase that does not exist.
+
+## the handoff contract (every entry ends here)
+the handoff has TWO steps and both are mandatory - a summary of what the engine does is NOT a
+substitute for running it:
+```bash
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE"   # paste the output
+```
+**you may not proceed until that output is in the transcript.** it names the state's owner and its
+transitions; if it is absent, the walk did not happen. then, and only then, `Skill(brain-meta-drive)` -
+the literal tool call, not a Read. every state the engine reaches prints its own directive the same
+way - a `Skill(...)` or `Agent(...)` line under the state. make that call before doing the state's
+work; the owner skill IS the method, and hand-rolling it inline looks identical in the transcript
+while discarding it.
 
 ## setup (run first - discover the brain, no hardcoded path)
 the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH, so they
@@ -35,18 +49,21 @@ eval "$(brain-find --export)"   # sets $AAV_BRAIN
 
 ## EXECUTE, do not read-and-reason (the cardinal rule)
 the flow is a program; you RUN it, you do not interpret it. you MUST execute `$AAV_BRAIN/bin/run/brain-walk.py` for
-every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.json`/`flow.toml` and reason about
+every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.toml` and reason about
 transitions yourself - that re-derives the machine by hand, non-deterministically, and is the exact bug
 this design exists to prevent. if a script errors, FIX the error; never fall back to reading the data
 file and guessing. same for brain-recall: run it, use its output; do not hand-walk graph.json.
 
 ## the trampoline (the engine itself) - loop from `$STATE` until a terminal
 ```bash
-step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE")     # the state's owner + recall flag
+step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE")     # the state's owner + recall flag
 ```
 - if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/run/brain-recall.py "<active task>"` FIRST to load
   the relevant cards. this is the ONLY call into the graph (context); the graph never decides the next
-  step.
+  step. the query is the task PLUS the state's own job from its doc line ("<task> - judge names,
+  extension, use" at PLANGATE), so each state gets its own cards. the output is an index: READ the
+  cards you judge relevant, then cite each one you applied, with its evidence, in the state's
+  output (`P27: bench/ has 14 files, limit 12`). a state with no citation did not use the brain.
 - **LOAD THE OWNER. this is the step that gets skipped.** `brain-walk.py` prints the literal call
   under every state that has one:
   ```
@@ -66,7 +83,7 @@ step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE")     # the stat
   `drafted`, ...).
 - get the next state from the data, never from your own judgement:
 ```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --on "$EVENT"
+python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --on "$EVENT" --mode "$MODE"
 ```
 
 ## cyclic refinement is REQUIRED (P03) - the gate loops never advance dirty

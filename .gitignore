@@ -19,3 +19,6 @@ __pycache__/
 # eval run trees: materialised fixtures, agent output and graded sheets. bulk,
 # and specific to one run - the tasks and rubrics that generate them ARE tracked
 eval/results/
+
+# built on demand by brain-recall.py from the cards, so a committed copy could only drift
+brain/graph/graph.json

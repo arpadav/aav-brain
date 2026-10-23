@@ -35,7 +35,7 @@ closes on its own schedule, not yours.
 
 ## entry - hand the walk to the engine
 brain-self-refine is the self-refine ENTRY: set `$STATE` = `SR_SCAN`, `$REGIME` = `ask-first` and
-`$MODE` = `--self-refine`, then load `brain-meta-drive` to walk
+`$MODE` = `self-refine`, then load `brain-meta-drive` to walk
 
     SR_SCAN -> SR_FINDINGS -> SR_ASK -> EDIT -> VERIFY -> STYLE -> RECORD -> CURATE -> DONE
 
@@ -50,7 +50,7 @@ rigor dial, and only two of its three edges are open here: a refine run emits `e
 VERIFY, or `gated` for a cold pass first. `unchecked` is guarded to brain-edit.
 
 `$MODE` is what makes the shared tail behave: `VERIFY --more_phases--> DOCTRINE` is guarded `build`,
-because a refine run has no phases. drop the flag and the walk takes the build branch. `EDIT
+because a refine run has no phases. drop the mode and the walk takes the build branch. `EDIT
 --unchecked--> STYLE` is guarded `edit` for the same reason in reverse: a refine run has just
 written brain code, so skipping the verifier is not one of its options.
 
@@ -59,41 +59,21 @@ the trampoline is the engine's; the steps below are this skill's per-state work
 SR_ASK blocks on his selection (a pre-sanction ASK gate, never auto-applied). step 0 is the ONE
 exception and needs no consent: it only preserves and merges evidence, never edits the brain.
 
-<!-- GENERATED: handoff (brain-flow.py) - do not hand-edit -->
-
-this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
-mandatory - a summary of what the engine does is NOT a substitute for running it:
-
-```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
-```
-
-`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
-and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
-differently by mode, so a walk that drops it takes the build branch and a
-phase-less run can be sent back to DOCTRINE for a phase that does not exist.
-set it once at the entry and pass it on every walk call - the engine forwards
-it verbatim and never infers it.
-
-**you may not proceed until that output is in the transcript.** it names the
-state's owner and its transitions; if it is absent, the walk did not happen.
-then, and only then:
-
-```
-Skill(brain-meta-drive)          # the literal tool call, not a Read
-```
-
-the engine steps `flow.json`, recalls per state, dispatches each owner, and
-loops the gates to a terminal. you do not re-implement that loop here.
-
-every state the engine reaches prints its own directive the same way - a
-`Skill(...)` or `Agent(...)` line under the state. make that call before doing
-the state's work; the owner skill IS the method, and hand-rolling it inline
-looks identical in the transcript while discarding it.
-<!-- END GENERATED: handoff -->
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `self-refine`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode self-refine` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## 1. scan deterministically (EXECUTE the checks, do not eyeball)
-run the scripted checks and collect their output - this is the machine pass, it must be reproducible:
+run the scripted checks and collect their output - this is the machine pass, it must be reproducible.
+
+### question past decisions FIRST
+every conformance check below confirms a decision already made; these ask whether it still holds.
+a config can hide the thing it should report, so they run before anything that trusts one:
+```bash
+python3 $AAV_BRAIN/bin/check/brain-decisions.py generated  # tracked files a builder writes or .gitignore disowns, and whether shape.toml says why
+python3 $AAV_BRAIN/bin/check/brain-decisions.py reach      # units named from too many files outside themselves (threshold in shape.toml)
+python3 $AAV_BRAIN/bin/check/brain-decisions.py untraced   # decision-making skills (entries + flow owners) that never logged a fork (CONSTITUTION)
+```
+
+### then conformance
 ```bash
 python3 $AAV_BRAIN/bin/store/brain-cards.py            # structural errors: dangling links, missing frontmatter, INDEX gaps
 python3 $AAV_BRAIN/bin/store/brain-graph.py --check    # graph drift from the cards
@@ -107,18 +87,6 @@ python3 $AAV_BRAIN/bin/store/brain-trace.py --low-confidence # decisions worth r
 python3 $AAV_BRAIN/bin/store/brain-trace.py --stale-candidates # entries whose affects resolves to nothing
 grep -rn -- '/home/[a-z]\|-home-[a-z]' "$AAV_BRAIN/bin" "$AAV_BRAIN/agentic-files"  # hardcoded paths incl hyphen-encoded form (P32)
 find "$AAV_BRAIN/agentic-files" -type l -lname '*../*'          # layout-baking symlinks: the P32 costume case grep cannot see
-# traceability (CONSTITUTION rule): skills that have NEVER logged a fork. judge which gaps are real -
-# retrieval/util skills (brain-find) legitimately have none; decision-making
-# entries + meta (plan, execute, edit, review, self-refine, meta-intent, meta-curate, meta-commit,
-# meta-author-prompt) with zero entries is a violation. the sed GRANDFATHERS pre-rename tags so a
-# skill that logged under its OLD name isn't falsely flagged after the brain-meta-* rename. --pruned
-# is unioned in because a PRUNED entry still proves the skill logged a fork - reading only --against
-# would report a CONSTITUTION violation the moment a skill's last entry was pruned.
-comm -13 <({ python3 $AAV_BRAIN/bin/store/brain-trace.py --against; python3 $AAV_BRAIN/bin/store/brain-trace.py --pruned; } \
-  | grep -oE '\[brain-[a-z-]+\]' | tr -d '[]' \
-  | sed -E 's/^brain-(intent|recall|style|curate|commit|author-prompt|learn)$/brain-meta-\1/; s/^brain-continue$/brain-meta-drive/' \
-  | sort -u) \
-  <(ls "$AAV_BRAIN/agentic-files/skills" | sort -u)
 ```
 also sweep the structural smells the brain reviews for elsewhere: a datatype/helper defined in 2+
 files (P31), free-function logic that should live on a type (P26), a recurring deterministic op done

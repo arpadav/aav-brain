@@ -90,12 +90,25 @@ suffixes = [
 # arming on it spends five reviewers on a diff with no code in it.
 prose = [".md", ".markdown", ".rst", ".txt"]
 
-# path fragments excluded from every measurement. a vendored tree's shape is
-# not his to fix, and a GENERATED file's length is not a design signal - the
-# brain's flow.json, graph.json and DEV_FLOWCHART.md are all builds of authored
-# sources that are measured in their own right.
+# path fragments excluded from every measurement. each one is a tree this repo
+# does not AUTHOR: vendored code is not his to fix, and the rest are build or
+# install output directories that are gitignored wherever they appear. a
+# generated file that is TRACKED is deliberately not excluded - if it is
+# committed it is part of the repo's shape, and brain-decisions.py asks why it
+# is committed at all.
 excluded = [
-    "/vendor/", "/node_modules/", "/target/", "/.generated/", "/dist/",
-    "/build/", "/third_party/", "/generated/",
-    "/brain/flow/flow.json", "/brain/graph/", "/docs/DEV_FLOWCHART.md",
+    "/vendor/", "/node_modules/", "/target/", "/dist/", "/build/", "/third_party/",
 ]
+
+[decisions]
+# brain-decisions.py questions past decisions instead of confirming them.
+#
+# a unit (skill, agent, flow state, principle card) named from more than this
+# many files outside itself is reported: every one of those files was a past
+# decision to extend the unit in place rather than to question it.
+reach_files = 15
+
+# a tracked file a builder writes, or that .gitignore disowns, is a finding
+# unless its path is keyed here with WHY it is committed. a reason is about what
+# breaks without the committed copy, never about the work of untracking it.
+[decisions.tracked]

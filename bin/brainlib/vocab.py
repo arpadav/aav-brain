@@ -37,11 +37,9 @@ type Frontmatter = dict[str, str | list[str]]
 
 
 class Kind(StrEnum):
-    """the two kinds of card, with the ordering and labels derived from them.
+    """the two kinds of card, with the ordering derived from them.
 
-    the rank is the tie-break shared by the graph build and recall; the label is
-    the neo4j node label. both used to be separate string-keyed tables that a
-    third kind would have had to be added to in three places.
+    the rank is the tie-break shared by the graph build and recall.
     """
 
     PRINCIPLE = "principle"
@@ -62,35 +60,13 @@ class Kind(StrEnum):
         """
         return list(Kind).index(self)
 
-    @property
-    def label(self) -> str:
-        """this kind's neo4j node label.
-
-        # Returns
-
-        the capitalised label
-
-        # Example
-
-            >>> Kind.INTEREST.label
-            'Interest'
-        """
-        return self.value.capitalize()
-
 
 class Rel(StrEnum):
     """every derived relationship an edge can carry, named once.
 
     the graph's edge vocabulary is closed and derived - never authored - so it
     belongs here rather than in the builder that writes it and again in the
-    reader that traverses it. the neo4j label comes off the member, the way
-    Kind's does, instead of a parallel string-keyed table a fifth relationship
-    would have to be added to twice
-
-    # Example
-
-        >>> Rel.SERVED_BY.label
-        'SERVED_BY'
+    reader that traverses it
     """
 
     # no producer since intents stopped being nodes: brain-graph emits neither,
@@ -101,21 +77,6 @@ class Rel(StrEnum):
     SERVED_BY = "served_by"
     RELATES = "relates"
     TENSION = "tension"
-
-    @property
-    def label(self) -> str:
-        """this relationship's neo4j label.
-
-        # Returns
-
-        the upper-cased label
-
-        # Example
-
-            >>> Rel.RELATES.label
-            'RELATES'
-        """
-        return self.value.upper()
 
 
 class Tier(StrEnum):
@@ -225,6 +186,7 @@ class Flag(StrEnum):
     LIST = "--list"
     LOW_CONFIDENCE = "--low-confidence"
     MERMAID = "--mermaid"
+    MODE = "--mode"
     # the one short flag the brain accepts, kept short because recall is typed by hand
     N = "-n"
     NEIGHBORS = "--neighbors"
@@ -236,8 +198,6 @@ class Flag(StrEnum):
     PRUNED = "--pruned"
     REJECT = "--reject"
     RESTORE = "--restore"
-    EDIT = "--edit"
-    SELF_REFINE = "--self-refine"
     SESSION = "--session"
     SINCE = "--since"
     SKILL = "--skill"
@@ -269,96 +229,10 @@ class Flag(StrEnum):
         """
         return frozenset({
             cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
-            cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.N, cls.NEIGHBORS, cls.ON,
+            cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.MODE, cls.N, cls.NEIGHBORS, cls.ON,
             cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
             cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG, cls.TELLS,
         })
-
-
-class Mode(StrEnum):
-    """which region of the one flow a walk is traversing.
-
-    a transition may carry a guard naming a mode, so the same (state, event)
-    can lead somewhere different in a refine run than in a build. the mode is a
-    DECLARED input to the walk, never ambient state - `brain-walk --state X
-    --on E --self-refine` stays a pure function of its arguments (P30).
-    """
-
-    BUILD = "build"
-    SELF_REFINE = "self_refine"
-    EDIT = "edit"
-
-    @classmethod
-    def of(cls, *, self_refine: bool = False, edit: bool = False) -> "Mode":
-        """the mode a walk is in.
-
-        # Arguments
-
-        * `self_refine` - true when the caller is brain-self-refine
-        * `edit` - true when the caller is brain-edit
-
-        # Returns
-
-        the matching mode; BUILD when neither flag is present, which is what a
-        plan or execute run gets. refine and edit are separate because they
-        differ from a build in the same way (no phase list) but from each other
-        in whether verification may be skipped
-
-        # Example
-
-            >>> Mode.of(self_refine=True), Mode.of(edit=True), Mode.of()
-            (<Mode.SELF_REFINE: 'self_refine'>, <Mode.EDIT: 'edit'>, <Mode.BUILD: 'build'>)
-        """
-        if self_refine:
-            return cls.SELF_REFINE
-        return cls.EDIT if edit else cls.BUILD
-
-    def satisfies(self, guard: str) -> bool:
-        """whether a transition's guard admits this mode.
-
-        an empty guard admits every mode; `self_refine` admits only that mode;
-        `!self_refine` admits every other
-
-        # Arguments
-
-        * `guard` - the transition's guard string
-
-        # Returns
-
-        true when the guarded edge is available in this mode
-
-        # Example
-
-            >>> Mode.BUILD.satisfies(""), Mode.BUILD.satisfies("!self_refine")
-            (True, True)
-            >>> Mode.BUILD.satisfies("self_refine")
-            False
-            >>> Mode.SELF_REFINE.satisfies("self_refine")
-            True
-        """
-        if not guard:
-            return True
-        negated = guard.startswith("!")
-        return (guard.lstrip("!") == self.value) != negated
-
-
-class Entry(StrEnum):
-    """every skill the user types to START a walk, named once.
-
-    an entry is the one skill in a run that is already in context before the
-    engine moves: it is the caller. two tools need that set and must never
-    disagree on it - brain-flow renders the drive handoff into each entry's
-    SKILL.md, and brain-walk suppresses a load directive for each, since
-    directing an entry to load itself is re-entry. a state's `owner` cannot
-    stand in for the set: an entry state is owned by whatever does its WORK,
-    which is nobody for IDEATION and brain-meta-author-prompt for DOCTRINE
-    """
-
-    PLAN = "brain-plan"
-    EXECUTE = "brain-execute"
-    EDIT = "brain-edit"
-    REVIEW = "brain-review"
-    SELF_REFINE = "brain-self-refine"
 
 
 class Exit(IntEnum):

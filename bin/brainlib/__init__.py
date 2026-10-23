@@ -18,15 +18,16 @@ same as it always did and no caller had to change:
 - `vocab`  the closed vocabularies: Kind (rank + neo4j label), Rel (the closed
   edge vocabulary, with its neo4j label), Tier (how a card reaches an agent),
   Confidence, Env (every environment variable read), Flag (every command-line
-  flag accepted), Exit (every status code), Mode (which region of the flow a
-  walk traverses, and what a guard admits), Entry (every skill a walk starts
-  from)
+  flag accepted), Exit (every status code)
 - `args`   Args, one argv parse, with the flag-versus-value rule applied once
 - `text`   the pure helpers: clip, iso_now, kind_rank, read_text, write_text,
   parse_frontmatter
 - `model`  the datatypes tools exchange: Node, Edge, State, Transition, and
   Artifact (build / --check / drift-gate), so the "committed artifact must equal
   a fresh build" invariant lives in exactly one place
+- `flow`   Flow and Entry: flow.toml parsed and validated once, shared by
+  brain-flow (renders the flowchart) and brain-walk (steps it); entries and
+  their modes are flow.toml data, not an enum
 - `paths`  Layout and DataLayout, the ONE place a path inside the brain is
   spelled, plus the discovery that finds the store without a hardcoded path
 - `store`  the append-merge Ledger + MergeCount, the ONE reader and writer for
@@ -43,6 +44,7 @@ Author: aav
 # local
 # --------------------------------------------------
 from brainlib.args import Args
+from brainlib.flow import Entry, Flow
 from brainlib.model import Artifact, Edge, Node, State, Transition, load_json
 from brainlib.paths import (
     DataLayout,
@@ -60,13 +62,11 @@ from brainlib.vocab import (
     GIT_TIMEOUT,
     PYTHON_VERSION,
     Confidence,
-    Entry,
     Env,
     Exit,
     Flag,
     Frontmatter,
     Kind,
-    Mode,
     Rel,
     Tier,
 )
@@ -77,7 +77,7 @@ from brainlib.vocab import (
 __all__ = [
     "ENCODING", "GIT_TIMEOUT", "PYTHON_VERSION",
     "Args", "Artifact", "Confidence", "DataLayout", "Decision", "Edge", "Entry", "Env", "Exit",
-    "Flag", "Frontmatter", "Kind", "Layout", "Ledger", "MergeCount", "Mode", "Node",
+    "Flag", "Flow", "Frontmatter", "Kind", "Layout", "Ledger", "MergeCount", "Node",
     "PrunePolicy", "Rel", "ShapePolicy", "State", "Tier", "Transition",
     "clip", "find_archive", "find_brain", "find_data", "find_gate_state", "find_repo", "git",
     "iso_now",

@@ -7,10 +7,10 @@ the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the vo
 overlaps (P30).
 
 the source of truth is `brain/flow/flow.toml` (authored DATA, like the cards are the graph's data).
-`bin/store/brain-flow.py` reads + validates it and builds `brain/flow/flow.json`; `bin/run/brain-walk.py` steps
-flow.json deterministically. this whole file is GENERATED from flow.json by `brain-flow.py` - do NOT
-hand-edit it; re-run the builder after editing flow.toml so it can never drift. it is
-drift-gated: `brain-flow.py --check` fails if this file is stale. a state may
+`bin/run/brain-walk.py` reads and validates it directly and steps it deterministically.
+`docs/DEV_FLOWCHART.md` is POPULATED from this template (`docs/templates/DEV_FLOWCHART.md`) plus
+flow.toml by `bin/store/brain-flow.py` - edit the template for prose, flow.toml for the machine, then
+re-run the builder. it is drift-gated: `brain-flow.py --check` fails if the doc is stale. a state may
 CALL the graph (its `recall: true` flag fires brain-recall); the graph never calls the flow - one
 direction.
 
@@ -37,7 +37,7 @@ stateDiagram-v2
     state "REORG [work] apply the reshape in the flagged direction; this MUTATES the set -> re-expand" as REORG
     state "PLAN [work] small+verbose plan with a worked example, to plans/" as PLAN
     state "PLANPROBE [work] trace the plan THROUGH its own worked example; mark every step the plan cannot actually produce (plan-vs-impl gap)" as PLANPROBE
-    state "PLANGATE [gate] architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end. loops via below_threshold until then" as PLANGATE
+    state "PLANGATE [gate] architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; the reviewer is handed his asks verbatim and runs the extension, use and name tests; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end AND all three tests pass. loops via below_threshold until then" as PLANGATE
     state "SANCTION [boundary] arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)" as SANCTION
     state "DOCTRINE [gate] resolve the artifact PURPOSE (P41: scratch skip / tutorial light / production exhaustive) and the language row (P06); load the always-load doctrine set plus that language's extras; author the worker prompt carrying P40's before/after exemplars and the find-exhaustively ask. an adjective is not a resolved doctrine - emit unresolved (brain-execute entry, post-sanction)" as DOCTRINE
     state "IMPL [work] dispatch the workers with the prompt DOCTRINE authored; implement the phase (post-sanction). FAN OUT: two to three independent workers issued as PARALLEL TOOL CALLS IN ONE MESSAGE, each on a disjoint file set or in its own worktree, staggered as one returns - a loop of single dispatches is serial and looks identical in the transcript until you count them (P52). the tree-wide build/test/lint command belongs to the OVERSEER and runs one at a time, never to a worker: two builds block on one target lock and two mutation batteries revert over each other. a worker proves its own work with the cheap subset in its own worktree. the worker carries its END GOAL, not just this phase's ask: work beyond the literal ask that moves toward the sanctioned mission is IN, work merely adjacent is out (P45, P50). at the phase boundary `brain-gate.py phase --tag <the plan's S|M|L for this phase>` (add `--last` on the final phase) DECIDES the exit, and its word is final: `gate N` -> implemented (PHASEGATE, N reviewers); `defer` -> phase_done (the next phase; a later gate covers this one). phases and gates are NOT 1-to-1: six small phases may share two gates. prose scores nothing (shape.toml's `[scan] prose`), so a doc-only build never buys the cold review - it gets STYLE. `brain-shape.py <repo> --since <the ref this phase started from>` is the SECONDARY signal, kept while it is measured against brain-gate.py: run it beside, and when brain-gate.py says `defer` on the final phase (nothing pending) its under-budget verdict emits `under_budget`, straight to VERIFY. where the two disagree, brain-gate.py wins and the disagreement is logged to plans/open-items/G01-two-gate-arming-checks.md, which decides whether the shape budget is pruned. an unresolvable ref ARMS, because a gate is not cancelled by a typo" as IMPL
@@ -123,15 +123,16 @@ stateDiagram-v2
     DONE --> [*]
 ```
 
-## 2. state -> owner (generated from flow.json)
+## 2. state -> owner (generated from flow.toml)
 
-each state is owned by a brain skill or one of the two cold agents. the boundary state (SANCTION)
-flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask arpad, resume on
-/continue).
+each state is owned by a brain skill or one of the two cold agents. the `entry` column names the
+skill that starts a walk there and the mode it walks in (`brain-walk.py --mode <mode>`); a guarded
+edge is taken only in the mode its guard names. the boundary state (SANCTION) flips ask-first ->
+execute-through; BLOCKED is the only post-sanction stop (ask arpad, resume on /continue).
 
 | state | kind | entry | regime | owner | recall |
 |---|---|---|---|---|---|
-| IDEATION | entry | true | ask-first | - | false |
+| IDEATION | entry | brain-plan (build) | ask-first | - | false |
 | INTENT | work |  |  | brain-meta-intent | true |
 | ASK | gate |  |  | brain-meta-intent | true |
 | RECON | work |  |  | brain-recall+brain-plan | true |
@@ -146,7 +147,7 @@ flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask 
 | PLANPROBE | work |  |  | brain-plan | true |
 | PLANGATE | gate |  |  | brain-meta-style:plan | true |
 | SANCTION | boundary |  |  | brain-meta-drive | false |
-| DOCTRINE | gate | true | execute-through | brain-meta-author-prompt | true |
+| DOCTRINE | gate | brain-execute (build) | execute-through | brain-meta-author-prompt | true |
 | IMPL | work |  | execute-through | worker | true |
 | PHASEGATE | gate |  |  | brain-review-gate | true |
 | ADJUDICATE | work |  |  | brain-meta-style | true |
@@ -159,19 +160,19 @@ flips ask-first -> execute-through; BLOCKED is the only post-sanction stop (ask 
 | CLEANUP | work |  |  | brain-meta-commit:sweep | true |
 | BLOCKED | halt |  |  | brain-meta-intent | false |
 | DONE | terminal |  |  | brain-learner | false |
-| REVIEW | entry | true | ask-first | brain-review-gate | false |
-| SR_SCAN | entry | true | ask-first | brain-self-refine | false |
+| REVIEW | entry | brain-review (build) | ask-first | brain-review-gate | false |
+| SR_SCAN | entry | brain-self-refine (self-refine) | ask-first | brain-self-refine | false |
 | SR_FINDINGS | work |  |  | brain-self-refine | true |
 | SR_ASK | gate |  |  | brain-self-refine | false |
-| EDIT | work | true | execute-through | brain-self-refine+brain-edit | true |
+| EDIT | work | brain-edit (edit) | execute-through | brain-self-refine+brain-edit | true |
 
 ## 3. how brain-meta-drive steps it
 
 brain-meta-drive does not invent the sequence - it queries brain-walk:
-1. `brain-walk --state <id>` returns the state's owner + recall flag.
+1. `brain-walk --state <id> --mode <mode>` returns the state's owner + recall flag.
 2. if recall: run brain-recall to load the relevant cards (the one call into the graph).
 3. run the owner; it yields an outcome event (threshold_met / below_threshold / set_grew / ...).
-4. `brain-walk --state <id> --on <event>` returns the single next state - from the data, not judgement.
+4. `brain-walk --state <id> --on <event> --mode <mode>` returns the single next state - from the data, not judgement.
 
 cyclic refinement is REQUIRED, not optional (P03). three regions LOOP until a metric threshold holds,
 then advance exactly one phase:

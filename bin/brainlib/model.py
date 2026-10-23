@@ -1,7 +1,7 @@
 """brainlib.model: the datatypes one tool writes and another reads.
 
 a Node written by brain-graph is the same Node read by brain-recall, and a
-State written by brain-flow is the same State stepped by brain-walk. that
+State rendered by brain-flow is the same State stepped by brain-walk. that
 shared shape is the whole point of the library
 
 Author: aav
@@ -53,7 +53,7 @@ class Node:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Node":
-        """reconstruct a Node from a committed graph.json entry.
+        """reconstruct a Node from a built graph.json entry.
 
         # Arguments
         * `data` - a node dict from graph.json (no tension field)
@@ -85,7 +85,7 @@ class Edge:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Edge":
-        """reconstruct an Edge from a committed graph.json entry.
+        """reconstruct an Edge from a built graph.json entry.
 
         # Arguments
         * `data` - an edge dict from graph.json
@@ -98,12 +98,11 @@ class Edge:
 
 @dataclass(frozen=True)
 class State:
-    """one execution state. written by brain-flow, read by brain-walk.
+    """one execution state, authored in flow.toml.
 
     `recall` is the single coupling to the graph: when true, the walker fires
     brain-recall to load context before the owner runs. `terminal` marks an end
-    state with no exit. `entry` marks a multi-entry start node (an entry skill
-    seeds the walker here); `regime` is the autonomy that entry establishes
+    state with no exit. `regime` is the autonomy an entry state establishes
     (ask-first | execute-through), read from the entry, NOT inferred from the
     SANCTION crossing - review and self-refine reach a terminal without it
     """
@@ -114,25 +113,14 @@ class State:
     recall: bool
     doc: str
     terminal: bool = False
-    entry: bool = False
     regime: str = ""
     # context tags this state's recall must bind, so the cards a scored query
     # would rank off the bottom still reach the owner
     binds: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict[str, str | bool | list[str]]:
-        """serialise to the committed state shape.
-
-        # Returns
-        an ordered dict with the state's fields
-        """
-        return {"id": self.id, "kind": self.kind, "owner": self.owner, "recall": self.recall,
-                "terminal": self.terminal, "entry": self.entry, "regime": self.regime,
-                "binds": self.binds, "doc": self.doc}
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "State":
-        """reconstruct a State from a committed flow.json or a flow.toml table.
+        """reconstruct a State from a flow.toml `[[states]]` table.
 
         # Arguments
         * `data` - a state mapping; optional keys default
@@ -142,7 +130,7 @@ class State:
         """
         return cls(id=data["id"], kind=data["kind"], owner=data["owner"], recall=data["recall"],
                    doc=data["doc"], terminal=data.get("terminal", False),
-                   entry=data.get("entry", False), regime=data.get("regime", ""),
+                   regime=data.get("regime", ""),
                    binds=list(data.get("binds", [])))
 
 
@@ -159,17 +147,9 @@ class Transition:
     guard: str = ""
     boundary: bool = False
 
-    def to_dict(self) -> dict[str, str | bool]:
-        """serialise to the committed transition shape.
-
-        # Returns
-        a dict with keys src, dst, on, guard, boundary
-        """
-        return {"src": self.src, "dst": self.dst, "on": self.on, "guard": self.guard, "boundary": self.boundary}
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Transition":
-        """reconstruct a Transition from flow.json or a flow.toml table.
+        """reconstruct a Transition from a flow.toml `[[transitions]]` table.
 
         # Arguments
         * `data` - a transition mapping; optional keys default

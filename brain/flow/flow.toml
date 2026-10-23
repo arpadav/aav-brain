@@ -1,7 +1,7 @@
 # the execution flow - the authored source of truth (data, not code).
-# brain-flow.py READS this, validates it, and builds flow.json. brain-walk.py
-# steps flow.json. this is the SEQUENCE; the knowledge graph is the CONTEXT -
-# they are separate (P30).
+# brain-walk.py steps it directly and brain-flow.py renders docs/DEV_FLOWCHART.md
+# from it; both validate it on load. this is the SEQUENCE; the knowledge graph
+# is the CONTEXT - they are separate (P30).
 #
 # cyclic refinement is REQUIRED (P03), not optional: each gate is an
 # intermediate node that LOOPS (review -> fix -> re-review) until a metric
@@ -12,6 +12,35 @@
 # bidirectional reorg loop (P29, P27); the set expands to a fixpoint
 
 # --------------------------------------------------
+# entries: the skill he types, the state it seeds, the mode it walks in. a
+# transition guard names one of these modes (`!mode` negates)
+# --------------------------------------------------
+[[entries]]
+skill = "brain-plan"
+state = "IDEATION"
+mode = "build"
+
+[[entries]]
+skill = "brain-execute"
+state = "DOCTRINE"
+mode = "build"
+
+[[entries]]
+skill = "brain-review"
+state = "REVIEW"
+mode = "build"
+
+[[entries]]
+skill = "brain-self-refine"
+state = "SR_SCAN"
+mode = "self-refine"
+
+[[entries]]
+skill = "brain-edit"
+state = "EDIT"
+mode = "edit"
+
+# --------------------------------------------------
 # states
 # --------------------------------------------------
 [[states]]
@@ -19,7 +48,6 @@ id = "IDEATION"
 kind = "entry"
 owner = "-"
 recall = false
-entry = true
 regime = "ask-first"
 doc = "raw request received (brain-plan entry)"
 
@@ -112,7 +140,7 @@ id = "PLANGATE"
 kind = "gate"
 owner = "brain-meta-style:plan"
 recall = true
-doc = "architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end. loops via below_threshold until then"
+doc = "architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; the reviewer is handed his asks verbatim and runs the extension, use and name tests; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end AND all three tests pass. loops via below_threshold until then"
 
 [[states]]
 id = "SANCTION"
@@ -127,7 +155,6 @@ kind = "gate"
 owner = "brain-meta-author-prompt"
 recall = true
 binds = ["code"]
-entry = true
 regime = "execute-through"
 doc = "resolve the artifact PURPOSE (P41: scratch skip / tutorial light / production exhaustive) and the language row (P06); load the always-load doctrine set plus that language's extras; author the worker prompt carrying P40's before/after exemplars and the find-exhaustively ask. an adjective is not a resolved doctrine - emit unresolved (brain-execute entry, post-sanction)"
 
@@ -228,7 +255,6 @@ id = "REVIEW"
 kind = "entry"
 owner = "brain-review-gate"
 recall = false
-entry = true
 regime = "ask-first"
 doc = "brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop"
 
@@ -242,7 +268,6 @@ id = "SR_SCAN"
 kind = "entry"
 owner = "brain-self-refine"
 recall = false
-entry = true
 regime = "ask-first"
 doc = "brain-self-refine entry: run the scripted scan (cards/graph/flow/trace/paths/symlinks/traceability)"
 
@@ -273,7 +298,6 @@ id = "EDIT"
 kind = "work"
 owner = "brain-self-refine+brain-edit"
 recall = true
-entry = true
 regime = "execute-through"
 doc = "make ONLY the selected/asked-for edit, through the right meta-skill (curate/style/direct). the OUTBOUND EVENT IS THE RIGOR DIAL and it is HIS to set, asked before the edit starts, never inferred from how small the change looks (P41): `edited` -> VERIFY builds and tests it, `gated` -> PHASEGATE puts a cold reviewer on the diff first, `unchecked` -> STYLE skips verification entirely. every one of them still rides STYLE -> RECORD -> CURATE, so a small edit is never outside the ecosystem"
 

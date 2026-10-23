@@ -37,7 +37,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-27-organization-reorg]] : hierarchy critical; reorg both directions by threshold
 - [[principles/principle-28-dry-merge-blast-radius]] : merge dup structs even across many files; only keep apart for a real reason
 - [[principles/principle-29-interrogate-the-work]] : ask the questions id ask, pre + post; the relevant set expands
-- [[principles/principle-30-deterministic-flow]] : follow flow.json (sequence), separate from graph.json (context)
+- [[principles/principle-30-deterministic-flow]] : follow flow.toml (sequence), separate from graph.json (context)
 - [[principles/principle-31-libraryfy-shared]] : library-fy shared datatypes/helpers; never redefine a struct twice
 - [[principles/principle-32-portability]] : discover the root, never hardcode a path or assume a fixed layout
 - [[principles/principle-33-git-is-not-a-blocker]] : git is his; never perform it, never gate work on repo state
@@ -90,8 +90,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 
 ## tier 2.5: the graph (deterministic, built from the cards)
 - `graph/graph.json` : nodes (principle + interest) + edges (serves / served_by / relates / tension), built by
-  `bin/store/brain-graph.py`, committed, byte-identical on re-run. `brain-graph.py --check` fails on drift.
-- `graph/graph.cypher` : optional neo4j export for a visual; nothing depends on neo4j.
+  `bin/store/brain-graph.py`, gitignored, rebuilt on demand by brain-recall when a card is newer.
 
 ## tier 3: evidence (machine-derived; regenerate with `python3 bin/store/brain-extract.py`)
 - evidence/prompts.jsonl : EVERY human turn, one per line, with a primary bucket + multi-label classes.

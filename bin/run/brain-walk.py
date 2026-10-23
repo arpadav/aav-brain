@@ -5,17 +5,17 @@
 # ///
 """brain-walk: step the deterministic execution flow, one state at a time.
 
-    python3 brain-walk.py --state PLANGATE                  describe a state + its exits
-    python3 brain-walk.py --state PLANGATE --on approved    the next state for that outcome
+    python3 brain-walk.py --state PLANGATE --mode build                  describe a state + its exits
+    python3 brain-walk.py --state PLANGATE --on approved --mode build    the next state for that outcome
 
-this is the brain-recall of execution: a pure function over the committed
-flow.json (built by brain-flow.py from flow.toml). same (state, event) always
-yields the same next step - the brain follows the flowchart because, to take a
-step, it must query this file. it shares the State/Transition datatypes with
-brain-flow via brainlib (one definition, written by flow, read by walk). it
-reads only flow.json; the owner of a state returns the outcome event, this
-walker only says where each event leads. that keeps sequence (the flow) and
-knowledge (the graph) separate
+this is the brain-recall of execution: a pure function over the authored
+flow.toml, read directly and validated on load through brainlib.Flow (the
+same parse and checks brain-flow renders from). same (state, event, mode)
+always yields the same next step - the brain follows the flowchart because, to
+take a step, it must query this file. `--mode` is required and must be one an
+`[[entries]]` table declares; it decides between guarded sibling edges. the
+owner of a state returns the outcome event, this walker only says where each
+event leads. that keeps sequence (the flow) and knowledge (the graph) separate
 
 Author: aav
 """
@@ -28,13 +28,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Entry, Exit, Flag, Layout, Mode, State, Transition, load_json
+from brainlib import Args, Exit, Flag, Flow, Layout, State
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 
 # --------------------------------------------------
 # constants
@@ -44,66 +43,14 @@ TOOL = Path(__file__).stem
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 
-@dataclass
-class Flow:
-    """the built execution flow, indexed for deterministic stepping."""
-
-    states: dict[str, State] = field(default_factory=dict)
-    transitions: list[Transition] = field(default_factory=list)
-
-    @classmethod
-    def load(cls, path: Path) -> "Flow":
-        """load flow.json into typed states (by id) and transitions.
-
-        # Arguments
-        * `path` - the flow.json path
-
-        # Returns
-        a Flow holding shared State / Transition objects
-        """
-        data = load_json(path, "brain-flow")
-        states = {s["id"]: State.from_dict(s) for s in data["states"]}
-        transitions = [Transition.from_dict(t) for t in data["transitions"]]
-        return cls(states=states, transitions=transitions)
-
-    def exits(self, state_id: str, mode: Mode = Mode.BUILD) -> list[Transition]:
-        """the transitions leaving a state in a given mode, in stable order.
-
-        # Arguments
-        * `state_id` - the source state
-        * `mode` - the walk's declared mode; a guarded edge this mode does not
-          satisfy is not an exit at all, and is omitted rather than listed
-
-        # Returns
-        the list of outgoing Transitions available in this mode
-        """
-        return [t for t in self.transitions if t.src == state_id and mode.satisfies(t.guard)]
-
-    def step(self, state_id: str, event: str, mode: Mode = Mode.BUILD) -> Transition | None:
-        """resolve the single next transition for a state, event and mode.
-
-        # Arguments
-        * `state_id` - the current state
-        * `event` - the outcome event the owner returned
-        * `mode` - the walk's declared mode, which decides between guarded siblings
-
-        # Returns
-        the matching Transition, or None if no exit matches (e.g. a terminal)
-        """
-        for t in self.exits(state_id, mode):
-            if t.on == event:
-                return t
-        return None
-
-
 # owners that must NOT produce a load directive
 #   `-`                  a state with no owner
 #   brain-recall         a SCRIPT interface by design: `recall = true` runs
 #                        bin/run/brain-recall.py rather than loading a skill
-#   an ENTRY skill       already in context whenever its own region is being
-#                        walked - it is the caller - so directing it to load
-#                        itself is noise at best and re-entry at worst
-NOT_LOADABLE = {"-", "brain-recall", "brain-meta-recall", *Entry}
+# an ENTRY skill (flow.toml `[[entries]]`) is skipped too: it is already in
+# context whenever its own region is walked - it is the caller - so directing
+# it to load itself is noise at best and re-entry at worst
+NOT_LOADABLE = {"-", "brain-recall", "brain-meta-recall"}
 
 
 def owner_call(base: str) -> str:
@@ -139,7 +86,7 @@ def owner_call(base: str) -> str:
     return f"  DISPATCH ITS OWNER:  Agent(subagent_type={base!r})"
 
 
-def owner_directive(owner: str) -> list[str]:
+def owner_directive(owner: str, entries: set[str]) -> list[str]:
     """the literal call that must be made before a state's work begins.
 
     Naming an owner is not an instruction, and measurement says so: the one skill
@@ -150,6 +97,7 @@ def owner_directive(owner: str) -> list[str]:
     # Arguments
     * `owner` - the state's `owner` field, which may carry a `:lens` suffix or be a
       `a+b` composite of several owners
+    * `entries` - the entry skill names, which never get a load directive
 
     # Returns
     the directive lines to print under the state, or an empty list when the state's
@@ -158,7 +106,7 @@ def owner_directive(owner: str) -> list[str]:
     out: list[str] = []
     for part in owner.split("+"):
         base = part.split(":")[0].strip()
-        if not base or base in NOT_LOADABLE:
+        if not base or base in NOT_LOADABLE or base in entries:
             continue
         out.append(owner_call(base))
     if out:
@@ -200,15 +148,25 @@ def main() -> None:
     # parse
     # --------------------------------------------------
     args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.STATE, Flag.ON, Flag.SELF_REFINE, Flag.EDIT)
-    state_id, event = args.value(Flag.STATE), args.value(Flag.ON)
-    mode = Mode.of(self_refine=args.has(Flag.SELF_REFINE), edit=args.has(Flag.EDIT))
-    if not state_id:
-        sys.exit("usage: brain-walk.py --state <ID> [--on <event>] [--self-refine]")
+    args.gate(TOOL, __doc__, Flag.STATE, Flag.ON, Flag.MODE)
+    state_id, event, mode = args.value(Flag.STATE), args.value(Flag.ON), args.value(Flag.MODE)
+    if not state_id or not mode:
+        sys.exit("usage: brain-walk.py --state <ID> --mode <mode> [--on <event>]")
     # --------------------------------------------------
-    # resolve the state against the built flow
+    # load and validate the authored flow; an unsound one is never stepped
     # --------------------------------------------------
-    flow = Flow.load(LAYOUT.flow_json)
+    flow = Flow.load(LAYOUT.flow_toml)
+    if warnings := flow.validate(LAYOUT):
+        print(f"{TOOL}: INVALID flow.toml - refusing to step:", file=sys.stderr)
+        for warning in warnings:
+            print(f"  warn: {warning}", file=sys.stderr)
+        sys.exit(Exit.DRIFT)
+    if mode not in flow.modes():
+        print(f"{TOOL}: unknown mode {mode}; flow.toml declares {', '.join(flow.modes())}", file=sys.stderr)
+        sys.exit(Exit.USAGE)
+    # --------------------------------------------------
+    # resolve the state
+    # --------------------------------------------------
     if state_id not in flow.states:
         print(f"{TOOL}: unknown state {state_id}", file=sys.stderr)
         sys.exit(Exit.USAGE)
@@ -222,7 +180,7 @@ def main() -> None:
     advance(flow, state, event, mode)
 
 
-def describe(flow: Flow, state: State, mode: Mode = Mode.BUILD) -> None:
+def describe(flow: Flow, state: State, mode: str) -> None:
     """print a state, its directives, and every event it accepts in this mode.
 
     # Arguments
@@ -234,7 +192,7 @@ def describe(flow: Flow, state: State, mode: Mode = Mode.BUILD) -> None:
     print(f"  {state.doc}")
     for line in recall_directive(state.binds, recall=state.recall):
         print(line)
-    for line in owner_directive(state.owner):
+    for line in owner_directive(state.owner, {e.skill for e in flow.entries}):
         print(line)
     for transition in flow.exits(state.id, mode):
         mark = " *BOUNDARY*" if transition.boundary else ""
@@ -243,7 +201,7 @@ def describe(flow: Flow, state: State, mode: Mode = Mode.BUILD) -> None:
         print("  (terminal)")
 
 
-def advance(flow: Flow, state: State, event: str, mode: Mode = Mode.BUILD) -> None:
+def advance(flow: Flow, state: State, event: str, mode: str) -> None:
     """resolve one outcome event to the next state and print it.
 
     # Arguments
@@ -258,14 +216,14 @@ def advance(flow: Flow, state: State, event: str, mode: Mode = Mode.BUILD) -> No
     """
     transition = flow.step(state.id, event, mode)
     if transition is None:
-        print(f"{TOOL}: no exit from {state.id} on '{event}' in {mode.value} mode", file=sys.stderr)
+        print(f"{TOOL}: no exit from {state.id} on '{event}' in {mode} mode", file=sys.stderr)
         sys.exit(Exit.USAGE)
     nxt = flow.states[transition.dst]
     print(f"{state.id} --{event}--> {nxt.id} [{nxt.kind}] owner={nxt.owner} recall={nxt.recall}")
     print(f"  {nxt.doc}")
     for line in recall_directive(nxt.binds, recall=nxt.recall):
         print(line)
-    for line in owner_directive(nxt.owner):
+    for line in owner_directive(nxt.owner, {e.skill for e in flow.entries}):
         print(line)
 
 

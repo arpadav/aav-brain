@@ -27,13 +27,12 @@ TIER 2 - corpus (retrieved on demand via the graph)
 
 TIER 2.5 - graph = CONTEXT (the knowledge graph; "which principles apply")
   brain/graph/graph.json     nodes (principle + interest) + edges (serves/served_by/relates/tension)
-  brain/graph/graph.cypher   optional neo4j export for a visual; nothing depends on neo4j
   built by bin/store/brain-graph.py, walked by bin/run/brain-recall.py
 
 TIER 2.6 - flow = SEQUENCE (the execution flow; "what step is next") - SEPARATE from the graph
-  brain/flow/flow.toml       AUTHORED data: states (work phases) + transitions (guarded edges)
-  brain/flow/flow.json       the built, validated machine; committed
-  built by bin/store/brain-flow.py (also generates docs/DEV_FLOWCHART.md), stepped by bin/run/brain-walk.py
+  brain/flow/flow.toml       AUTHORED data: entries, states (work phases), transitions (guarded edges)
+  stepped directly by bin/run/brain-walk.py (validated on load); bin/store/brain-flow.py populates
+  docs/DEV_FLOWCHART.md from docs/templates/DEV_FLOWCHART.md + flow.toml
   cyclic by design (P03): PLAN..PLANGATE, PHASEGATE/VERIFY loop through REMEDIATE until a metric
   threshold holds, only then advance one phase
 
@@ -74,19 +73,13 @@ user-callable ENTRY skills + six `brain-meta-*` machinery skills + the agents (c
 `brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
 claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
-every skill EXECUTES the bundled scripts rather than reading flow.json/graph.json and reasoning by hand -
+every skill EXECUTES the bundled scripts rather than reading flow.toml/graph.json and reasoning by hand -
 running a script keeps its code out of context and is deterministic. the discovery preamble
 (`eval "$(brain-find --export)"`, brain-find on PATH) sets `$AAV_BRAIN` with no hardcoded path on any
 machine; the skill then invokes `$AAV_BRAIN/bin/<store|run|check>/<script>.py` - no layout-assuming per-skill symlink (P32).
 
-the 5 ENTRIES (call these) - each enters the unified flow at its own node and walks to a terminal:
-| entry | enters flow at | what it does |
-|---|---|---|
-| brain-plan | IDEATION | small+verbose plan with a worked example, traced through it (PLANPROBE), to plans/. also new-project kickoff (interrogate the spec first). |
-| brain-execute | DOCTRINE | build a sanctioned plan to DONE; "continue" / "resume" re-invokes it and rebuilds state |
-| brain-edit | EDIT | a small follow-up change to what a previous run built, without replanning; he sets the rigor |
-| brain-review | REVIEW | cold multi-lens review of the current diff, into the shared gate loop |
-| brain-self-refine | SR_SCAN | turn the review lens on the brain itself; findings+questions, then edit |
+the ENTRIES (call these) are the `[[entries]]` rows of flow.toml - each names its skill, the node it
+enters the unified flow at, and the mode it walks in; docs/DEV_FLOWCHART.md lists them.
 
 one more user-callable skill sits OUTSIDE the flow: `brain-measure` runs the 25 eval tasks with the
 brain's cards and without, and hands him one file to grade (`eval/brain-eval.py`).
@@ -94,7 +87,7 @@ brain's cards and without, and hands him one file to grade (`eval/brain-eval.py`
 the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directly):
 | brain-meta-* | role |
 |---|---|
-| brain-meta-drive | the shared traversal ENGINE: steps flow.json, dispatches each owner, loops the gates. every entry traverses with this one trampoline (P31) |
+| brain-meta-drive | the shared traversal ENGINE: steps flow.toml, dispatches each owner, loops the gates. every entry traverses with this one trampoline (P31) |
 | brain-meta-intent | position -> interest; surface ambiguity; ask-first before sanction |
 | brain-meta-author-prompt | write worker prompts in my voice + intent |
 | brain-meta-style | review as me (plan lens + style lens), cite cards; runs brain-fmt.py |
@@ -114,24 +107,23 @@ the entries are THIN: each reconstructs its region's state, sets a start node + 
 the walk to the ONE shared engine, brain-meta-drive (P31). the engine does not invent the sequence - it
 STEPS the flow deterministically: each iteration asks brain-walk for the current state (owner + recall
 flag), runs the owner, and feeds the outcome event back to brain-walk for the next state. the brain
-follows the flowchart because it must query flow.json to take a step (P30).
+follows the flowchart because it must query flow.toml to take a step (P30).
 
 ```
-   <entry> = brain-plan@IDEATION | brain-execute@DOCTRINE | brain-edit@EDIT
-           | brain-review@REVIEW  | brain-self-refine@SR_SCAN
+   <entry> = a flow.toml [[entries]] row: skill @ state, walking in its mode
      state, regime := reconstruct THIS region's state; set the entry node + ask-first|execute-through
      load brain-meta-drive, run it from <state>:
 
    brain-meta-drive (the shared engine - the trampoline):
      loop:
-       step  := brain-walk --state <id>                  # data says: owner + recall flag
+       step  := brain-walk --state <id> --mode <m>       # data says: owner + recall flag
        cards := brain-recall(task) if step.recall         # the ONE call into the graph (context)
        event := run(step.owner, cards)                    # a brain-meta-* skill OR a cold agent does the work
-       state := brain-walk --state <id> --on <event>      # data says the next state; brain doesnt invent it
+       state := brain-walk --state <id> --on <event> --mode <m>  # data says the next state; brain doesnt invent it
      until terminal; stop+ask on BLOCKED/ASK
 ```
 
-the flow is MULTI-ENTRY: one graph, five start nodes, regime read FROM the entry (not inferred from
+the flow is MULTI-ENTRY: one graph, one start node per entry, regime read FROM the entry (not inferred from
 crossing SANCTION - review and self-refine reach a terminal without it). reconstruction is per-entry
 (execute rebuilds from the sanctioned plan + git; self-refine from its selection-state), the engine reconstructs
 nothing. owners are the brain-meta-* skills / cold agents: brain-meta-author-prompt writes the worker

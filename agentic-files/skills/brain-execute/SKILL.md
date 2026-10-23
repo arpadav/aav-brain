@@ -33,43 +33,12 @@ use think-in-code for any large scan. do NOT ask him to re-explain what is on di
 is no separate continue skill - resumption IS reconstruction.
 
 ## 2. hand the walk to the engine
-load `brain-meta-drive` and run its trampoline from `$STATE` with `$REGIME`. it steps `flow.json`,
+load `brain-meta-drive` and run its trampoline from `$STATE` with `$REGIME`. it steps `flow.toml`,
 recalls per state, dispatches each owner (a meta-skill or a cold agent), and loops the gates
 (IMPL -> PHASEGATE -> VERIFY, looping through REMEDIATE) until each threshold holds - to DONE. you do not
 re-implement that loop here.
 
-<!-- GENERATED: handoff (brain-flow.py) - do not hand-edit -->
-
-this hands off to `brain-meta-drive`. the handoff has TWO steps and both are
-mandatory - a summary of what the engine does is NOT a substitute for running it:
-
-```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" $MODE   # paste the output
-```
-
-`$MODE` is `--self-refine` for the self-refine entry, `--edit` for brain-edit,
-and EMPTY for plan/execute/review. it is not cosmetic: a guarded edge resolves
-differently by mode, so a walk that drops it takes the build branch and a
-phase-less run can be sent back to DOCTRINE for a phase that does not exist.
-set it once at the entry and pass it on every walk call - the engine forwards
-it verbatim and never infers it.
-
-**you may not proceed until that output is in the transcript.** it names the
-state's owner and its transitions; if it is absent, the walk did not happen.
-then, and only then:
-
-```
-Skill(brain-meta-drive)          # the literal tool call, not a Read
-```
-
-the engine steps `flow.json`, recalls per state, dispatches each owner, and
-loops the gates to a terminal. you do not re-implement that loop here.
-
-every state the engine reaches prints its own directive the same way - a
-`Skill(...)` or `Agent(...)` line under the state. make that call before doing
-the state's work; the owner skill IS the method, and hand-rolling it inline
-looks identical in the transcript while discarding it.
-<!-- END GENERATED: handoff -->
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode build` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## how IMPL dispatches: fan out, then measure (P52)
 you are the OVERSEER. you dispatch, you run the tree-wide command, you adjudicate, you commit -

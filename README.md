@@ -61,12 +61,8 @@ python3 bin/run/brain-recall.py --all
 ```
 
 the acting suite lives in `agentic-files/` (home-manager links it into ~/.claude and ~/.codex). use the
-entrypoints (the only skills you call):
-- /brain-plan <idea>: plan this new thing (or a change) my way, to sanction.
-- /brain-execute: build a sanctioned plan to DONE - "continue" / "resume" picks it back up.
-- /brain-edit <change>: one small follow-up edit to what that build produced, without replanning it.
-- /brain-review: cold multi-lens review of the current diff.
-- /brain-self-refine: turn the review lens on the brain itself.
+entrypoints, the only skills you call: each `[[entries]]` row of `brain/flow/flow.toml` (listed with
+its start state and mode in `docs/DEV_FLOWCHART.md`).
 
 everything else is `brain-meta-*` machinery the entries load (the engine + node-owner skills) - dont
 call it directly.
