@@ -112,3 +112,4 @@ reach_files = 15
 # unless its path is keyed here with WHY it is committed. a reason is about what
 # breaks without the committed copy, never about the work of untracking it.
 [decisions.tracked]
+"docs/DEV_FLOWCHART.md" = "he reads the flowchart on GitHub and in his editor; without the committed copy there is nothing to view"
