@@ -5,9 +5,9 @@ tier: conditional
 rule: a decision or bug that outlives the session is one file, plans/open-items/<ID>-<slug>.md, written in plain-text-legible markdown at the size the problem needs - a simple problem is one sentence of problem and one of fix; only a complex one gets setup, an example or a truth table - ending in "Your call" and a sha256 footer so his edit is detected, not asked about.
 interest: [intent-comprehension, intent-efficiency, intent-control]
 confidence: medium
-evidence_count: 10
+evidence_count: 12
 binds: [plans]
-tells: ["i like to have `open-items` folder no `plans/open-items/*.md` where each file is an open item", "it breaks down the problem, defines jargon, and keeps a sha256 sum/hash of the doc to see when ive editted it at the bottom", "still way too wordy", "i want ONLY markdown which is legible via plaintext", "STOP trying to fit everything inside of the same sized box", "stop auto-truncating sentences"]
+tells: ["make initial plan, make assumptions and open items in a folder", "i like to have `open-items` folder no `plans/open-items/*.md` where each file is an open item", "it breaks down the problem, defines jargon, and keeps a sha256 sum/hash of the doc to see when ive editted it at the bottom", "then based off those, it can make a plan and execute on open items", "ask me if there is anything blocking or open decisions to be made", "execute the plan, keeping open items open, and designing/executing around them to be filled later. unless there is a huge blocker, then ask", "still way too wordy", "i want ONLY markdown which is legible via plaintext", "STOP trying to fit everything inside of the same sized box", "stop auto-truncating sentences"]
 ---
 
 # P66 - open items are one file each, sized to the problem
@@ -44,7 +44,9 @@ Every file ends with:
 
 ## how to apply
 
-- Write, then stamp the sha256 footer. At plan or execute start, check the footers: an edited item carries his answer and is input to the plan.
+- Write, then stamp the sha256 footer (`brain-open-items.py stamp <file>`). At plan or execute start, run `brain-open-items.py status`: an edited item carries his answer and is input to the plan.
+- Executing with items still open is his call, and he has made it ("execute the plan, keeping open items open, and designing/executing around them to be filled later. unless there is a huge blocker, then ask"). Build each item's recommended option behind one seam (a config value, an enum variant, one function) so his answer swaps that seam and nothing else. The item stays open and its file says what the build chose. Ask only when no recommended option can be built at all.
+- At plan time he can sanction assumptions outright ("make initial plan, make assumptions and open items in a folder"). The assumption is not asked first; it becomes an item with a recommended option and the plan is written around it. Questions about how the thing feels to use are still asked ([[principle-01-no-assumptions]]).
 - A resolved item is not archived. Fold the decision into the docs it affects, then delete the file and its index line ([[principle-56-close-out-housekeeping]]).
 - The register is [[principle-57-user-docs-are-an-icd]]. Options follow [[principle-65-numbered-recommendations-get-one-word-replies]].
 

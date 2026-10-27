@@ -29,6 +29,10 @@ unwinding a confidently-wrong implementation is not.
   the question IS the work right now.
 - Distinguish from [[principle-10-autonomy-after-sanction]]: once a plan is blessed and
   detail is unambiguous, do NOT ask - execute.
+- He can sanction assumptions in so many words ("make initial plan, make assumptions and
+  open items in a folder"). Then implementation-detail assumptions are made, each written as
+  an open item with a recommended option ([[principle-66-open-items-are-one-file-each]]), and
+  how-it-feels-to-use questions are still asked. Absent that sentence, this card is absolute.
 
 **Verbatim tells.**
 - "simple N x M slot ... 1. what else am i missing? 2. talk to me and iterate. do NOT

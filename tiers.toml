@@ -125,3 +125,4 @@ measured_on = "2026-09-05"
 "principle-65-numbered-recommendations-get-one-word-replies" = { tier = "conditional", measured = false }
 "principle-66-open-items-are-one-file-each" = { tier = "conditional", measured = false }
 "principle-67-merge-keeps-both-prioritises-one" = { tier = "conditional", measured = false }
+"principle-68-a-simplicity-restriction-is-droppable-when-free" = { tier = "conditional", measured = false }
