@@ -23,7 +23,7 @@ The script prints the repo and its unmerged files and leaves the merge in progre
 
 A conflict is obvious, and resolved without asking, when one of these holds:
 
-- The file is generated: rebuild it from its source instead of merging (e.g. `brain/graph/graph.json` -> `python3 $AAV_BRAIN/bin/store/brain-graph.py`).
+- The file is generated from a tracked source: take either side, then rebuild it from that source (e.g. `docs/DEV_FLOWCHART.md` -> `python3 $AAV_BRAIN/bin/store/brain-flow.py`). Merge the source, never the output.
 - The file is append-only data (e.g. `*.jsonl` in `logs/`): keep both sides' lines, dropping exact duplicates, in timestamp order.
 - The submodule pointer conflicts in the outer repo: take the commit the inner repo was just pushed at.
 - The two sides changed different, non-overlapping lines and git only refused on proximity.
