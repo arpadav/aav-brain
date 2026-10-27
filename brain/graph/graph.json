@@ -1711,7 +1711,7 @@
       "id": "principle-66-open-items-are-one-file-each",
       "kind": "principle",
       "tier": "conditional",
-      "headline": "a decision that outlives the session is one file, plans/open-items/<ID>-<slug>.md - title states the problem in one line, then What / Issue / Decisions (recommended option plus an A/B/C table) / Your call, every term defined with \"e.g.\" on first use, and a sha256 footer so an edit by him is detected, not asked about.",
+      "headline": "a decision or bug that outlives the session is one file, plans/open-items/<ID>-<slug>.md, written in plain-text-legible markdown at the size the problem needs - a simple problem is one sentence of problem and one of fix; only a complex one gets setup, an example or a truth table - ending in \"Your call\" and a sha256 footer so his edit is detected, not asked about.",
       "interest": [
         "intent-comprehension",
         "intent-efficiency",
@@ -1724,11 +1724,12 @@
       "tells": [
         "i like to have `open-items` folder no `plans/open-items/*.md` where each file is an open item",
         "it breaks down the problem, defines jargon, and keeps a sha256 sum/hash of the doc to see when ive editted it at the bottom",
-        "then based off those, it can make a plan and execute on open items",
-        "ask me if there is anything blocking or open decisions to be made"
+        "still way too wordy",
+        "i want ONLY markdown which is legible via plaintext",
+        "STOP trying to fit everything inside of the same sized box",
+        "stop auto-truncating sentences"
       ],
       "body_links": [
-        "principle-04-anti-fabrication",
         "principle-56-close-out-housekeeping",
         "principle-57-user-docs-are-an-icd",
         "principle-65-numbered-recommendations-get-one-word-replies"
@@ -2717,11 +2718,6 @@
     {
       "src": "principle-65-numbered-recommendations-get-one-word-replies",
       "dst": "principle-67-merge-keeps-both-prioritises-one",
-      "type": "relates"
-    },
-    {
-      "src": "principle-66-open-items-are-one-file-each",
-      "dst": "principle-04-anti-fabrication",
       "type": "relates"
     },
     {
