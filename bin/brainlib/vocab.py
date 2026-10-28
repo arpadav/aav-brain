@@ -247,3 +247,5 @@ class Exit(IntEnum):
     OK = 0
     DRIFT = 1
     USAGE = 2
+    # brain-sync: a merge stopped on conflicting files, left in progress to resolve
+    CONFLICT = 3
