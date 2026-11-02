@@ -1,6 +1,6 @@
 ---
 name: brain-sync
-description: "Push the brain to GitHub main: its submodules (logs), the brain store, then the home-manager repo that holds it - all as arpadav, message brain-sync. Load this when he says 'brain-sync', 'sync the brain', 'push the brain'. A rejected push pulls and merges; an obvious conflict is resolved automatically, anything else is put to him."
+description: "Push the brain to GitHub main: its submodules (logs), the brain store, then the home-manager repo that holds it - all as arpadav, message brain-sync. Load this when he says 'brain-sync', 'sync the brain', 'push the brain'. A rejected push pulls and merges; an obvious conflict is resolved automatically, anything else is put to him. Afterwards the merged result is applied with `home-manager switch`, so nothing is left pulled-but-not-live."
 ---
 
 # brain-sync
@@ -16,6 +16,16 @@ python3 $AAV_BRAIN/bin/run/brain-sync.py
 ```
 
 The script commits everything, pushes, and on a rejected push fetches and merges `origin/main` (also `brain-sync`) and pushes again. Exit 0 means every repo is on `origin/main`.
+
+## apply (always, after exit 0)
+
+Pulled changes are not done until they are live. Run the same switch as the `re` alias:
+
+```bash
+home-manager switch -b backup --flake "$HOME/.config/home-manager#headless" --impure
+```
+
+Then verify: `readlink -e` every `~/.claude/skills/brain-*` link and `~/.claude/agents/brain` (none broken), `brain-find --export` resolves, and `git status -sb` is clean on `main...origin/main` in all three repos. A failed switch or a broken link is not reported as "not applied": read the error, fix it, and rerun; if the fix is a decision that is his, stop and ask him interactively. Never finish with "pending", "not applied yet" or "you need to run X" - the run ends either fully applied and verified, or in a question to him.
 
 ## on a conflict (exit 3)
 
@@ -34,4 +44,5 @@ Anything else - a card, a skill, a script or a config where both sides changed t
 
 - Only `main`, only `origin`. Never `--force`.
 - The author and message are fixed: `arpadav`, `arpadav@gmail.com`, `brain-sync`.
-- A new skill appears in `~/.claude/skills` only after `home-manager switch`; brain-sync does not run it.
+- brain-sync always runs `home-manager switch` itself (see apply); it never hands that step back to him.
+- Only two end states exist: fully pushed, merged and applied; or stopped on a conflict with a question to him. Never a status report of work left undone.
