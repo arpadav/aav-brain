@@ -274,7 +274,7 @@ class Flow:
             known |= {p.stem for p in layout.agents.rglob("*.md")}
         return [f"state {s.id} owner '{name}' is not a known skill"
                 for s in self.states.values()
-                for name in (part.split(":")[0].strip() for part in s.owner.split("+"))
+                for name in s.owners
                 if name and name not in known]
 
     def validate(self, layout: Layout) -> list[str]:

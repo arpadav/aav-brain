@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import PYTHON_VERSION, Args, Flag, Layout, read_text
+from brainlib import PYTHON_VERSION, Args, Exit, Flag, Layout, Tool, read_text
 
 # --------------------------------------------------
 # external
@@ -64,6 +64,7 @@ SCRIPT_BLOCK = re.compile(r"^# /// script\n(?P<body>(?:^#.*\n)+?)^# ///$", re.MU
 # extras ("pydantic[email]") holds a `]` of its own, and a lazy match ends the
 # list there and reports zero dependencies for a script that declared several
 DECLARED = re.compile(r"dependencies\s*=\s*\[(?P<items>.*)\]", re.DOTALL)
+# one quoted requirement inside the declared list, in either quote style
 REQUIREMENT = re.compile(r"[\"\']([^\"\']+)[\"\']")
 
 
@@ -306,14 +307,14 @@ class Suite:
         print(output.rstrip() or "(no output)")
         return Outcome(checker=checker, command=argv, code=result.returncode, total=checker.total(output))
 
-    def run(self, target: Target) -> int:
+    def run(self, target: Target) -> Exit:
         """run every checker and summarise.
 
         # Arguments
         * `target` - the paths to check and what they import from
 
         # Returns
-        the exit code: 1 if any reachable checker reported findings
+        FINDINGS if any reachable checker reported findings, else OK
         """
         # --------------------------------------------------
         # run every checker
@@ -335,9 +336,9 @@ class Suite:
             print(f"  {len(skipped)} checker(s) skipped - this run does NOT cover what they would catch")
         if dirty:
             print(f"  {len(dirty)} of {len(ran)} reachable checker(s) reported findings")
-            return 1
+            return Exit.FINDINGS
         print(f"  all {len(ran)} reachable checker(s) clean")
-        return 0
+        return Exit.OK
 
 # --------------------------------------------------
 # constants
@@ -360,19 +361,27 @@ CHECKERS = (
 )
 
 
-def main() -> None:
-    """run the suite, or list what is reachable."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.LIST)
+def main(args: Args) -> Exit:
+    """run the suite, or list what is reachable.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--list` prints each checker and how it
+      is invoked instead of running, positionals are the paths to check
+
+    # Returns
+
+    `Exit.OK` after a listing, else the suite's own status over the target
+    """
     if args.has(Flag.LIST):
         for checker in CHECKERS:
             command = checker.command()
             how = " ".join(command) if command else "unreachable"
             print(f"  {checker.name:14} {how:24} config {checker.config}")
-        return
+        return Exit.OK
     target = Target(paths=args.positional() or list(DEFAULT_PATHS), root=LAYOUT.root)
-    sys.exit(Suite(checkers=CHECKERS, root=LAYOUT.root).run(target))
+    return Suite(checkers=CHECKERS, root=LAYOUT.root).run(target)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.LIST,), positionals=(0, None)).run(main)

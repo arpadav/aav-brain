@@ -9,21 +9,25 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
+from brainlib.repos import git
+from brainlib.vocab import Env
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import os
 from dataclasses import dataclass
 from pathlib import Path
+
+# --------------------------------------------------
+# constants
+# --------------------------------------------------
+# the name the brain's `.gitmodules` gives its private-data submodule
+DATA_SUBMODULE = "logs"
+
 
 @dataclass(frozen=True)
 class Layout:
     """every path inside the brain repo, derived from the discovered root.
-
-    a directory name re-spelled at each call site is a rename that has to be
-    found by grep and is silently wrong wherever the grep missed. here each
-    name appears exactly once, so a move is one edit and every tool follows
 
     # Example
 
@@ -42,6 +46,31 @@ class Layout:
         a Layout over `find_brain()`
         """
         return cls(find_brain())
+
+    @classmethod
+    def root_of(cls, path: Path) -> Path | None:
+        """the brain root a path sits inside, however deep.
+
+        a root is identified by its constitution file, so this walks up rather
+        than counting parents - a count re-spells the tree's depth and goes
+        silently wrong when a directory moves
+
+        # Arguments
+
+        * `path` - a resolved path inside the brain
+
+        # Returns
+
+        the nearest enclosing brain root, or None when there is none
+
+        # Example
+
+            >>> Layout.root_of(Path(__file__).resolve()) == find_brain()
+            True
+            >>> Layout.root_of(Path("/")) is None
+            True
+        """
+        return next((root for root in path.parents if cls(root).constitution.exists()), None)
 
     @property
     def bin(self) -> Path:
@@ -175,7 +204,7 @@ class Layout:
 
     @property
     def graph_dir(self) -> Path:
-        """the built knowledge graph.
+        """where the knowledge graph is exported.
 
         # Returns
 
@@ -184,14 +213,49 @@ class Layout:
         return self.store / "graph"
 
     @property
-    def graph_json(self) -> Path:
-        """the graph recall reads.
+    def recall_script(self) -> Path:
+        """the script that serves cards for a task.
 
         # Returns
 
-        `<root>/brain/graph/graph.json`
+        `<root>/bin/run/brain-recall.py`
         """
-        return self.graph_dir / "graph.json"
+        return self.bin / "run" / "brain-recall.py"
+
+    @property
+    def private_script(self) -> Path:
+        """the script that scans a tree for his private infrastructure.
+
+        # Returns
+
+        `<root>/bin/check/brain-private.py`
+        """
+        return self.bin / "check" / "brain-private.py"
+
+    @property
+    def data_submodule(self) -> Path | None:
+        r"""where the private-data submodule is checked out: its path in the brain's own `.gitmodules`.
+
+        read from the brain repo, never from where XDG points, so the answer
+        names the gitlink whatever `$XDG_DATA_HOME` says
+
+        # Returns
+
+        `<root>/<path>` of the DATA_SUBMODULE entry; None when `.gitmodules`
+        holds no such entry or cannot be read
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     root = Path(tmp)
+            ...     before = Layout(root).data_submodule
+            ...     _ = (root / ".gitmodules").write_text(f'[submodule "{DATA_SUBMODULE}"]\n\tpath = private/logs\n')
+            ...     before, Layout(root).data_submodule == root / "private" / "logs"
+            (None, True)
+        """
+        path = git(self.root, "config", "--file", ".gitmodules", "--get", f"submodule.{DATA_SUBMODULE}.path")
+        return None if path is None else self.root / path.removesuffix("\n")
 
     @property
     def docs(self) -> Path:
@@ -300,24 +364,133 @@ class DataLayout:
         return self.trace / "decisions.jsonl"
 
     @property
-    def evidence(self) -> Path:
+    def evidence(self) -> "EvidenceLayout":
         """the extracted evidence corpus.
 
         # Returns
 
-        `<data>/evidence`
+        the EvidenceLayout over `<data>/evidence`
         """
-        return self.root / "evidence"
+        return EvidenceLayout(self.root / "evidence")
+
+
+@dataclass(frozen=True)
+class EvidenceLayout:
+    """every file of the extracted evidence corpus, in whichever directory holds it.
+
+    brain-extract writes all of them and the other tools read them, so each
+    name is spelled here once. the root is the data dir's `evidence/`, or the
+    directory `brain-extract --out` names
+
+    # Example
+
+        evidence = DataLayout.discover().evidence
+        rows = Ledger(evidence.heat).read()
+    """
+
+    root: Path
 
     @property
-    def corpus_stats(self) -> Path:
-        """the corpus summary re-stamped by every extract.
+    def prompts(self) -> Path:
+        """every human turn of his, classified: the canonical corpus every view projects.
 
         # Returns
 
-        `<data>/evidence/corpus-stats.json`
+        `<evidence>/prompts.jsonl`
         """
-        return self.evidence / "corpus-stats.json"
+        return self.root / "prompts.jsonl"
+
+    @property
+    def denials(self) -> Path:
+        """the permission prompts he refused.
+
+        # Returns
+
+        `<evidence>/denials.jsonl`
+        """
+        return self.root / "denials.jsonl"
+
+    @property
+    def heat(self) -> Path:
+        """his turns that carried heat: a hard rule had just been broken.
+
+        # Returns
+
+        `<evidence>/heat.jsonl`
+        """
+        return self.root / "heat.jsonl"
+
+    @property
+    def interruptions(self) -> Path:
+        """his turns that cut a run off mid-step.
+
+        # Returns
+
+        `<evidence>/interruptions.jsonl`
+        """
+        return self.root / "interruptions.jsonl"
+
+    @property
+    def rejections(self) -> Path:
+        """his turns that rejected or corrected what was done, heat included.
+
+        # Returns
+
+        `<evidence>/rejections.jsonl`
+        """
+        return self.root / "rejections.jsonl"
+
+    @property
+    def approvals(self) -> Path:
+        """his short turns that approved what was done.
+
+        # Returns
+
+        `<evidence>/approvals.jsonl`
+        """
+        return self.root / "approvals.jsonl"
+
+    @property
+    def directives(self) -> Path:
+        """his long turns that carried no other signal.
+
+        # Returns
+
+        `<evidence>/directives.jsonl`
+        """
+        return self.root / "directives.jsonl"
+
+    @property
+    def corpus_stats(self) -> Path:
+        """the aggregate statistics over the prompts.
+
+        # Returns
+
+        `<evidence>/corpus-stats.json`
+        """
+        return self.root / "corpus-stats.json"
+
+
+def plain_name(name: str) -> bool:
+    """whether an id names one file in a directory and nothing else.
+
+    an id read from the environment or a log becomes a file name; one that is
+    empty, `..`, or carries a separator would name a directory or escape it
+
+    # Arguments
+
+    * `name` - the id about to become a file name
+
+    # Returns
+
+    True when the id is a single path component naming an entry, not `.` or `..`
+
+    # Example
+
+        >>> plain_name("fbffe8d9-cd2b"), plain_name(""), plain_name("../etc"), plain_name("a/b"), plain_name("..")
+        (True, False, False, False, False)
+    """
+    return name not in ("", "..") and Path(name).name == name
 
 
 def find_brain() -> Path:
@@ -341,26 +514,19 @@ def find_brain() -> Path:
     located (fail loud, never guess)
     """
     # --------------------------------------------------
-    # self-location: this module is <root>/bin/brainlib/paths.py, so the root is
-    # three parents up. it was two while brainlib was a single file, and the
-    # split silently made this branch unreachable - every tool then fell through
-    # to the symlink below, which is the STALE-sibling resolution the docstring
-    # says is deliberately absent. invisible on a machine with one checkout
+    # self-location: this module sits inside the checkout it belongs to. a
+    # miss here falls through to the skill symlink below, resolution step 2
     # --------------------------------------------------
-    here = Path(__file__).resolve().parents[2]
-    if (here / "brain" / "CONSTITUTION.md").exists():
-        return here
+    if root := Layout.root_of(Path(__file__).resolve()):
+        return root
     # --------------------------------------------------
-    # follow a known skill symlink: ~/.agents first, then ~/.claude. skills live
-    # at <root>/agentic-files/skills/<skill>, so the root is three parents up from
-    # the resolved skill dir (skill -> skills -> agentic-files -> root)
+    # follow a known skill symlink: ~/.agents first, then ~/.claude. a skill
+    # lives inside the brain, so its resolved dir sits under the root
     # --------------------------------------------------
     for base in (Path.home() / ".agents", Path.home() / ".claude"):
         link = base / "skills" / "brain-plan"
-        if link.exists():
-            root = link.resolve().parents[2]
-            if (root / "brain" / "CONSTITUTION.md").exists():
-                return root
+        if link.exists() and (root := Layout.root_of(link.resolve())):
+            return root
     raise FileNotFoundError("cannot locate aav-brain via __file__ or the ~/.agents / ~/.claude skill symlink")
 
 
@@ -452,13 +618,32 @@ def find_gate_state() -> Path:
     return _xdg_data() / "aav-brain-gate"
 
 
-def _xdg_data() -> Path:
-    """the XDG data root, ignoring a relative $XDG_DATA_HOME per the spec.
+def find_config() -> Path:
+    """his per-machine config folder, never in a repo.
 
     # Returns
-    the resolved data-home Path
+    `$XDG_CONFIG_HOME/aav`, else `~/.config/aav`
     """
-    base = Path(os.environ.get("XDG_DATA_HOME", "")).expanduser()
-    if not base.is_absolute():
-        base = Path.home() / ".local" / "share"
-    return base
+    return Env.XDG_CONFIG_HOME.directory(Path.home() / ".config") / "aav"
+
+
+def find_served() -> Path:
+    """where recall logs what it served each session (brainlib.served), a sibling of find_data().
+
+    durable, so the misses report can read it, and unversioned and per
+    machine, so a recall never dirties a repo; nothing prunes it
+
+    # Returns
+    the served-log root Path (created on demand by its writer)
+    """
+    return _xdg_data() / "aav-brain-served"
+
+
+def _xdg_data() -> Path:
+    """the XDG data root: `$XDG_DATA_HOME`, else `~/.local/share`.
+
+    # Returns
+
+    an absolute directory path; it is not created
+    """
+    return Env.XDG_DATA_HOME.directory(Path.home() / ".local" / "share")

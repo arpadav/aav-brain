@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Flow, Layout, State
+from brainlib import Args, Env, Flag, Flow, Layout, NoVerdict, State, Tool, Transition, UsageError
 
 # --------------------------------------------------
 # external
@@ -45,12 +45,12 @@ LAYOUT = Layout.discover()
 
 # owners that must NOT produce a load directive
 #   `-`                  a state with no owner
-#   brain-recall         a SCRIPT interface by design: `recall = true` runs
-#                        bin/run/brain-recall.py rather than loading a skill
+#   the recall script    a SCRIPT interface by design: `recall = true` runs
+#                        it rather than loading a skill
 # an ENTRY skill (flow.toml `[[entries]]`) is skipped too: it is already in
 # context whenever its own region is walked - it is the caller - so directing
 # it to load itself is noise at best and re-entry at worst
-NOT_LOADABLE = {"-", "brain-recall", "brain-meta-recall"}
+NOT_LOADABLE = {"-", LAYOUT.recall_script.stem}
 
 
 def owner_call(base: str) -> str:
@@ -86,7 +86,7 @@ def owner_call(base: str) -> str:
     return f"  DISPATCH ITS OWNER:  Agent(subagent_type={base!r})"
 
 
-def owner_directive(owner: str, entries: set[str]) -> list[str]:
+def owner_directive(owners: Sequence[str], entries: set[str]) -> list[str]:
     """the literal call that must be made before a state's work begins.
 
     Naming an owner is not an instruction, and measurement says so: the one skill
@@ -95,8 +95,7 @@ def owner_directive(owner: str, entries: set[str]) -> list[str]:
     work got hand-rolled inline instead. So the directive is emitted, not implied
 
     # Arguments
-    * `owner` - the state's `owner` field, which may carry a `:lens` suffix or be a
-      `a+b` composite of several owners
+    * `owners` - the state's bare owner names, composite split and lens dropped
     * `entries` - the entry skill names, which never get a load directive
 
     # Returns
@@ -104,8 +103,7 @@ def owner_directive(owner: str, entries: set[str]) -> list[str]:
     owner is the entry itself or a script
     """
     out: list[str] = []
-    for part in owner.split("+"):
-        base = part.split(":")[0].strip()
+    for base in owners:
         if not base or base in NOT_LOADABLE or base in entries:
             continue
         out.append(owner_call(base))
@@ -131,45 +129,58 @@ def recall_directive(binds: Sequence[str], *, recall: bool) -> list[str]:
       reads as a condition rather than a bare True (FBT001)
 
     # Returns
-    the directive lines to print under the state, empty when recall is false
+    the directive lines to print under the state, empty when recall is false.
+    the task travels on stdin through a quoted heredoc, printed flush left so
+    a copied `EOF` still ends it
     """
     if not recall:
         return []
     bound = "".join(f" --binds {context}" for context in binds)
+    script = LAYOUT.recall_script.relative_to(LAYOUT.root).as_posix()
     return [
-        f'  RECALL FIRST:  python3 $AAV_BRAIN/bin/run/brain-recall.py "<active task>"{bound}',
-        "  ^ run it before this state's work; the cards it returns ARE the method.",
+        "  RECALL FIRST, before this state's work; the cards it returns ARE the method:",
+        f"python3 ${Env.AAV_BRAIN}/{script}{bound} <<'EOF'",
+        "<active task>",
+        "EOF",
     ]
 
 
-def main() -> None:
-    """describe a state, or resolve its next step for an outcome event."""
+def main(args: Args) -> None:
+    """describe a state, or resolve its next step for an outcome event.
+
+    the flow is validated first: a flow with warnings is never stepped
+
+    # Arguments
+
+    * `args` - the parsed command line; `--state` and `--mode` are required, and
+      `--on` names the outcome event to advance on (absent, the state is described)
+
+    # Raises
+
+    UsageError for a missing flag or an unknown mode or state; NoVerdict when the
+    authored flow does not validate
+    """
     # --------------------------------------------------
     # parse
     # --------------------------------------------------
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.STATE, Flag.ON, Flag.MODE)
     state_id, event, mode = args.value(Flag.STATE), args.value(Flag.ON), args.value(Flag.MODE)
     if not state_id or not mode:
-        sys.exit("usage: brain-walk.py --state <ID> --mode <mode> [--on <event>]")
+        raise UsageError("--state and --mode are both required")
     # --------------------------------------------------
     # load and validate the authored flow; an unsound one is never stepped
     # --------------------------------------------------
     flow = Flow.load(LAYOUT.flow_toml)
     if warnings := flow.validate(LAYOUT):
-        print(f"{TOOL}: INVALID flow.toml - refusing to step:", file=sys.stderr)
         for warning in warnings:
             print(f"  warn: {warning}", file=sys.stderr)
-        sys.exit(Exit.DRIFT)
+        raise NoVerdict("INVALID flow.toml - refusing to step")
     if mode not in flow.modes():
-        print(f"{TOOL}: unknown mode {mode}; flow.toml declares {', '.join(flow.modes())}", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+        raise UsageError(f"unknown mode {mode}; flow.toml declares {', '.join(flow.modes())}")
     # --------------------------------------------------
     # resolve the state
     # --------------------------------------------------
     if state_id not in flow.states:
-        print(f"{TOOL}: unknown state {state_id}", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+        raise UsageError(f"unknown state {state_id}")
     state = flow.states[state_id]
     # --------------------------------------------------
     # describe, or advance on the outcome event
@@ -188,12 +199,7 @@ def describe(flow: Flow, state: State, mode: str) -> None:
     * `state` - the state to describe
     * `mode` - the walk's declared mode; guarded exits it cannot take are not listed
     """
-    print(f"{state.id} [{state.kind}] owner={state.owner} recall={state.recall}")
-    print(f"  {state.doc}")
-    for line in recall_directive(state.binds, recall=state.recall):
-        print(line)
-    for line in owner_directive(state.owner, {e.skill for e in flow.entries}):
-        print(line)
+    announce(flow, state)
     for transition in flow.exits(state.id, mode):
         mark = " *BOUNDARY*" if transition.boundary else ""
         print(f"  on {transition.on:<14} -> {transition.dst}{mark}")
@@ -211,21 +217,31 @@ def advance(flow: Flow, state: State, event: str, mode: str) -> None:
     * `mode` - the walk's declared mode, which decides between guarded siblings
 
     # Raises
-    `SystemExit` when no exit matches - naming the mode, because an edge that
+    UsageError when no exit matches - naming the mode, because an edge that
     exists in the other one is the likeliest reason a walk stalls here
     """
     transition = flow.step(state.id, event, mode)
     if transition is None:
-        print(f"{TOOL}: no exit from {state.id} on '{event}' in {mode} mode", file=sys.stderr)
-        sys.exit(Exit.USAGE)
-    nxt = flow.states[transition.dst]
-    print(f"{state.id} --{event}--> {nxt.id} [{nxt.kind}] owner={nxt.owner} recall={nxt.recall}")
-    print(f"  {nxt.doc}")
-    for line in recall_directive(nxt.binds, recall=nxt.recall):
+        raise UsageError(f"no exit from {state.id} on '{event}' in {mode} mode")
+    announce(flow, flow.states[transition.dst], transition)
+
+
+def announce(flow: Flow, state: State, via: Transition | None = None) -> None:
+    """print a state's header, its doc, and the directives that open its work.
+
+    # Arguments
+    * `flow` - the loaded flow, whose entry skills never get a load directive
+    * `state` - the state to announce
+    * `via` - the transition that reached it, None when described in place
+    """
+    step = f"{via.src} --{via.on}--> " if via else ""
+    print(f"{step}{state.id} [{state.kind}] owner={state.owner} recall={state.recall}")
+    print(f"  {state.doc}")
+    for line in recall_directive(state.binds, recall=state.recall):
         print(line)
-    for line in owner_directive(nxt.owner, {e.skill for e in flow.entries}):
+    for line in owner_directive(state.owners, {entry.skill for entry in flow.entries}):
         print(line)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.STATE, Flag.ON, Flag.MODE)).run(main)

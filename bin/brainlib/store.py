@@ -1,8 +1,10 @@
 """brainlib.store: the append-only logs and the authored policies over them.
 
-one reader and one writer for every jsonl corpus, so "a log may only ever
-grow" lives in a single place; the policies beside it are authored data read
-from toml, so no tool hardcodes a number
+one reader and one writer for every corpus that may only ever grow - the
+evidence views and the decision trace - so that invariant lives in a single
+place. recall's served logs are a per-machine cache, not a corpus, and keep
+their own reader and writer (brainlib.served). the policies beside them are
+authored data read from toml, so no tool hardcodes a number
 
 Author: aav
 """
@@ -10,8 +12,9 @@ Author: aav
 # local
 # --------------------------------------------------
 from brainlib.paths import DataLayout, find_repo, find_repo_root
+from brainlib.repos import git
 from brainlib.text import iso_now, read_text, write_text
-from brainlib.vocab import ENCODING, GIT_TIMEOUT
+from brainlib.vocab import ENCODING
 
 # --------------------------------------------------
 # external
@@ -19,15 +22,12 @@ from brainlib.vocab import ENCODING, GIT_TIMEOUT
 import datetime as dt
 import hashlib
 import json
-import os
-import shutil
-import subprocess
 import sys
 import tomllib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 @dataclass(frozen=True)
 class MergeCount:
@@ -117,6 +117,25 @@ class Ledger:
                 out[mark] = True
         return out
 
+    @staticmethod
+    def is_record(value: object) -> TypeGuard[dict[str, Any]]:
+        """whether a parsed json line is an object, the one shape a record has; json keys are always strings.
+
+        # Arguments
+
+        * `value` - one line of a ledger, as `json.loads` returned it
+
+        # Returns
+
+        True for an object, which narrows the type for the caller; False for any other json value
+
+        # Example
+
+            >>> Ledger.is_record({"ts": "2026-01-01"}), Ledger.is_record(["ts"]), Ledger.is_record(None)
+            (True, False, False)
+        """
+        return isinstance(value, dict)
+
     def record_id(self, record: dict[str, Any]) -> str:
         """the stable content hash identifying one record.
 
@@ -149,10 +168,19 @@ class Ledger:
         return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:16]  # noqa: S324
 
     def read(self) -> list[dict[str, Any]]:
-        """read the corpus, skipping any line that does not parse.
+        r"""read the corpus, skipping any line that is not a json object.
 
         # Returns
         the parsed records, or an empty list if the file does not exist
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     corpus = Path(tmp) / "c.jsonl"
+            ...     _ = corpus.write_text('{"a": 1}\n[1]\n"text"\n{torn\n')
+            ...     Ledger(corpus).read()
+            [{'a': 1}]
         """
         if not self.path.exists():
             return []
@@ -163,6 +191,8 @@ class Ledger:
             try:
                 row = json.loads(line)
             except ValueError:
+                continue
+            if not self.is_record(row):
                 continue
             key = self.record_id(row)
             # a union merge of two machines' logs leaves both copies of a record
@@ -423,44 +453,6 @@ class PrunePolicy:
         return (moment - back).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-def git(repo: Path, *argv: str) -> str | None:
-    """run a read-only git command in a repo and return its stdout.
-
-    the ONE place the brain shells out to git. it was two - a policy method and
-    a tool copied its body verbatim, comments included - which is the exact
-    duplication P31 forbids, found in the diff that shipped the tool for finding
-    it
-
-    None and "" are different answers and the distinction is load-bearing: a
-    caller that cannot tell "git said nothing" from "git could not run" reports
-    a clean scan of a repo it never opened
-
-    # Arguments
-
-    * `repo` - the repository to run in
-    * `argv` - the git subcommand and its arguments
-
-    # Returns
-
-    stdout on success; None when git is missing, the path is not a repo, or the
-    command failed
-    """
-    found = shutil.which("git")
-    if found is None:
-        return None
-    # GIT_DIR and GIT_WORK_TREE outrank -C, so an inherited environment would
-    # silently measure a DIFFERENT repo than the one asked for
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    # argv is the caller's own literals plus a discovered repo path; nothing here
-    # is remote input, and shell=False keeps it an exec not a shell (S603)
-    try:
-        done = subprocess.run([found, "-C", str(repo), *argv], capture_output=True,  # noqa: S603
-                              text=True, check=False, env=env, timeout=GIT_TIMEOUT)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return done.stdout if done.returncode == 0 else None
-
-
 @dataclass(frozen=True)
 class ShapePolicy:
     """the numbers behind P27 and P28, and the secondary change budget.
@@ -687,7 +679,6 @@ class Decision:
     affects: str = ""
     repo: str = ""
     principle: list[str] = field(default_factory=list)
-    confidence: str = "medium"
     supersedes: str = ""
 
     def trace(self, ledger: "Ledger | None" = None, session: str = "", ts: str = "") -> Path:

@@ -7,14 +7,11 @@ and the set a tool depends on is a list rather than an archaeology exercise
 Author: aav
 """
 # --------------------------------------------------
-# local
-# --------------------------------------------------
-
-# --------------------------------------------------
 # external
 # --------------------------------------------------
 import os
 from enum import IntEnum, StrEnum
+from pathlib import Path
 
 # constants
 # --------------------------------------------------
@@ -69,12 +66,6 @@ class Rel(StrEnum):
     reader that traverses it
     """
 
-    # no producer since intents stopped being nodes: brain-graph emits neither,
-    # and brain-recall's reference set holds neither. kept because graph.json
-    # files built before that change still carry them, and `Rel(edge["type"])`
-    # must resolve rather than exit on an older artifact
-    SERVES = "serves"
-    SERVED_BY = "served_by"
     RELATES = "relates"
     TENSION = "tension"
 
@@ -82,21 +73,10 @@ class Rel(StrEnum):
 class Tier(StrEnum):
     """how a card reaches an agent: always, by score, or by a lower bar.
 
-    measured, not asserted, and the measurement is in tiers.toml. two signals
-    define the split - how often a card was judged relevant across a labelled
-    prompt set, and how often the retriever surfaced it across the real corpus
-    before this work. the interesting cases are where they DISAGREE: a card
-    judged relevant on 28% of prompts and served on 1% of them is not a
-    conditional card, it is a constitutional one the scorer does not find
-
-    CONSTITUTION cards skip scoring entirely. that is not a shortcut - 39% of
-    true relevance shares no content token with its card, so for those cards no
-    amount of scoring reaches them and always-loading is strictly better
-
-    NARROW is the opposite end: the lowest measured breadth in the store. a
-    threshold tuned for breadth would never admit one, so they get a lower bar -
-    a bet that a rare card is specific rather than dead. tiers.toml records the
-    rule, its thresholds and the caveats behind every assignment
+    CONSTITUTION cards skip scoring and load on every recall, CONDITIONAL cards
+    are scored, NARROW cards clear a lower bar. the split is measured, not
+    asserted: tiers.toml holds the rule, its thresholds, the measurement and the
+    caveats behind every assignment
     """
 
     CONSTITUTION = "constitution"
@@ -129,6 +109,7 @@ class Env(StrEnum):
 
     AAV_BRAIN = "AAV_BRAIN"
     XDG_DATA_HOME = "XDG_DATA_HOME"
+    XDG_CONFIG_HOME = "XDG_CONFIG_HOME"
     SESSION_ID = "CLAUDE_CODE_SESSION_ID"
 
     def read(self, default: str = "") -> str:
@@ -155,14 +136,48 @@ class Env(StrEnum):
         """
         return os.environ.get(self.value, "") or default
 
+    def directory(self, fallback: Path) -> Path:
+        """this variable as a directory, `~` expanded; the fallback when it is unset or relative.
+
+        the XDG base-directory spec says a relative value is invalid and is
+        ignored, so a stray `XDG_DATA_HOME=data` never lands a file under the cwd
+
+        # Arguments
+
+        * `fallback` - the directory the variable defaults to
+
+        # Returns
+
+        the variable's value as an absolute path, or `fallback`
+
+        # Example
+
+            >>> import os
+            >>> from unittest import mock
+            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "relative/data"}):
+            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
+            PosixPath('/fallback')
+            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "/srv/data"}):
+            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
+            PosixPath('/srv/data')
+        """
+        # --------------------------------------------------
+        # an unset variable reads as empty, which resolves to the current directory and is not absolute
+        # --------------------------------------------------
+        value = Path(self.read()).expanduser()
+        # --------------------------------------------------
+        # only an absolute path is honoured, per the XDG rule that a relative one is invalid
+        # --------------------------------------------------
+        return value if value.is_absolute() else fallback
+
 
 class Flag(StrEnum):
     """every command-line flag the brain tools accept, named once.
 
-    the flags were previously bare string literals compared by hand at each
-    site, so a typo in one comparison was invisible and the set a tool accepted
-    could only be recovered by grep. as members they are enumerable, which is
-    what lets `Args.unknown` reject a misspelled flag instead of ignoring it
+    a flag spelled as a literal at each site hides a typo in one comparison, and
+    the set a tool accepts is recoverable only by grep. as members they are
+    enumerable, which is what lets `Tool.admit` reject a misspelled flag
+    instead of ignoring it
     """
 
     AFFECTS = "--affects"
@@ -175,25 +190,21 @@ class Flag(StrEnum):
     BINDS = "--binds"
     CHECK = "--check"
     CHOSEN = "--chosen"
-    CONFIDENCE = "--confidence"
-    CONFIG = "--config"
-    CONFIG_FILE = "--config-file"
     DECISION = "--decision"
     EXPORT = "--export"
     GATE = "--gate"
     HELP = "--help"
     LAST = "--last"
     LIST = "--list"
-    LOW_CONFIDENCE = "--low-confidence"
     MERMAID = "--mermaid"
     MODE = "--mode"
-    # the one short flag the brain accepts, kept short because recall is typed by hand
+    # the short flags: `-n` because recall is typed by hand, `-h` by convention
     N = "-n"
+    HELP_SHORT = "-h"
     NEIGHBORS = "--neighbors"
     ON = "--on"
     OUT = "--out"
     PRINCIPLE = "--principle"
-    PROJECT = "--project"
     PRUNE = "--prune"
     PRUNED = "--pruned"
     REJECT = "--reject"
@@ -203,6 +214,7 @@ class Flag(StrEnum):
     SINCE = "--since"
     SKILL = "--skill"
     SKILLS = "--skills"
+    STAGING = "--staging"
     STALE = "--stale"
     STALE_CANDIDATES = "--stale-candidates"
     STATE = "--state"
@@ -229,28 +241,30 @@ class Flag(StrEnum):
             (True, False)
         """
         return frozenset({
-            cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
-            cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.MODE, cls.N, cls.NEIGHBORS, cls.ON,
-            cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
-            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG, cls.TELLS,
+            cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.DECISION, cls.MODE, cls.N,
+            cls.NEIGHBORS, cls.ON, cls.OUT, cls.PRINCIPLE, cls.PRUNE, cls.REJECT, cls.RESTORE,
+            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG,
         })
 
 
 class Exit(IntEnum):
     """the process status codes the brain tools return.
 
-    every tool means the same thing by a code: OK is "nothing to report", DRIFT
-    is "a committed artifact no longer matches a fresh build", and USAGE is "the
-    command line was wrong". spelling them as 0/1/2 at nineteen call sites let
-    the same integer mean three different things
+    every tool means the same thing by a code. a check that reaches a verdict
+    exits OK or FINDINGS; one that cannot reach a verdict - its input missing,
+    git or a scan erroring - exits FAILED, so a caller never reads "could not
+    look" as "looked and found nothing" or as "looked and found something"
     """
 
+    # ran to a verdict, and there is nothing to report
     OK = 0
-    DRIFT = 1
+    # could not reach a verdict: the input is missing, or git or a scan could not run
+    FAILED = 1
+    # the command line was wrong
     USAGE = 2
     # brain-sync: a merge stopped on conflicting files, left in progress to resolve
     CONFLICT = 3
-    # brain-verify: a check the repo declares for the change exited non-zero
-    FAILED = 4
+    # ran to a verdict, and listed what fails it: a row, a crossing, a hit, a stale artifact, a failed check
+    FINDINGS = 4
     # brain-sync: origin could not be fetched or kept refusing the push
     BLOCKED = 5

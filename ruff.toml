@@ -77,6 +77,10 @@ ignore = [
     "ISC001",
 ]
 
+[lint.flake8-tidy-imports.banned-api]
+"sys.exit".msg = "end a brain tool by returning an Exit, or raising UsageError / NoVerdict (brainlib.tool)"
+"argparse".msg = "declare flags on brainlib.tool.Tool"
+
 [lint.isort]
 # brainlib is the shared library every script imports; classify it as
 # first-party so it sorts into its own group

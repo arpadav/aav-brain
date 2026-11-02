@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, DataLayout, Exit, Flow, Layout, Ledger, git, read_text
+from brainlib import Args, DataLayout, Exit, Flow, Graph, Layout, Ledger, NoVerdict, Tool, UsageError, git, read_text
 
 # --------------------------------------------------
 # external
@@ -100,10 +100,16 @@ class Policy:
         yields no reasons and a threshold of 1, so it over-reports, never hides
         """
         try:
+            # --------------------------------------------------
+            # the reason per tracked path, and the reach limit
+            # --------------------------------------------------
             table = tomllib.loads(read_text(path)).get("decisions", {})
             return cls({str(k): str(v) for k, v in table.get("tracked", {}).items()},
                        max(1, int(table["reach_files"])))
         except (OSError, tomllib.TOMLDecodeError, KeyError, TypeError, ValueError, AttributeError) as broken:
+            # --------------------------------------------------
+            # a missing or malformed table degrades to an empty policy that reports every finding, loudly
+            # --------------------------------------------------
             print(f"{TOOL}: no usable [decisions] in {path.name} ({broken}); every finding reported", file=sys.stderr)
             return cls({}, 1)
 
@@ -157,10 +163,16 @@ class Builders:
 
         the derived outputs
         """
+        # --------------------------------------------------
+        # every script under bin/ except the library may declare a builder
+        # --------------------------------------------------
         builders = cls(layout.root)
         for script in sorted(layout.bin.rglob("*.py")):
             if "brainlib" in script.parts:
                 continue
+            # --------------------------------------------------
+            # read its module-level paths and its Artifact subclasses
+            # --------------------------------------------------
             builders.read(script, ast.parse(read_text(script)), {"LAYOUT": layout, "Path": Path})
         return builders
 
@@ -174,6 +186,9 @@ class Builders:
         * `scope` - the names an output expression may reference; grown with
           each module-level constant that itself resolves
         """
+        # --------------------------------------------------
+        # resolve the module-level assignments that are paths, so a builder's targets can use them
+        # --------------------------------------------------
         for statement in module.body:
             if (
                 isinstance(statement, ast.Assign) and len(statement.targets) == 1
@@ -181,15 +196,24 @@ class Builders:
                 and (value := self.resolve(statement.value, scope)) is not None
             ):
                 scope[statement.targets[0].id] = value
+        # --------------------------------------------------
+        # each Artifact subclass with a targets() method is a builder
+        # --------------------------------------------------
         for node in ast.walk(module):
             if not isinstance(node, ast.ClassDef) or not any(
                 isinstance(base, ast.Name) and base.id == ARTIFACT_BASE for base in node.bases
             ):
                 continue
+            # --------------------------------------------------
+            # name the builder, then record what each of its instantiations writes
+            # --------------------------------------------------
             label = f"{script.stem}.{node.name}"
             for method in node.body:
                 if not isinstance(method, ast.FunctionDef) or method.name != TARGETS_METHOD:
                     continue
+                # --------------------------------------------------
+                # bind self.out_dir to each instantiation's value and read the returned paths
+                # --------------------------------------------------
                 for out_dir in self.out_dirs(module, node.name, scope):
                     bound = {**scope, "self": SimpleNamespace(out_dir=out_dir)}
                     if not self.method(method, label, bound) and self.writes_out_dir(method):
@@ -209,6 +233,9 @@ class Builders:
         true when at least one returned path resolved; false means the paths
         are computed (a loop over sources), so the builder owns its out_dir whole
         """
+        # --------------------------------------------------
+        # the first element of each pair in a returned list or tuple is an output path
+        # --------------------------------------------------
         resolved = False
         for node in ast.walk(method):
             if isinstance(node, ast.Return) and isinstance(node.value, ast.List | ast.Tuple):
@@ -251,6 +278,9 @@ class Builders:
         each resolved out_dir; one None when the class is never constructed
         here, so its literal LAYOUT targets are still read
         """
+        # --------------------------------------------------
+        # the out_dir keyword of every construction of this builder
+        # --------------------------------------------------
         found = [
             self.resolve(keyword.value, scope)
             for node in ast.walk(module)
@@ -258,6 +288,9 @@ class Builders:
             for keyword in node.keywords
             if keyword.arg == OUT_DIR
         ]
+        # --------------------------------------------------
+        # a builder never constructed in its own module is still read once, with no out_dir bound
+        # --------------------------------------------------
         return found or [None]
 
     @staticmethod
@@ -278,6 +311,9 @@ class Builders:
         the value, or None when it does not evaluate
         """
         try:
+            # --------------------------------------------------
+            # evaluate with no builtins and only Layout and Path in scope; anything else is not a path
+            # --------------------------------------------------
             value: object = eval(compile(ast.Expression(expr), TOOL, "eval"), {"__builtins__": {}}, dict(scope))  # noqa: S307 - no builtins, a scope of Layout and Path only
         except Exception:  # noqa: BLE001 - any unresolvable expression is simply not a path output
             return None
@@ -329,20 +365,44 @@ class Questions:
         # Returns
 
         the repo-relative paths
+
+        # Raises
+
+        NoVerdict when git cannot list the repo
         """
+        # --------------------------------------------------
+        # git's tracked file list
+        # --------------------------------------------------
         listed = git(self.layout.root, "ls-files", "-z", *extra)
+        # --------------------------------------------------
+        # no listing means no verdict; a silent clean scan would be a lie
+        # --------------------------------------------------
         if listed is None:
-            print(f"{TOOL}: cannot list {self.layout.root}; refusing to report a clean scan", file=sys.stderr)
-            sys.exit(Exit.USAGE)
+            raise NoVerdict(f"cannot list {self.layout.root}; refusing to report a clean scan")
         return [name for name in listed.split("\0") if name]
 
     def generated(self) -> None:
-        """report every tracked file a builder writes or .gitignore disowns, and its stated reason."""
+        """report every tracked file a builder writes or .gitignore disowns, and its stated reason.
+
+        a file is listed when a builder writes it or git tracks it although
+        .gitignore matches it, with whichever cause applies. each is a finding
+        unless `shape.toml` states why it is tracked; a stated reason is printed
+        and does not count
+        """
+        # --------------------------------------------------
+        # files git tracks although .gitignore matches them
+        # --------------------------------------------------
         ignored = set(self.tracked("--cached", "--ignored", "--exclude-standard"))
+        # --------------------------------------------------
+        # each tracked file that a builder writes or that is tracked despite being ignored
+        # --------------------------------------------------
         for path in self.tracked():
             writer = self.builders.writer(path)
             if writer is None and path not in ignored:
                 continue
+            # --------------------------------------------------
+            # name the cause, then require a stated reason in shape.toml
+            # --------------------------------------------------
             why = f"written by {writer}" if writer else "tracked but gitignored"
             if path in ignored and writer:
                 why += ", and gitignored"
@@ -359,6 +419,9 @@ class Questions:
         (kind, unit, names it is spelled by, home path prefix) per unit; the
         home is excluded from its own count
         """
+        # --------------------------------------------------
+        # every unit of the brain that something else might name: skills, agents, flow states and cards
+        # --------------------------------------------------
         root = self.layout.root
         for skill in sorted(p for p in self.layout.skills.iterdir() if p.is_dir()):
             yield "skill", skill.name, (skill.name,), f"{skill.relative_to(root).as_posix()}/"
@@ -366,57 +429,108 @@ class Questions:
             yield "agent", agent.stem, (agent.stem,), agent.relative_to(root).as_posix()
         for state in self.flow.states:
             yield "state", state, (state,), f"{self.layout.flow_dir.relative_to(root).as_posix()}/"
-        for card in sorted(self.layout.principles.glob("principle-*.md")):
-            number = card.stem.split("-")[1]
-            yield "card", card.stem, (card.stem, f"P{number}"), card.relative_to(root).as_posix()
+        for card in Graph.build(self.layout).nodes.values():
+            names = tuple(name for name in (card.id, card.short_id) if name)
+            yield "card", card.id, names, Path(card.path).as_posix()
 
     def reach(self) -> None:
-        """report each unit named from more files outside it than the threshold allows."""
+        """report each unit named from more files outside it than the threshold allows.
+
+        a unit is named by a whole-word, fixed-string search over the repo's
+        tracked files. its own home and any file a builder writes are not counted
+        against it. every unit over the policy's limit is a finding, printed
+        widest reach first
+        """
+        # --------------------------------------------------
+        # collect the units named in more files outside their own home than the policy allows
+        # --------------------------------------------------
         rows: list[tuple[int, str, str]] = []
         for kind, unit, names, home in self.units():
+            # --------------------------------------------------
+            # every file naming the unit as a whole word, minus its home and generated files
+            # --------------------------------------------------
             patterns = [arg for name in names for arg in ("-e", name)]
             listed = git(self.layout.root, "grep", "-l", "-w", "-F", *patterns)
             naming = [
                 path for path in (listed or "").splitlines()
                 if not path.startswith(home) and self.builders.writer(path) is None
             ]
+            # --------------------------------------------------
+            # over the limit is a finding
+            # --------------------------------------------------
             if len(naming) > self.policy.reach_files:
                 rows.append((len(naming), kind, unit))
+        # --------------------------------------------------
+        # report widest reach first
+        # --------------------------------------------------
         for count, kind, unit in sorted(rows, reverse=True):
             print(f"  reach  {kind:<5}  {unit}  named in {count} file(s) outside it (limit {self.policy.reach_files})")
         self.findings += len(rows)
 
     def untraced(self) -> None:
-        """report decision-making skills with no fork in the trace, live or pruned."""
-        owners = {
-            owner.strip().split(":")[0] for state in self.flow.states.values() for owner in state.owner.split("+")
-        }
+        """report decision-making skills with no fork in the trace, live or pruned.
+
+        a skill decides something when it owns a flow state or is an entry skill;
+        a fork is a trace row carrying an `against` field, so a skill that only
+        ever logged straight-line choices counts as untraced. each such skill is
+        a finding
+        """
+        # --------------------------------------------------
+        # skills that own a flow state or an entry decide something
+        # --------------------------------------------------
+        owners = {owner for state in self.flow.states.values() for owner in state.owners}
         skills = {p.name for p in self.layout.skills.iterdir() if p.is_dir()}
         deciders = (owners | {entry.skill for entry in self.flow.entries}) & skills
+        # --------------------------------------------------
+        # a deciding skill with no logged fork never traced its decisions
+        # --------------------------------------------------
         traced = {row.get("skill") for row in Ledger(DataLayout.discover().decisions).read() if row.get("against")}
         for skill in sorted(deciders - traced):
             print(f"  untraced  {skill}  owns a decision but never logged a fork")
             self.findings += 1
 
 
-def main() -> None:
-    """ask the named questions (all of them by default) and exit non-zero on a finding."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__)
-    try:
-        asked = [Question(name) for name in args.positional()] or list(Question)
-    except ValueError as unknown:
-        print(f"{TOOL}: {unknown}; expected one of {', '.join(Question)}", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+def main(args: Args) -> Exit:
+    """ask the named questions (all of them by default); FINDINGS on a finding.
+
+    each question prints its own finding count, so a run that fails names which
+    questions failed it
+
+    # Arguments
+
+    * `args` - the parsed command line; its positionals name the questions to ask
+
+    # Returns
+
+    `Exit.FINDINGS` when any question found something, else `Exit.OK`; a name
+    that is not a question raises `UsageError` before anything is asked
+    """
+    # --------------------------------------------------
+    # refuse an unknown question before running any
+    # --------------------------------------------------
+    if unknown := [name for name in args.positional() if name not in Question]:
+        raise UsageError(f"{unknown[0]!r} is not a question; expected one of {', '.join(Question)}")
+    # --------------------------------------------------
+    # no question named means all of them
+    # --------------------------------------------------
+    asked = [Question(name) for name in args.positional()] or list(Question)
+    # --------------------------------------------------
+    # load the policy, the builders and the flow once for every question
+    # --------------------------------------------------
     flow = Flow.load(LAYOUT.flow_toml)
     questions = Questions(LAYOUT, Policy.load(LAYOUT.shape_toml), Builders.derive(LAYOUT), flow)
+    # --------------------------------------------------
+    # run each question and report how many findings it added
+    # --------------------------------------------------
     for question in asked:
         before = questions.findings
         getattr(questions, question.value)()
         print(f"{TOOL}: {question.value}: {questions.findings - before} finding(s)")
-    if questions.findings:
-        sys.exit(Exit.DRIFT)
+    # --------------------------------------------------
+    # any finding fails the run
+    # --------------------------------------------------
+    return Exit.FINDINGS if questions.findings else Exit.OK
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, positionals=(0, None)).run(main)

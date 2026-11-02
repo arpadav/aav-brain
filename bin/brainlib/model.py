@@ -1,7 +1,7 @@
 """brainlib.model: the datatypes one tool writes and another reads.
 
-a Node written by brain-graph is the same Node read by brain-recall, and a
-State rendered by brain-flow is the same State stepped by brain-walk. that
+a Node read from a card is the same Node recall ranks and brain-graph exports,
+and a State rendered by brain-flow is the same State stepped by brain-walk. that
 shared shape is the whole point of the library
 
 Author: aav
@@ -9,23 +9,29 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.args import Args
-from brainlib.text import read_text, write_text
-from brainlib.vocab import Exit, Flag, Frontmatter, Rel, Tier
+from brainlib.text import parse_frontmatter, read_text, write_text
+from brainlib.tool import Args
+from brainlib.vocab import Exit, Flag, Frontmatter, Kind, Rel, Tier
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import json
-import sys
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# --------------------------------------------------
+# constants
+# --------------------------------------------------
+# a [[link]] to a principle card anywhere in a card's file, frontmatter included;
+# the captured id is a relates edge's destination
+CARD_LINK = re.compile(r"\[\[(principle-[a-z0-9-]+)\]\]")
+
 @dataclass
 class Node:
-    """one card as a graph node. written by brain-graph, read by brain-recall."""
+    """one card as a graph node, read from its file by `from_card`."""
 
     id: str
     kind: str
@@ -46,25 +52,103 @@ class Node:
 
         # Returns
         an ordered dict with the human-meaningful field order
+
+        # Example
+
+            >>> card = Node("principle-99-example", Kind.PRINCIPLE, "h", [], "c", [], [], [], "p")
+            >>> list(card.to_dict())[:3], "tension" in card.to_dict()
+            (['id', 'kind', 'tier'], False)
         """
         return {"id": self.id, "kind": self.kind, "tier": self.tier, "headline": self.headline,
                 "interest": self.interest, "confidence": self.confidence, "binds": self.binds,
                 "tells": self.tells, "body_links": self.body_links, "path": self.path}
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Node":
-        """reconstruct a Node from a built graph.json entry.
-
-        # Arguments
-        * `data` - a node dict from graph.json (no tension field)
+    @property
+    def short_id(self) -> str | None:
+        """a principle card's short id, the `P<nn>` that cards cite and `RecallIndex.resolve` reads back.
 
         # Returns
-        a Node with tension defaulted to empty
+
+        `P` and the card's number, or None for a card that is not a numbered principle
+
+        # Example
+
+            >>> card = Node("principle-99-example", Kind.PRINCIPLE, "", [], "", [], [], [], "")
+            >>> card.short_id, Node("intent-craft", Kind.INTEREST, "", [], "", [], [], [], "").short_id
+            ('P99', None)
         """
-        return cls(id=data["id"], kind=data["kind"], headline=data["headline"], interest=data["interest"],
-                   confidence=data["confidence"], tells=data["tells"], tension=[],
-                   body_links=data["body_links"], path=data["path"], binds=data.get("binds", []),
-                   tier=data.get("tier", Tier.CONDITIONAL))
+        number = self.id.removeprefix(f"{Kind.PRINCIPLE}-").split("-")[0]
+        return f"P{number}" if self.kind == Kind.PRINCIPLE and number.isdigit() else None
+
+    @classmethod
+    def from_card(cls, path: Path, kind: str, root: Path) -> "Node":
+        """one card file as a node.
+
+        # Arguments
+
+        * `path` - the card file
+        * `kind` - the kind of card its directory holds
+        * `root` - the brain root `path` sits under; the node stores its path relative to it
+
+        # Returns
+
+        the node; a field the card leaves out takes its default, and the id falls
+        back to the file's stem
+        """
+        text = read_text(path)
+        front = parse_frontmatter(text)
+        return cls(id=cls._text(front, "name", path.stem), kind=kind,
+                   headline=cls._text(front, "rule") or cls._text(front, "one_line") or path.stem,
+                   interest=cls._list(front, "interest"), confidence=cls._text(front, "confidence"),
+                   tells=cls._list(front, "tells"), tension=cls._list(front, "tension"),
+                   body_links=sorted(set(CARD_LINK.findall(text))), path=str(path.relative_to(root)),
+                   binds=cls._list(front, "binds"), tier=cls._text(front, "tier") or Tier.CONDITIONAL)
+
+    @staticmethod
+    def _text(front: Frontmatter, key: str, default: str = "") -> str:
+        """one frontmatter field as a string.
+
+        parse_frontmatter types every value as scalar-or-list, so a field that must
+        be a string is read through here rather than trusted
+
+        # Arguments
+
+        * `front` - the parsed frontmatter
+        * `key` - the field name
+        * `default` - returned when the field is absent or the wrong shape
+
+        # Returns
+
+        the string value, or the default
+
+        # Example
+
+            >>> Node._text({"name": "principle-01"}, "name"), Node._text({"tells": ["a", "b"]}, "tells", "?")
+            ('principle-01', '?')
+        """
+        value = front.get(key, default)
+        return value if isinstance(value, str) else default
+
+    @staticmethod
+    def _list(front: Frontmatter, key: str) -> list[str]:
+        """one frontmatter field as a list of strings.
+
+        # Arguments
+
+        * `front` - the parsed frontmatter
+        * `key` - the field name
+
+        # Returns
+
+        the list value, or an empty list when the field is absent or a scalar
+
+        # Example
+
+            >>> Node._list({"tells": ["never guess", "ask first"]}, "tells"), Node._list({"name": "p"}, "name")
+            (['never guess', 'ask first'], [])
+        """
+        value = front.get(key, [])
+        return value if isinstance(value, list) else []
 
 
 @dataclass(frozen=True, order=True)
@@ -80,20 +164,14 @@ class Edge:
 
         # Returns
         a dict with keys src, dst, type
+
+        # Example
+
+            >>> Edge(Rel.RELATES, "principle-01-a", "principle-02-b").to_dict() == {
+            ...     "src": "principle-01-a", "dst": "principle-02-b", "type": "relates"}
+            True
         """
         return {"src": self.src, "dst": self.dst, "type": self.type}
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Edge":
-        """reconstruct an Edge from a built graph.json entry.
-
-        # Arguments
-        * `data` - an edge dict from graph.json
-
-        # Returns
-        an Edge
-        """
-        return cls(type=Rel(data["type"]), src=data["src"], dst=data["dst"])
 
 
 @dataclass(frozen=True)
@@ -127,11 +205,31 @@ class State:
 
         # Returns
         a State
+
+        # Example
+
+            >>> State.from_dict({"id": "S", "kind": "work", "owner": "o", "recall": True, "doc": "d"}).terminal
+            False
         """
         return cls(id=data["id"], kind=data["kind"], owner=data["owner"], recall=data["recall"],
                    doc=data["doc"], terminal=data.get("terminal", False),
                    regime=data.get("regime", ""),
                    binds=list(data.get("binds", [])))
+
+    @property
+    def owners(self) -> list[str]:
+        """the bare owner names: an `a+b` composite split, each `:lens` suffix dropped.
+
+        # Returns
+
+        the names in authored order; a blank part yields an empty name
+
+        # Example
+
+            >>> State("S", "gate", "brain-meta-style:plan + worker", recall=False, doc="").owners
+            ['brain-meta-style', 'worker']
+        """
+        return [part.split(":")[0].strip() for part in self.owner.split("+")]
 
 
 @dataclass(frozen=True)
@@ -156,6 +254,11 @@ class Transition:
 
         # Returns
         a Transition
+
+        # Example
+
+            >>> Transition.from_dict({"src": "A", "on": "ok", "dst": "B"})
+            Transition(src='A', on='ok', dst='B', guard='', boundary=False)
         """
         return cls(src=data["src"], on=data["on"], dst=data["dst"],
                    guard=data.get("guard", ""), boundary=data.get("boundary", False))
@@ -194,6 +297,20 @@ class Artifact:
 
         # Returns
         true if all targets are byte-identical on disk
+
+        # Example
+
+            >>> import tempfile
+            >>> class One(Artifact):
+            ...     def targets(self): return [(self.out_dir / "one.txt", "1")]
+            ...     def summary(self): return "one"
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     built = One(Path(tmp) / "out")
+            ...     before = built.is_current()
+            ...     built.emit()
+            ...     before, built.is_current()
+            one
+            (False, True)
         """
         return all(path.exists() and read_text(path) == content for path, content in self.targets())
 
@@ -204,18 +321,22 @@ class Artifact:
             write_text(path, content)
         print(self.summary())
 
-    def run(self, args: Args, label: str) -> None:
+    def run(self, args: Args, label: str) -> Exit:
         """the build / --check harness for a single builder.
 
         # Arguments
 
         * `args` - the parsed command line
         * `label` - the tool name, for messages
+
+        # Returns
+
+        the verdict, as `run_all` gives it
         """
-        self.run_all([self], args, label)
+        return self.run_all([self], args, label)
 
     @staticmethod
-    def run_all(artifacts: Sequence["Artifact"], args: Args, label: str) -> None:
+    def run_all(artifacts: Sequence["Artifact"], args: Args, label: str) -> Exit:
         """the build / --check harness shared by every builder.
 
         --check names EVERY stale builder before exiting, so one drifting
@@ -226,6 +347,10 @@ class Artifact:
         * `artifacts` - the Artifact instances to build or check
         * `args` - the parsed command line
         * `label` - the tool name, for messages
+
+        # Returns
+
+        FINDINGS when --check finds a stale builder, else OK
         """
         # --------------------------------------------------
         # check mode: name every stale builder, write nothing
@@ -234,28 +359,14 @@ class Artifact:
             stale = [a for a in artifacts if not a.is_current()]
             if not stale:
                 print(f"{label}: artifacts are current")
-                sys.exit(Exit.OK)
+                return Exit.OK
             for artifact in stale:
                 print(f"{label}: DRIFT in {type(artifact).__name__} -> {artifact.out_dir}")
             print(f"{label}: re-run `python3 {label}.py`")
-            sys.exit(Exit.DRIFT)
+            return Exit.FINDINGS
         # --------------------------------------------------
         # build mode
         # --------------------------------------------------
         for artifact in artifacts:
             artifact.emit()
-
-
-def load_json(path: Path, label: str) -> Any:  # noqa: ANN401 - json.loads IS Any; the caller knows its artifact's shape
-    """read a committed json artifact, exiting with a hint if it is missing.
-
-    # Arguments
-    * `path` - the json file path
-    * `label` - the tool that should have built it, for the hint
-
-    # Returns
-    the parsed json
-    """
-    if not path.exists():
-        sys.exit(f"no {path.name} - run `python3 {label}.py` first")
-    return json.loads(read_text(path))
+        return Exit.OK

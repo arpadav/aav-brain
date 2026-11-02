@@ -20,5 +20,11 @@ __pycache__/
 # and specific to one run - the tasks and rubrics that generate them ARE tracked
 eval/results/
 
-# built on demand by brain-recall.py from the cards, so a committed copy could only drift
+# written by bin/store/brain-graph.py
 brain/graph/graph.json
+
+# his plan drafts: scratch that may name private infrastructure (P61), which
+# brain-private exempts and brain-sync's `git add -A` would otherwise push.
+# the open items are tracked by design
+plans/*
+!plans/open-items/

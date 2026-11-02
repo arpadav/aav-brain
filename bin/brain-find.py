@@ -25,7 +25,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Env, Flag, Layout
+from brainlib import Args, Env, Flag, Layout, Tool
 
 # --------------------------------------------------
 # external
@@ -38,17 +38,23 @@ from pathlib import Path
 # this tool's own name, for its messages; derived so a rename cannot desync them
 TOOL = Path(__file__).stem
 
-def main() -> None:
-    """resolve the brain root and print it in the requested form."""
+def main(args: Args) -> None:
+    """resolve the brain root and print it in the requested form.
+
+    at most one selector flag is accepted (the tool's modes are exclusive); with
+    none, the root is printed, or its `export` line under `--export`
+
+    # Arguments
+
+    * `args` - the parsed command line; the flag picks which derived path prints
+    """
     layout = Layout.discover()
-    args = Args.from_argv()
     # --------------------------------------------------
     # selectors: one derived path, for direct substitution. the root itself has no
     # flag - it is the default, and a second spelling for it would be two ways to
     # ask one question
     # --------------------------------------------------
     selectors = {Flag.AGENTS: layout.agents, Flag.SKILLS: layout.skills, Flag.BIN: layout.bin}
-    args.gate(TOOL, __doc__, Flag.EXPORT, *selectors)
     for flag, path in selectors.items():
         if args.has(flag):
             print(path)
@@ -65,4 +71,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.EXPORT, Flag.AGENTS, Flag.SKILLS, Flag.BIN),
+         modes=((Flag.EXPORT,), (Flag.AGENTS,), (Flag.SKILLS,), (Flag.BIN,))).run(main)

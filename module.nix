@@ -55,7 +55,6 @@ in
         ".claude/agents/general".source = live "${agentsRoot}/general";
         ".claude/agents/rust".source = live "${agentsRoot}/lang/rust";
         ".claude/agents/style".source = live "${agentsRoot}/style";
-        ".claude/agents/custom".source = live "${agentsRoot}/custom";
         ".codex/agents".source = live codexAgents;
         ".local/share/aav-brain".source = live "${root}/logs";
         ".local/bin/brain-find" = {

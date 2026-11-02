@@ -10,6 +10,10 @@ the repos are discovered, never hardcoded (P32): the brain's own submodules
 home-manager repo). inner goes first so the outer one commits the inner one's
 new pointer.
 
+before anything in a repo is committed, brain-private scans that repo as
+`git add -A` would stage it (P61); a scan that does not pass stops that repo's
+sync with nothing staged.
+
 a repo already even with origin main is left alone. any other repo carries its
 work to main through a short-lived local branch, `brain-sync`:
 
@@ -38,7 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, find_brain, git
+from brainlib import Args, Exit, Flag, Layout, Tool, find_brain, git
 
 # --------------------------------------------------
 # external
@@ -52,9 +56,12 @@ from dataclasses import dataclass, field
 # constants
 # --------------------------------------------------
 TOOL = Path(__file__).stem
+# the git identity every commit is made under
 AUTHOR_NAME = "arpadav"
 AUTHOR_EMAIL = "arpadav@gmail.com"
+# the message on every commit and merge commit this tool makes
 MESSAGE = "brain-sync"
+# the remote and the branch every repo is carried to
 REMOTE = "origin"
 BRANCH = "main"
 # local only; it exists while a sync is in flight and is deleted once main is pushed
@@ -63,13 +70,21 @@ SYNC_BRANCH = "brain-sync"
 PUSH_ATTEMPTS = 3
 # a push or fetch over the network; generous, but never forever
 NETWORK_TIMEOUT_S = 300
+# the scan every repo passes before anything in it is committed
+PRIVATE_SCAN = (sys.executable, str(Layout.discover().private_script))
 
 
 class SyncError(Exception):
     """a repo cannot reach origin main without the caller stepping in."""
 
     def __init__(self, repo: Path, reason: str) -> None:
-        """the repo that stopped, and why."""
+        """the repo that stopped, and why.
+
+        # Arguments
+
+        * `repo` - the work tree that cannot reach origin main
+        * `reason` - what stopped it, worded for the caller to act on
+        """
         super().__init__(f"{repo}: {reason}")
         self.repo: Path = repo
 
@@ -78,7 +93,13 @@ class ConflictError(SyncError):
     """a merge in a repo stopped on conflicting files."""
 
     def __init__(self, repo: Path, files: list[str]) -> None:
-        """the repo the merge is in, and its unmerged files."""
+        """the repo the merge is in, and its unmerged files.
+
+        # Arguments
+
+        * `repo` - the work tree whose merge stopped
+        * `files` - the paths still unmerged, relative to the repo
+        """
         super().__init__(repo, f"{len(files)} conflicting file(s)")
         self.files: list[str] = files
 
@@ -94,6 +115,14 @@ class Repo:
 
         the read-only counterpart is brainlib's `git`. this one commits and
         pushes, so it carries the identity and shows the command
+
+        # Arguments
+
+        * `argv` - the git subcommand and its arguments
+
+        # Returns
+
+        True when git exited 0; False when it exited otherwise or is not installed
         """
         found = shutil.which("git")
         if found is None:
@@ -108,19 +137,60 @@ class Repo:
         return done.returncode == 0
 
     def read(self, *argv: str) -> str:
-        """stdout of a read-only git command; empty when git said nothing or could not run."""
+        """stdout of a read-only git command; empty when git said nothing or could not run.
+
+        # Arguments
+
+        * `argv` - the git subcommand and its arguments
+
+        # Returns
+
+        stdout with surrounding whitespace stripped
+        """
         return (git(self.path, *argv) or "").strip()
 
+    def scan(self) -> None:
+        """run brain-private over this repo alone, as `git add -A` would stage it, echoing it (P59).
+
+        judged by its exit code alone: a hit, an unscanned file and a scan
+        that could not run all stop the sync
+        """
+        argv = (*PRIVATE_SCAN, Flag.STAGING, str(self.path))
+        print(f"+ {' '.join(argv)}", file=sys.stderr)
+        # the scan is this brain's own script under this interpreter; no shell (S603)
+        done = subprocess.run(argv, check=False)  # noqa: S603
+        if done.returncode != Exit.OK:
+            raise SyncError(self.path, f"the private scan exited {done.returncode}; nothing is staged")
+
     def merging(self) -> bool:
-        """whether a merge is in progress."""
+        """whether a merge is in progress.
+
+        # Returns
+
+        True while the repo has a `MERGE_HEAD`, which a stopped merge leaves behind
+        """
         return git(self.path, "rev-parse", "-q", "--verify", "MERGE_HEAD") is not None
 
     def conflicts(self) -> list[str]:
-        """the files still unmerged."""
+        """the files still unmerged.
+
+        # Returns
+
+        paths relative to the repo; empty when the merge left none
+        """
         return self.read("diff", "--name-only", "--diff-filter=U").splitlines()
 
     def has_branch(self, name: str) -> bool:
-        """whether a local branch exists."""
+        """whether a local branch exists.
+
+        # Arguments
+
+        * `name` - the branch name, without `refs/heads/`
+
+        # Returns
+
+        True when the branch is present locally
+        """
         return git(self.path, "rev-parse", "-q", "--verify", f"refs/heads/{name}") is not None
 
     def fetch(self) -> None:
@@ -129,18 +199,48 @@ class Repo:
             raise SyncError(self.path, f"cannot fetch {REMOTE}/{BRANCH}")
 
     def merge(self, ref: str) -> None:
-        """merge a ref into HEAD as `brain-sync`; a stop leaves the merge in progress."""
+        """merge a ref into HEAD as `brain-sync`; a stop leaves the merge in progress.
+
+        # Arguments
+
+        * `ref` - the revision to merge in
+
+        # Raises
+
+        ConflictError when the merge stops, carrying the unmerged files
+        """
         if not self.run("merge", "--no-edit", "-m", MESSAGE, ref):
             raise ConflictError(self.path, self.conflicts())
 
     def even(self) -> bool:
-        """on main, nothing uncommitted, and at the commit just fetched."""
+        """on main, nothing uncommitted, and at the commit just fetched.
+
+        # Returns
+
+        True when the repo has nothing to carry to origin main
+        """
         return (self.read("branch", "--show-current") == BRANCH
                 and not self.read("status", "--porcelain")
                 and self.read("rev-parse", "HEAD") == self.read("rev-parse", "FETCH_HEAD"))
 
     def sync(self) -> None:
-        """carry this repo's work to origin main through SYNC_BRANCH (the module doc's steps)."""
+        """carry this repo's work to origin main through SYNC_BRANCH (the module doc's steps).
+
+        the private scan runs first, so nothing private reaches a commit. a repo
+        already even with origin main returns after the fetch. a push refused
+        because origin moved loops back to the merge, up to PUSH_ATTEMPTS rounds
+
+        # Raises
+
+        ConflictError when a merge stops on conflicting files, leaving it in
+        progress for the caller to resolve; SyncError when the private scan
+        fails, origin cannot be fetched, main will not fast-forward, or every
+        push is refused
+        """
+        # --------------------------------------------------
+        # nothing private goes into a commit
+        # --------------------------------------------------
+        self.scan()
         # --------------------------------------------------
         # a merge the caller resolved
         # --------------------------------------------------
@@ -191,20 +291,41 @@ class Sync:
 
     @classmethod
     def discover(cls, brain: Path) -> "Sync":
-        """the repos around one brain store."""
+        """the repos around one brain store.
+
+        # Arguments
+
+        * `brain` - the brain store's work tree
+
+        # Returns
+
+        the store's submodules, then the store, then the superproject that holds it, if any
+        """
         store = Repo(brain)
+        # not RepoTree: push order wants the store's own submodules and its DIRECT superproject only
         inner = [Repo(brain / line.split()[1]) for line in store.read("submodule", "status").splitlines()]
         outer = store.read("rev-parse", "--show-superproject-working-tree")
         return cls([*inner, store, *([Repo(Path(outer))] if outer else [])])
 
     def check(self) -> Exit:
-        """print each repo's state; change nothing."""
+        """print each repo's state; change nothing.
+
+        # Returns
+
+        `Exit.OK`
+        """
         for repo in self.repos:
             print(f"{repo.path}\n{repo.read('status', '-sb')}\n")
         return Exit.OK
 
     def push(self) -> Exit:
-        """sync every repo innermost first; stop at the first one that cannot reach main."""
+        """sync every repo innermost first; stop at the first one that cannot reach main.
+
+        # Returns
+
+        `Exit.OK` when every repo synced; `Exit.CONFLICT` when a merge stopped on
+        conflicts; `Exit.BLOCKED` when a repo could not be fetched, fast-forwarded or pushed
+        """
         for repo in self.repos:
             try:
                 repo.sync()
@@ -219,14 +340,22 @@ class Sync:
         return Exit.OK
 
 
-def main() -> None:
-    """parse the one flag and sync."""
-    args = Args.from_argv()
-    if unknown := args.unknown(Flag.CHECK):
-        sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+def main(args: Args) -> Exit:
+    """print each repo's state under --check, else sync.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--check` prints state and changes nothing
+
+    # Returns
+
+    `Exit.OK` when every repo reached origin main (or `--check` ran),
+    `Exit.CONFLICT` when a merge stopped on conflicts, `Exit.BLOCKED` when a repo
+    could not reach origin main
+    """
     sync = Sync.discover(find_brain())
-    sys.exit(sync.check() if args.has(Flag.CHECK) else sync.push())
+    return sync.check() if args.has(Flag.CHECK) else sync.push()
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)

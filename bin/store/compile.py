@@ -35,13 +35,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Flag, Layout, read_text
+from brainlib import Args, Artifact, Exit, Flag, Layout, Tool, read_text, split_frontmatter
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import re
 from dataclasses import dataclass
+from typing import override
 
 # --------------------------------------------------
 # constants
@@ -57,7 +58,9 @@ PREAMBLE_CARDS = (
     "principle-09-git-sovereignty",
     "principle-37-comment-the-artifact-not-the-edit",
     "principle-43-report-state-not-changelog",
+    "principle-61-private-infra-stays-out-of-tracked-files",
 )
+# where the preamble lives: the claude config dir, and the file in it the build writes into
 PREAMBLE_DIR = Path.home() / ".claude"
 PREAMBLE_FILE = PREAMBLE_DIR / "CLAUDE.md"
 # only the span between these two lines belongs to the build; every other byte of
@@ -66,8 +69,6 @@ MARK_OPEN = "<!-- GENERATED from the brain - do not hand-edit -->"
 MARK_CLOSE = "<!-- END GENERATED -->"
 # the `## rule` section of a card, up to the next `##` heading
 RULE_SECTION = re.compile(r"^## rule\n(.*?)(?=^## )", re.MULTILINE | re.DOTALL)
-# a closing frontmatter fence: a line that is exactly `---` (not `----`/`---x`)
-FRONT_CLOSE = re.compile(r"\n---[ \t]*(?:\n|$)")
 # one `key: value` frontmatter line; keys allow letters/underscores (e.g. model_id)
 FRONT_KV = re.compile(r"([A-Za-z_]+):\s*(.*)")
 # the shortest string that can carry BOTH of its surrounding quotes
@@ -150,12 +151,15 @@ class Agent:
         # --------------------------------------------------
         # locate and validate the frontmatter fences
         # --------------------------------------------------
-        if not text.startswith("---\n"):
-            raise ValueError(f"{path}: no opening frontmatter fence")
-        close = FRONT_CLOSE.search(text, 3)
-        if close is None:
+        split = split_frontmatter(text)
+        if split is None:
             raise ValueError(f"{path}: unterminated frontmatter")
-        front, body = text[4:close.start() + 1], text[close.end():].lstrip("\n")
+        front, body = split
+        if body == text:
+            raise ValueError(f"{path}: no frontmatter")
+        if not front:
+            raise ValueError(f"{path}: empty frontmatter")
+        body = body.lstrip("\n")
         # --------------------------------------------------
         # scan the frontmatter line-by-line: robust to a description that is the
         # LAST key, to underscore/case in the next key, and to inline comments
@@ -231,6 +235,46 @@ class Compiler(Artifact):
             seen[dst] = path
             out.append((dst, agent.to_codex_agent()))
         return out
+
+    def orphans(self) -> list[Path]:
+        r"""the agent files in the output directory that no source builds.
+
+        an agent whose source was deleted or renamed leaves its `.toml` behind,
+        and codex keeps loading it
+
+        # Returns
+        the orphaned `.toml` paths, sorted
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     source, out = Path(tmp) / "src", Path(tmp) / "out"
+            ...     _ = source.mkdir(), out.mkdir()
+            ...     _ = (source / "a.md").write_text("---\nname: kept\n---\nbody\n")
+            ...     _ = (out / "kept.toml").write_text(""), (out / "gone.toml").write_text("")
+            ...     [path.name for path in Compiler(out_dir=out, agents_dir=source).orphans()]
+            ['gone.toml']
+        """
+        built = {path for path, _ in self.targets()}
+        return sorted(path for path in self.out_dir.glob("*.toml") if path not in built)
+
+    @override
+    def is_current(self) -> bool:
+        """every agent file matches a fresh build, and none is orphaned.
+
+        # Returns
+        true when the output directory holds exactly the built agents
+        """
+        return super().is_current() and not self.orphans()
+
+    @override
+    def emit(self) -> None:
+        """delete every orphaned agent file, naming each, then build."""
+        for orphan in self.orphans():
+            orphan.unlink()
+            print(f"{TOOL}: pruned {orphan.name}: no agent source builds it")
+        super().emit()
 
     def summary(self) -> str:
         """a one-line build summary.
@@ -310,15 +354,22 @@ class Preamble(Artifact):
         return f"compile done -> {PREAMBLE_FILE}\n  preamble cards: {', '.join(self.cards)}"
 
 
-def main() -> None:
-    """compile the codex agents and the global preamble, or check both."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK)
-    Artifact.run_all([
+def main(args: Args) -> Exit:
+    """compile the codex agents and the global preamble, or check both.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--check` compares both outputs to disk instead of writing
+
+    # Returns
+
+    the combined exit status of the two artifacts
+    """
+    return Artifact.run_all([
         Compiler(out_dir=LAYOUT.codex_agents, agents_dir=LAYOUT.agents),
         Preamble(out_dir=PREAMBLE_DIR, cards_dir=LAYOUT.principles, cards=PREAMBLE_CARDS),
     ], args, TOOL)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)

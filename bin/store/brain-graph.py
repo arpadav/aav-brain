@@ -3,17 +3,13 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-graph: build the deterministic knowledge graph from the cards.
+"""brain-graph: write the knowledge graph out as graph.json, and print its warnings.
 
-    python3 brain-graph.py            build brain/graph/graph.json
+    python3 brain-graph.py            write brain/graph/graph.json
     python3 brain-graph.py --check    build to memory, fail if it drifts from disk
 
-the graph IS the queryable context layer. nodes are the cards, edges are
-derived (never authored) from frontmatter and [[wikilinks]]. the Node/Edge
-datatypes, the frontmatter parser, and the drift-gate are shared via brainlib -
-brain-graph writes Node.to_dict, brain-recall reads Node.from_dict, one
-definition. output is byte-identical on re-run; graph.json is gitignored and
-brain-recall rebuilds it through GraphBuilder whenever a card is newer
+the graph and its warnings: see brainlib.graph. what graph.json is for: see
+schema/optional-graph.md. this is where a human sees the warnings
 
 the graph is KNOWLEDGE, kept separate from the execution FLOW (brain-flow.py)
 
@@ -28,260 +24,76 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import (
-    Args,
-    Artifact,
-    Edge,
-    Flag,
-    Frontmatter,
-    Kind,
-    Layout,
-    Node,
-    Rel,
-    Tier,
-    kind_rank,
-    parse_frontmatter,
-    read_text,
-)
+from brainlib import Args, Artifact, Exit, Flag, Graph, Layout, Tool
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import json
-import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
 # this tool's own name, for its messages; derived so a rename cannot desync them
 TOOL = Path(__file__).stem
-# every path this tool touches, resolved once by the shared discovery
-LAYOUT = Layout.discover()
-# the ONE card directory scanned into nodes. brain/intents/ is deliberately
-# absent: an intent is the WHY of its principles and never fires independently,
-# so as a peer node it could only ever co-occur with them. measured on a
-# labelled prompt set, intent-comprehension and P11 were relevant on 86% of the
-# same prompts while sharing 12% of their vocabulary - two nodes, one rule. five
-# of the seven highest-overlap card pairs in the store paired an intent with a
-# principle. the intent files remain on disk as prose a human reads and as valid
-# [[link]] targets; they are simply not retrievable, and each principle's
-# `interest:` field carries the association without a node to hang it on. voice
-# docs are retrieved by name, not graph traversal, so they are not nodes
-CARD_DIRS = [(LAYOUT.principles, Kind.PRINCIPLE)]
-
-def scalar(front: Frontmatter, key: str, default: str = "") -> str:
-    """one frontmatter field as a string.
-
-    parse_frontmatter types every value as scalar-or-list, so a field that must
-    be a string is read through here rather than trusted
-
-    # Arguments
-    * `front` - the parsed frontmatter
-    * `key` - the field name
-    * `default` - returned when the field is absent or the wrong shape
-
-    # Returns
-    the string value, or the default
-
-    # Example
-
-        >>> scalar({"name": "principle-01"}, "name")
-        'principle-01'
-        >>> scalar({"tells": ["a", "b"]}, "tells", "?")
-        '?'
-    """
-    value = front.get(key, default)
-    return value if isinstance(value, str) else default
-
-
-def listed(front: Frontmatter, key: str) -> list[str]:
-    """one frontmatter field as a list of strings.
-
-    # Arguments
-    * `front` - the parsed frontmatter
-    * `key` - the field name
-
-    # Returns
-    the list value, or an empty list when the field is absent or a scalar
-
-    # Example
-
-        >>> listed({"tells": ["never guess", "ask first"]}, "tells")
-        ['never guess', 'ask first']
-        >>> listed({"name": "principle-01"}, "name")
-        []
-    """
-    value = front.get(key, [])
-    return value if isinstance(value, list) else []
+# the file the graph is written to, inside Layout.graph_dir
+GRAPH_JSON = "graph.json"
 
 
 @dataclass
-class GraphBuilder(Artifact):
-    """builds the knowledge graph (cards -> nodes, derived relationships -> edges)."""
+class GraphFile(Artifact):
+    """graph.json: the built graph written out, drift-checked by the shared Artifact harness."""
 
-    store: Path = Path()
-    nodes: dict[str, Node] = field(default_factory=dict)
-    edges: list[Edge] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    def load(self) -> "GraphBuilder":
-        """load every card directory into the node table.
-
-        # Returns
-        self, for chaining
-        """
-        # --------------------------------------------------
-        # walk each card directory in sorted order
-        # --------------------------------------------------
-        for directory, kind in CARD_DIRS:
-            if not directory.exists():
-                continue
-            for path in sorted(directory.glob("*.md")):
-                text = read_text(path)
-                front = parse_frontmatter(text)
-                node_id = scalar(front, "name", path.stem)
-                node = Node(
-                    id=node_id,
-                    kind=kind,
-                    headline=scalar(front, "rule") or scalar(front, "one_line") or path.stem,
-                    interest=listed(front, "interest"),
-                    confidence=scalar(front, "confidence"),
-                    binds=listed(front, "binds"),
-                    tier=scalar(front, "tier") or Tier.CONDITIONAL,
-                    tells=listed(front, "tells"),
-                    tension=listed(front, "tension"),
-                    body_links=sorted(set(re.findall(r"\[\[(principle-[a-z0-9-]+)\]\]", text))),
-                    path=str(path.relative_to(self.store.parent)),
-                )
-                self.nodes[node_id] = node
-        return self
-
-    def relates_edges(self) -> tuple[set[Edge], list[str]]:
-        """the relates edges, one per [[link]] in a principle's body.
-
-        # Returns
-        an (edges, warnings) tuple; a warning names a link with no card
-        """
-        edges: set[Edge] = set()
-        warnings: list[str] = []
-        for node in self.nodes.values():
-            if node.kind != Kind.PRINCIPLE:
-                continue
-            for other in node.body_links:
-                if other == node.id:
-                    continue
-                if other not in self.nodes:
-                    # warn INSTEAD of emitting: an edge whose destination does
-                    # not exist is not an edge, and every reader downstream then
-                    # has to guard a key that should never have been written
-                    warnings.append(f"{node.id} relates to unknown card {other}")
-                    continue
-                edges.add(Edge(Rel.RELATES, node.id, other))
-        return edges, warnings
-
-    def tension_edges(self) -> tuple[set[Edge], list[str]]:
-        """the tension edges, symmetric, from each card's `tension:` field.
-
-        # Returns
-        an (edges, warnings) tuple; a warning names a card that does not exist
-        """
-        edges: set[Edge] = set()
-        warnings: list[str] = []
-        for node in self.nodes.values():
-            for other in node.tension:
-                if other == node.id:
-                    # a self-tension marks the node touched, which would hide it
-                    # from the orphan sweep while meaning nothing
-                    warnings.append(f"{node.id} tensions with itself")
-                    continue
-                if other not in self.nodes:
-                    warnings.append(f"{node.id} tensions with unknown card {other}")
-                    continue
-                edges.add(Edge(Rel.TENSION, node.id, other))
-                edges.add(Edge(Rel.TENSION, other, node.id))
-        return edges, warnings
-
-    def orphan_warnings(self, edges: set[Edge]) -> list[str]:
-        """one warning per node no edge touches.
-
-        # Arguments
-        * `edges` - the derived edge set
-
-        # Returns
-        the warnings, one per unreachable node
-        """
-        touched = {e.src for e in edges} | {e.dst for e in edges}
-        return [f"{node_id} is an orphan - no edges" for node_id in self.nodes if node_id not in touched]
-
-    def build(self) -> "GraphBuilder":
-        """derive every edge from frontmatter and links, and flag problems.
-
-        # Returns
-        self, for chaining
-        """
-        edges: set[Edge] = set()
-        warnings: list[str] = []
-        # --------------------------------------------------
-        # each relationship kind is derived by its own pass
-        # --------------------------------------------------
-        for derive in (self.relates_edges, self.tension_edges):
-            found, complaints = derive()
-            edges |= found
-            warnings.extend(complaints)
-        warnings.extend(self.orphan_warnings(edges))
-        # --------------------------------------------------
-        # stable order
-        # --------------------------------------------------
-        self.edges = sorted(edges)
-        self.warnings = sorted(set(warnings))
-        return self
-
-    def ordered_nodes(self) -> list[Node]:
-        """nodes sorted by (kind, id) for stable output.
-
-        # Returns
-        the node list in deterministic order
-        """
-        return sorted(self.nodes.values(), key=lambda n: (kind_rank(n.kind), n.id))
-
-    def to_json(self) -> str:
-        """render the graph as deterministic json text.
-
-        # Returns
-        a json string with a trailing newline, byte-identical per build
-        """
-        graph = {"nodes": [n.to_dict() for n in self.ordered_nodes()],
-                     "edges": [e.to_dict() for e in self.edges],
-                     "warnings": self.warnings}
-        return json.dumps(graph, indent=2, ensure_ascii=False) + "\n"
+    graph: Graph
 
     def targets(self) -> list[tuple[Path, str]]:
-        """the built artifact: graph.json.
+        """the one file this export owns.
 
         # Returns
-        a list of (path, content) pairs
+
+        the graph.json path and its content
         """
-        return [(LAYOUT.graph_json, self.to_json())]
+        return [(self.out_dir / GRAPH_JSON, self.graph.to_json())]
 
     def summary(self) -> str:
-        """a one-line (plus warnings) build summary.
+        """the node, edge and warning counts, then each warning.
 
         # Returns
-        the node/edge/warning counts and any warning lines
+
+        the summary lines
         """
-        head = (f"brain-graph done -> {self.out_dir}\n"
-                f"  nodes: {len(self.nodes)} | edges: {len(self.edges)} | warnings: {len(self.warnings)}")
-        return head + "".join(f"\n  warn: {w}" for w in self.warnings)
+        # --------------------------------------------------
+        # the headline: where it was written and the three counts
+        # --------------------------------------------------
+        head = (f"{TOOL} done -> {self.out_dir}\n"
+                f"  nodes: {len(self.graph.nodes)} | edges: {len(self.graph.edges)} "
+                f"| warnings: {len(self.graph.warnings)}")
+        # --------------------------------------------------
+        # then each warning, one per line
+        # --------------------------------------------------
+        return head + "".join(f"\n  warn: {warning}" for warning in self.graph.warnings)
 
 
-def main() -> None:
-    """build the graph, then either write it or check it against disk."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK)
-    builder = GraphBuilder(out_dir=LAYOUT.graph_dir, store=LAYOUT.store).load().build()
-    builder.run(args, TOOL)
+def main(args: Args) -> Exit:
+    """build the graph, then either write it or check it against disk.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--check` compares instead of writing
+
+    # Returns
+
+    the exit status of writing or checking the graph file
+    """
+    # --------------------------------------------------
+    # find the repo this run is inside
+    # --------------------------------------------------
+    layout = Layout.discover()
+    # --------------------------------------------------
+    # build the graph from that repo, then write it or drift-check it per the flags
+    # --------------------------------------------------
+    return GraphFile(out_dir=layout.graph_dir, graph=Graph.build(layout)).run(args, TOOL)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)

@@ -25,7 +25,7 @@ does not resolve, it says so and exits non-zero. a scan that reports CLEAN
 having measured nothing is the failure this tool was written to end
 
     python3 brain-shape.py [PATH]              report every crossing
-    python3 brain-shape.py [PATH] --check      exit 1 if anything crossed
+    python3 brain-shape.py [PATH] --check      FINDINGS when anything crossed
     python3 brain-shape.py [PATH] --since REF  the secondary change budget since a ref
 
 Author: aav
@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Layout, ShapePolicy, git, read_text
+from brainlib import Args, Exit, Flag, Layout, NoVerdict, RepoError, RepoTree, ShapePolicy, Tool, git, read_text
 
 # --------------------------------------------------
 # external
@@ -341,50 +341,40 @@ class Shape:
 
         the Budget; `measured` false when the ref does not resolve, which ARMS
         """
-        if git(self.root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}") is None:
+        try:
+            changes = RepoTree.containing(self.root).since(ref)
+        except RepoError:
             return Budget(0, 0, armed=True, measured=False)
-        files = 0
-        changed = 0
-        for row in (git(self.root, "diff", "--numstat", ref, "--", ".") or "").splitlines():
-            added, removed, name = (*row.split("\t", 2), "", "", "")[:3]
-            if not name or not self.policy.arms(Path(name)):
-                continue
-            files += 1
-            # a binary file reports `-` for both counts: a changed file that
-            # contributes no lines. a removal counts as change - a phase that
-            # deletes 5000 lines is not a phase that changed nothing
-            if added.isdigit() and removed.isdigit():
-                changed += int(added) + int(removed)
-        for name in (git(self.root, "ls-files", "-z", "--others", "--exclude-standard") or "").split("\0"):
-            if not name or not self.policy.arms(Path(name)):
-                continue
-            files += 1
-            try:
-                changed += len(read_text(self.root / name).splitlines())
-            except (OSError, UnicodeDecodeError):
-                continue
-        armed = files >= self.policy.changed_files or changed >= self.policy.changed_lines
-        return Budget(files, changed, armed=armed, measured=True)
+        # a binary file is a changed file that contributes no lines. a removal
+        # counts as change - a phase that deletes 5000 lines changed something
+        counted = [change.lines() or 0 for change in changes if change.path.is_relative_to(self.root)
+                   and self.policy.arms(change.path.relative_to(self.root))]
+        armed = len(counted) >= self.policy.changed_files or sum(counted) >= self.policy.changed_lines
+        return Budget(len(counted), sum(counted), armed=armed, measured=True)
 
 
-def main() -> None:
+def main(args: Args) -> Exit:
     """measure the named repo, report every crossing, and gate --check on them.
 
     `--since REF` adds the SECONDARY change budget; brain-gate.py decides whether
     a phase boundary buys a cold review
+
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the repo root
+      (the cwd by default), `--since REF` adds the change budget
+
+    # Returns
+
+    `Exit.FINDINGS` under `--check` when any crossing exists, else `Exit.OK`; a
+    tree that cannot be listed raises `NoVerdict`
     """
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK, Flag.SINCE)
-    if starved := args.starved(Flag.SINCE):
-        print(f"{TOOL}: {starved[0]} needs a ref", file=sys.stderr)
-        sys.exit(Exit.USAGE)
     positional = args.positional()
     root = Path(positional[0]).resolve() if positional else Path.cwd()
     shape = Shape(root, ShapePolicy.load(LAYOUT.shape_toml))
     if not shape.measure():
-        print(f"{TOOL}: cannot list {root} - not a git repo, or git is unavailable", file=sys.stderr)
-        print(f"{TOOL}: refusing to report a clean scan of a tree it never read", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+        raise NoVerdict(f"cannot list {root} - not a git repo, or git is unavailable; "
+                        f"refusing to report a clean scan of a tree it never read")
     for crossing in shape.crossings:
         print(crossing.line())
     print(f"{TOOL}: {len(shape.crossings)} crossing(s) in {root.name}")
@@ -393,9 +383,8 @@ def main() -> None:
     # --------------------------------------------------
     if since := args.value(Flag.SINCE):
         print(shape.budget(since).line(since))
-    if args.has(Flag.CHECK) and shape.crossings:
-        sys.exit(Exit.DRIFT)
+    return Exit.FINDINGS if args.has(Flag.CHECK) and shape.crossings else Exit.OK
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK, Flag.SINCE), positionals=(0, 1)).run(main)

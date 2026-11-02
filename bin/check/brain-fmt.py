@@ -9,7 +9,7 @@ a recurring style sweep, committed because it runs on every style pass and its
 ruleset is worth versioning (P19). two independent modes:
 
     python3 brain-fmt.py path [path ...]           rewrite in place
-    python3 brain-fmt.py --check path [...]        exit 1 if any file would change
+    python3 brain-fmt.py --check path [...]        FINDINGS when any file would change
     python3 brain-fmt.py --stale path [...]        audit comment CONTENT, never rewrites
     python3 brain-fmt.py --stale --since HEAD p    audit only the lines that ref changed
 
@@ -46,13 +46,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Flag, read_text, write_text
+from brainlib import Args, Exit, Flag, Tool, UsageError, git, read_text, write_text
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import re
-import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
@@ -164,6 +163,13 @@ class Source:
 
         # Returns
         a (code, comment) tuple; comment is "" when the line carries none
+
+        # Example
+
+            >>> Source.split_comment("x = 1  # note")
+            ('x = 1  ', '# note')
+            >>> Source.split_comment('s = "a # b"')
+            ('s = "a # b"', '')
         """
         for marker in MARKERS:
             index = line.find(marker)
@@ -215,6 +221,11 @@ class StaleAudit:
 
         # Returns
         the set of tokens shaped like code rather than like prose
+
+        # Example
+
+            >>> sorted(StaleAudit.named_tokens("the `foo` helper"))
+            ['foo']
         """
         tokens = set(BACKTICK_RE.findall(comment))
         tokens.update(LONE_CAP_RE.findall(comment))
@@ -257,21 +268,21 @@ class StaleAudit:
                         f'"{match.group(0)}" - describes the change, not the code'))
         return len(self.findings) - before
 
-    def report(self) -> int:
+    def report(self) -> Exit:
         """print every finding and the action each one calls for.
 
         # Returns
-        the exit code: 1 when anything was found
+        FINDINGS when anything was found, else OK
         """
         if not self.findings:
             print("brain-fmt --stale: no findings")
-            return 0
+            return Exit.OK
         for finding in self.findings:
             print(finding)
         files = len({f.path for f in self.findings})
         print(f"brain-fmt --stale: {len(self.findings)} finding(s) in {files} file(s)")
         print("cut the named component from the comment; the rest of the comment stands (P37)")
-        return 1
+        return Exit.FINDINGS
 
 
 @dataclass
@@ -295,6 +306,11 @@ class StyleGate:
 
         # Returns
         the marker, or None when the suffix is not a commented source
+
+        # Example
+
+            >>> [StyleGate.marker_for(Path(name)) for name in ("a.py", "a.rs", "a.md")]
+            ['#', '//', None]
         """
         if path.suffix in {".py", ".sh", ".bash", ".nix", ".toml"}:
             return "#"
@@ -370,14 +386,14 @@ class StyleGate:
         return out
 
     @classmethod
-    def run(cls, paths: Sequence[str]) -> int:
+    def run(cls, paths: Sequence[str]) -> Exit:
         """audit every path and report.
 
         # Arguments
         * `paths` - the files to audit
 
         # Returns
-        the exit code: 1 when any violation was found, so STYLE emits unstyled
+        FINDINGS when any violation was found, so STYLE emits unstyled; else OK
         """
         findings: list[Finding] = []
         for raw in paths:
@@ -389,7 +405,7 @@ class StyleGate:
             counts[finding.kind] = counts.get(finding.kind, 0) + 1
         summary = ", ".join(f"{kind} {count}" for kind, count in sorted(counts.items())) or "clean"
         print(f"{TOOL}: style gate {'FAIL' if findings else 'PASS'} - {summary}")
-        return 1 if findings else 0
+        return Exit.FINDINGS if findings else Exit.OK
 
 
 @dataclass
@@ -407,6 +423,17 @@ class Formatter:
 
         # Returns
         the reformatted line
+
+        # Example
+
+            >>> Formatter.fmt_line("# ---- ") == "# " + "-" * 50
+            True
+            >>> Formatter.fmt_line("# a note.")
+            '# a note'
+            >>> Formatter.fmt_line("# and so on...")
+            '# and so on...'
+            >>> Formatter.fmt_line("# see https://example.org/a.")
+            '# see https://example.org/a.'
         """
         # --------------------------------------------------
         # separator: collapse any 3+ hyphen rule to exactly fifty
@@ -423,24 +450,29 @@ class Formatter:
 
     @classmethod
     def fmt_text(cls, text: str) -> str:
-        """run fmt_line over every line of a file's contents.
+        r"""run fmt_line over every line of a file's contents.
 
         # Arguments
         * `text` - the full file contents
 
         # Returns
         the reformatted text
+
+        # Example
+
+            >>> Formatter.fmt_text("# a.\nx = 1\n")
+            '# a\nx = 1\n'
         """
         return "\n".join(cls.fmt_line(line) for line in text.split("\n"))
 
-    def run(self, paths: Sequence[str]) -> int:
+    def run(self, paths: Sequence[str]) -> Exit:
         """rewrite, or count, every path.
 
         # Arguments
         * `paths` - the files to process
 
         # Returns
-        the exit code: 1 when --check found work to do
+        FINDINGS when --check found work to do, else OK
         """
         changed = 0
         for raw in paths:
@@ -452,7 +484,7 @@ class Formatter:
                 if not self.check:
                     write_text(path, after)
         print(f"{TOOL}: {changed} file(s) {'would change' if self.check else 'rewritten'}")
-        return 1 if (self.check and changed) else 0
+        return Exit.FINDINGS if (self.check and changed) else Exit.OK
 
 
 def changed_lines(path: Path, ref: str) -> set[int] | None:
@@ -467,16 +499,12 @@ def changed_lines(path: Path, ref: str) -> set[int] | None:
     which case the caller audits the whole file rather than silently auditing
     nothing (P36)
     """
-    command = ["git", "diff", "--unified=0", ref, "--", str(path)]
-    # command is this function's own literal argv plus a path and a ref he typed;
-    # nothing is remote, and shell=False keeps it an exec not a shell (S603)
-    result = subprocess.run(command, capture_output=True, text=True, check=False)  # noqa: S603
-    if result.returncode != 0:
-        print(f"{TOOL}: git diff failed for {path}, auditing the whole file", file=sys.stderr)
-        print(result.stderr.strip(), file=sys.stderr)
+    diff = git(Path.cwd(), "diff", "--unified=0", ref, "--", str(path))
+    if diff is None:
+        print(f"{TOOL}: git diff {ref} failed for {path}, auditing the whole file", file=sys.stderr)
         return None
     lines: set[int] = set()
-    for line in result.stdout.split("\n"):
+    for line in diff.split("\n"):
         match = HUNK_RE.match(line)
         if match:
             start = int(match.group(1))
@@ -485,36 +513,40 @@ def changed_lines(path: Path, ref: str) -> set[int] | None:
     return lines
 
 
-def main() -> None:
-    """dispatch the format pass or the content audit."""
-    # --------------------------------------------------
-    # parse: every flag is positional-agnostic, matching the other brain scripts
-    # a flag accepted only in first position silently becomes a PATH anywhere else
-    # --------------------------------------------------
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.SINCE, Flag.STALE, Flag.CHECK, Flag.GATE)
+def main(args: Args) -> Exit:
+    """dispatch the format pass, the style gate, or the content audit.
+
+    `--gate` runs the style gate, `--stale` audits comments for narration and
+    stale referents, and anything else is the format pass over the positionals
+
+    # Arguments
+
+    * `args` - the parsed command line; positionals are the files to process,
+      `--since REF` limits `--stale` to the lines changed since a ref
+
+    # Returns
+
+    the exit status of whichever pass ran; `--since` without `--stale` raises
+    `UsageError`
+    """
     ref = args.value(Flag.SINCE) or None
     paths = args.positional()
-    # --------------------------------------------------
-    # validate the mode against the arguments
-    # --------------------------------------------------
-    if not paths:
-        sys.exit("usage: brain-fmt.py [--check | --gate | --stale [--since REF]] path [path ...]")
     if ref and not args.has(Flag.STALE):
-        sys.exit(f"{TOOL}: --since applies to --stale")
+        raise UsageError("--since applies to --stale")
     # --------------------------------------------------
     # dispatch
     # --------------------------------------------------
     if args.has(Flag.GATE):
-        sys.exit(StyleGate.run(paths))
+        return StyleGate.run(paths)
     if args.has(Flag.STALE):
         audit = StaleAudit()
         for raw in paths:
             source = Source.read(raw)
             audit.audit(source, changed_lines(source.path, ref) if ref else None)
-        sys.exit(audit.report())
-    sys.exit(Formatter(check=args.has(Flag.CHECK)).run(paths))
+        return audit.report()
+    return Formatter(check=args.has(Flag.CHECK)).run(paths)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.SINCE, Flag.STALE, Flag.CHECK, Flag.GATE), positionals=(1, None),
+         modes=((Flag.CHECK,), (Flag.GATE,), (Flag.STALE, Flag.SINCE))).run(main)

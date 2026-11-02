@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Flow, Layout, read_text
+from brainlib import Args, Artifact, Exit, Flag, Flow, Layout, NoVerdict, Tool, read_text
 
 # --------------------------------------------------
 # external
@@ -187,31 +187,41 @@ class FlowDoc(Artifact):
                 f"entries: {len(self.flow.entries)}")
 
 
-def main() -> None:
+def main(args: Args) -> Exit | None:
     """render the flowchart doc, or check/emit it.
 
     an unsound flow or a broken template fails before anything is written
+
+    # Arguments
+
+    * `args` - the parsed command line; `--mermaid` prints the diagram alone,
+      otherwise the doc is written or checked
+
+    # Returns
+
+    `None` after printing the diagram, else the exit status of writing or checking the doc
+
+    # Raises
+
+    NoVerdict when the flow or the template has any warning
     """
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK, Flag.MERMAID)
     doc = FlowDoc(out_dir=LAYOUT.docs, flow=Flow.load(LAYOUT.flow_toml), template=read_text(LAYOUT.flow_template))
     # --------------------------------------------------
     # refuse an unsound flow or template
     # --------------------------------------------------
     warnings = [*doc.flow.validate(LAYOUT), *doc.mermaid_warnings(), *doc.template_warnings()]
     if warnings:
-        print(f"{TOOL}: INVALID flow.toml or template - not writing:")
         for warning in warnings:
             print(f"  warn: {warning}")
-        sys.exit(Exit.DRIFT)
+        raise NoVerdict("INVALID flow.toml or template - not writing")
     # --------------------------------------------------
     # mermaid mode: emit the diagram alone
     # --------------------------------------------------
     if args.has(Flag.MERMAID):
         print(doc.to_mermaid())
-        return
-    doc.run(args, TOOL)
+        return None
+    return doc.run(args, TOOL)
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK, Flag.MERMAID), modes=((Flag.CHECK,), (Flag.MERMAID,))).run(main)

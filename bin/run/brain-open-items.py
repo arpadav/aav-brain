@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit
+from brainlib import Args, Tool, UsageError
 
 # --------------------------------------------------
 # external
@@ -116,11 +116,19 @@ def status(path: Path) -> str:
     return "unchanged" if stamped == digest(body) else "edited"
 
 
-def main() -> None:
-    """dispatch the subcommand."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__)
-    command, *rest = args.positional() or ["--help"]
+def main(args: Args) -> None:
+    """dispatch the subcommand: `stamp FILE...` or `status [DIR]`.
+
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the subcommand,
+      the rest are the files to stamp or the open-items directory to list
+
+    # Raises
+
+    UsageError for an unknown or incomplete subcommand, or a directory that does not exist
+    """
+    command, *rest = args.positional()
     # --------------------------------------------------
     # stamp: one footer per named file
     # --------------------------------------------------
@@ -135,15 +143,13 @@ def main() -> None:
     if command == "status":
         folder = Path(rest[0]) if rest else DEFAULT_DIR
         if not folder.is_dir():
-            print(f"{TOOL}: no open-items dir at {folder}", file=sys.stderr)
-            sys.exit(Exit.USAGE)
+            raise UsageError(f"no open-items dir at {folder}")
         rows = sorted((status(item), item.name) for item in folder.glob("*.md"))
         for state, name in rows:
             print(f"{state:<10} {name}")
         return
-    print(f"{TOOL}: unknown command; `--help` lists them", file=sys.stderr)
-    sys.exit(Exit.USAGE)
+    raise UsageError(f"unknown or incomplete command {command!r}")
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, positionals=(1, None)).run(main)

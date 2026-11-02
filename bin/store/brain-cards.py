@@ -14,7 +14,7 @@ evidence two cards (a heat quote belongs to both its topic card and P15), so
 cross-cutting tells are allowed by design, not linted
 
     python3 brain-cards.py            report structural errors
-    python3 brain-cards.py --check    exit 1 if there is an error
+    python3 brain-cards.py --check    FINDINGS when there is an error
 
 Author: aav
 """
@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Confidence, Exit, Flag, Frontmatter, Kind, Layout, Tier, parse_frontmatter, read_text
+from brainlib import Args, Confidence, Exit, Flag, Frontmatter, Kind, Layout, Tier, Tool, parse_frontmatter, read_text
 
 # --------------------------------------------------
 # external
@@ -133,9 +133,8 @@ class CardLinter:
     def interest_errors(self, cards: dict[str, Frontmatter]) -> list[str]:
         """every `interest:` naming a document that does not exist.
 
-        this used to be caught by the graph, as a side effect of building a
-        serves edge to an interest node. intents are no longer nodes, so nothing
-        checked the field at all and a typo passed every tool
+        intents are not graph nodes, so no other tool resolves the field and a
+        typo would pass every tool
 
         # Arguments
 
@@ -189,17 +188,23 @@ class CardLinter:
         return self
 
 
-def main() -> None:
-    """lint the cards, print structural errors, and gate --check on them."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK)
+def main(args: Args) -> Exit:
+    """lint the cards, print structural errors, and gate --check on them.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--check` turns an error into a failing status
+
+    # Returns
+
+    `Exit.FINDINGS` under `--check` when any card has a structural error, else `Exit.OK`
+    """
     linter = CardLinter(Layout.discover()).run()
     for error in linter.errors:
         print(f"  error: {error}")
     print(f"{TOOL}: {len(linter.errors)} error(s)")
-    if args.has(Flag.CHECK) and linter.errors:
-        sys.exit(Exit.DRIFT)
+    return Exit.FINDINGS if args.has(Flag.CHECK) and linter.errors else Exit.OK
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)
