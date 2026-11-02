@@ -252,3 +252,5 @@ class Exit(IntEnum):
     CONFLICT = 3
     # brain-verify: a check the repo declares for the change exited non-zero
     FAILED = 4
+    # brain-sync: origin could not be fetched or kept refusing the push
+    BLOCKED = 5

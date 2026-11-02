@@ -1,6 +1,6 @@
 ---
 name: brain-sync
-description: "Push the brain to GitHub main: its submodules (logs), the brain store, then the home-manager repo that holds it - all as arpadav, message brain-sync. Load this when he says 'brain-sync', 'sync the brain', 'push the brain'. A rejected push pulls and merges; an obvious conflict is resolved automatically, anything else is put to him."
+description: "Push the brain to GitHub main: its submodules (logs), the brain store, then the home-manager repo that holds it - all as arpadav, message brain-sync. Load this when he says 'brain-sync', 'sync the brain', 'push the brain'. Each repo's work goes through a short-lived local branch that merges main in and fast-forwards main; an obvious conflict is resolved automatically, a contradicting or intent-dependent one stops and is put to him."
 ---
 
 # brain-sync
@@ -15,11 +15,22 @@ python3 $AAV_BRAIN/bin/run/brain-sync.py --check   # optional: what each repo ho
 python3 $AAV_BRAIN/bin/run/brain-sync.py
 ```
 
-The script commits everything, pushes, and on a rejected push fetches and merges `origin/main` (also `brain-sync`) and pushes again. Exit 0 means every repo is on `origin/main`.
+Exit 0 means every repo is on `origin/main` with the `brain-sync` branch gone.
+
+## the workflow, per repo
+
+A repo already on `main`, clean, and at `origin/main` is left alone. Every other repo - local changes, unpushed commits, behind origin, or not on `main` at all (a detached submodule checkout is fine) - goes through:
+
+1. `git switch -c brain-sync` from wherever HEAD is, and commit everything on it.
+2. Fetch `origin/main` and merge it, then local `main`, into `brain-sync`. Conflicts surface here, on the branch, never on `main`.
+3. `git switch main` and `git merge --ff-only brain-sync`.
+4. Push `main` to `origin`, then `git branch -d brain-sync`. If origin moved since the fetch, back to step 2 (up to three rounds).
+
+`brain-sync` is local only and never pushed. Every repo ends on `main`.
 
 ## on a conflict (exit 3)
 
-The script prints the repo and its unmerged files and leaves the merge in progress. Resolve each file, `git -C <repo> add` it, then run the script again; it finishes the merge and continues outward.
+The script prints the repo and its unmerged files and leaves the merge in progress on `brain-sync`. Resolve each file, `git -C <repo> add` it, then run the script again; it commits the resolution, merges `main` back, pushes, deletes the branch, and continues outward.
 
 A conflict is obvious, and resolved without asking, when one of these holds:
 
@@ -27,11 +38,16 @@ A conflict is obvious, and resolved without asking, when one of these holds:
 - The file is append-only data (e.g. `*.jsonl` in `logs/`): keep both sides' lines, dropping exact duplicates, in timestamp order.
 - The submodule pointer conflicts in the outer repo: take the commit the inner repo was just pushed at.
 - The two sides changed different, non-overlapping lines and git only refused on proximity.
+- Both sides made the same change, or one side's change plainly contains the other's.
 
-Anything else - a card, a skill, a script or a config where both sides changed the same lines - goes to him: show the repo, the file and both hunks in plain words, and ask which to keep or how to combine them. Never pick a side silently, and never force-push.
+Anything else - both sides changed the same lines of a card, a skill, a script or a config in ways that contradict, or combining them would mean guessing what he meant - STOP and ask him interactively before touching it: show the repo, the file and both hunks in plain words, and ask which to keep or how to combine them. Never pick a side silently, and never force-push.
+
+## on a block (exit 5)
+
+Origin could not be fetched, refused the push three times, or a stale `brain-sync` branch exists that is not checked out. The message names the repo; report it to him rather than working around it.
 
 ## rules
 
-- Only `main`, only `origin`. Never `--force`.
+- Only `main` reaches `origin`; `brain-sync` is the one local branch the sync makes, and it is deleted once `main` is pushed. Never `--force`.
 - The author and message are fixed: `arpadav`, `arpadav@gmail.com`, `brain-sync`.
 - A new skill appears in `~/.claude/skills` only after `home-manager switch`; brain-sync does not run it.
