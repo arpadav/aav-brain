@@ -96,7 +96,7 @@ EXPLAIN_FLOOR = 0.30
 REFERENCE_FLOOR = 0.12
 
 # and a hard ceiling on it, so one heavily-citing card cannot drag in a crowd
-MAX_REFERENCES = 6
+MAX_REFERENCES = 3
 
 # the second admission route, and the one that keeps the floor honest on a big
 # request. an absolute share alone starved: a sprawling multi-part ask spans
@@ -116,8 +116,11 @@ BEST_SHARE = 0.8
 NARROW_FLOOR = 0.20
 # the most the score window alone may take. there is no lower bound: the
 # relative route admits the best card unconditionally, so a floor would only
-# ever pad a window that already has its best answer in it
-MAX_N = 20
+# ever pad a window that already has its best answer in it. the ceiling is
+# about attention, not relevance: past about ten scored cards the lower ranks
+# sit in the window unheeded. over 150 real prompts (2026-11-01) this window
+# averages 14.3 cards, references and constitution included, and tops out at 18
+MAX_N = 10
 # the edge types a card AUTHORS: [[body links]], `tension:`, `interest:`
 # served_by was the DERIVED inverse and is deliberately excluded - intent-craft
 # alone carried 27 serves edges, so closing over it returned the whole store

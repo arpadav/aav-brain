@@ -2,17 +2,22 @@
 name: principle-45-scope-is-the-ask
 kind: principle
 tier: conditional
-rule: a sanctioned change does what was asked and stops. adjacent cleanup nobody asked for is not a bonus - it is what turns a two-step task into a review loop, because the gate then reviews the widened surface.
+rule: an ask gets what was asked and stops - a change gets that change, a question gets an answer, an explain-or-read request gets the explanation. running tests, editing files or launching work nobody asked for is not a bonus; adjacent cleanup turns a two-step task into a review loop.
 interest: [intent-efficiency, intent-control]
-confidence: medium
-evidence_count: 2
+confidence: high
+evidence_count: 58
 binds: [code]
-tells: ["this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?", "fix all things in scope to my request, all things out of scope just document into plans dir as a todos"]
+tells: ["this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?", "fix all things in scope to my request, all things out of scope just document into plans dir as a todos", "i didnt ask about 13-15. i didnt ask you to run anything", "the agent is running tests, i never asked for that, bruh"]
 ---
 
 # P45 - the scope of a change is the ask, not everything nearby
 
 ## rule
+**a question, an "explain", a "read my code at line N" is not a change.** it gets the answer and the
+work stops there: no test run, no edit, no build, no agent launched to "check", until he asks for one
+([[principle-24-socratic-mode]]). 58 complaints of work he did not ask for (2026-06..10), most after a
+question - *"i didnt ask about 13-15. i didnt ask you to run anything"*.
+
 when he sanctions a change, the deliverable is that change. work that is genuinely IMPLIED
 by it is in; work that merely became visible while doing it is out - name it and move on.
 

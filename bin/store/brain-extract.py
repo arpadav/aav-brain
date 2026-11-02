@@ -126,10 +126,21 @@ RE_HEAT = re.compile(
 RE_DEPLOY = re.compile(
     r"\b(docker|dockerfile|cloudflared|truenas|0\.0\.0\.0|compose|nginx|deploy|expose|"
     r"port \d|mount a? ?volume|systemd|axum|tunnel)\b", re.IGNORECASE)
-# turns whose text is harness noise rather than a human prompt
-RE_NOISE = re.compile(r"^\s*<(task-notification|local-command-stdout|post-tool|system-reminder|bash-)", re.IGNORECASE)
-# codex wrappers that are environment scaffolding, not a prompt
-RE_WRAP = re.compile(r"^\s*<(environment_context|user_instructions|task-notification|system-reminder)", re.IGNORECASE)
+# turns in a user slot that the harness wrote, not him: notifications, tool
+# echoes, environment scaffolding, injected skill bodies and compaction
+# summaries. one pattern for both tools, so a wrapper one of them starts
+# emitting is excluded from the corpus once
+RE_MACHINE = re.compile(
+    r"^\s*(<(task-notification|subagent_notification|turn_aborted|local-command-stdout|post-tool|"
+    r"system-reminder|bash-|environment_context|user_instructions|user_shell_command|"
+    r"codex_internal_context|skill)\b|# AGENTS\.md instructions for |"
+    r"This session is being continued from a previous conversation)",
+    re.IGNORECASE)
+# a slash-command turn: the wrapper is boilerplate, the typed args are his
+RE_SLASH = re.compile(r"^\s*<command-(name|message)>")
+# the identity of a prompt record: the same words at the same instant are one
+# turn, whichever session file a resume copied them into or classifier labelled them
+PROMPT_ID = ("text", "ts")
 # emphasis tokens i reserve for hard constraints
 RE_CAPS = re.compile(r"\b(NOT|DO NOT|DONT|NEVER|ALWAYS|MUST|ONLY|EXACTLY|IMPORTANT|JUST|STOP)\b")
 
@@ -258,7 +269,8 @@ class Turn:
 class Reader:
     """reads one transcript file, yielding human turns and collecting denials.
 
-    `at` / `session` track the record currently being read
+    `at` / `session` track the record currently being read; `machine` is true
+    once the file is known to be a script- or agent-driven session
     """
 
     path: Path
@@ -269,16 +281,23 @@ class Reader:
     denials: list[dict[str, str]] = field(default_factory=list)
     at: str = ""
     session: str = ""
+    machine: bool = False
 
-    def turns(self) -> "Iterator[Turn]":
-        """yield every human Turn in the file, in order.
+    def records(self) -> "Iterator[dict[str, Any]]":
+        """yield every parsed record in the file, live or gzipped, stamping each.
 
         # Returns
-        an iterator of Turn objects; the interrupt flag is consumed by the
-        next real turn after an interruption marker
+        an iterator of json objects; `at` and `session` describe the one just yielded
+
+        # Example
+
+            >>> next(Reader(Path("/nonexistent"), "", "").records(), None) is None
+            True
         """
+        opener = gzip.open if self.path.suffix == ".gz" else open
         try:
-            raw = self.path.read_text(encoding=ENCODING, errors="replace")
+            with opener(self.path, "rt", encoding=ENCODING, errors="replace") as handle:
+                raw = handle.read()
         except OSError:
             return
         for line in raw.split("\n"):
@@ -291,10 +310,77 @@ class Reader:
             # --------------------------------------------------
             # stamp the record being read: both tools write a top-level iso-8601
             # `timestamp`. the session id is per-record on claude and encoded in
-            # the rollout filename on codex, so the file stem is the fallback
+            # the rollout filename on codex, so the file name is the fallback
             # --------------------------------------------------
             self.at = str(obj.get("timestamp") or "")
-            self.session = str(obj.get("sessionId") or obj.get("session_id") or "") or self.path.stem
+            self.session = (str(obj.get("sessionId") or obj.get("session_id") or "")
+                            or self.path.name.split(".jsonl")[0])
+            yield obj
+
+    @staticmethod
+    def driver(obj: dict[str, Any]) -> bool | None:
+        """whether the session this record belongs to was driven by a script or an agent.
+
+        codex says so once, in `session_meta`: `exec` is the non-interactive
+        runner and a `subagent` source a spawned worker. claude stamps an
+        `entrypoint` on every user record, `sdk-*` when a program drove it.
+        every user turn in such a session is a dispatch prompt, not his words
+
+        # Arguments
+        * `obj` - one parsed record
+
+        # Returns
+        true or false when the record settles it, None when it says nothing
+
+        # Example
+
+            >>> Reader.driver({"type": "user", "entrypoint": "sdk-py"})
+            True
+            >>> Reader.driver({"type": "session_meta", "payload": {"source": "cli"}})
+            False
+            >>> Reader.driver({"type": "assistant"}) is None
+            True
+        """
+        # --------------------------------------------------
+        # codex: the session_meta source
+        # --------------------------------------------------
+        if obj.get("type") == "session_meta":
+            source = obj.get("payload", {}).get("source")
+            return source == "exec" or (isinstance(source, dict) and "subagent" in source)
+        # --------------------------------------------------
+        # claude: the entrypoint of a user record
+        # --------------------------------------------------
+        if obj.get("type") == "user" and obj.get("entrypoint"):
+            return str(obj["entrypoint"]).startswith("sdk")
+        return None
+
+    def driven(self) -> bool:
+        """whether the file's first record that can say so marks it machine-driven.
+
+        # Returns
+        true when the first record that settles it marks a scripted or
+        agent-driven session; also stored on `machine`
+        """
+        verdict = next((v for obj in self.records() if (v := self.driver(obj)) is not None), False)
+        self.machine = verdict
+        return verdict
+
+    def turns(self) -> "Iterator[Turn]":
+        """yield every human Turn in the file, in order; none from a driven session.
+
+        # Returns
+        an iterator of Turn objects; the interrupt flag is consumed by the
+        next real turn after an interruption marker
+        """
+        # --------------------------------------------------
+        # the first record that says who drove the session settles it; a driven session yields no turns
+        # --------------------------------------------------
+        settled = False
+        for obj in self.records():
+            if not settled and (verdict := self.driver(obj)) is not None:
+                settled, self.machine = True, verdict
+                if verdict:
+                    return
             result = self._read_claude(obj) if self.src == "claude" else self._read_codex(obj)
             if result is None:
                 continue
@@ -359,7 +445,7 @@ class Reader:
         return ""
 
     @staticmethod
-    def _slash_command(text: str) -> tuple[str, bool] | None:
+    def slash_command(text: str) -> tuple[str, bool] | None:
         """the typed arguments of a slash-command turn.
 
         the wrapper itself is boilerplate; only what he typed into it is signal,
@@ -402,10 +488,10 @@ class Reader:
             self.pend = True
             self.last_asst = clip(self.last_asst, 170)
             return None
-        if obj.get("isMeta") or RE_NOISE.search(text):
+        if obj.get("isMeta") or obj.get("isCompactSummary") or RE_MACHINE.search(text):
             return None
-        if re.match(r"^\s*<command-name>", text):
-            return self._slash_command(text)
+        if RE_SLASH.match(text):
+            return self.slash_command(text)
         return text.strip(), False
 
     def _read_codex(self, obj: dict[str, Any]) -> tuple[str, bool] | None:
@@ -439,7 +525,7 @@ class Reader:
         if (payload.get("type") == "message" and payload.get("role") == "user"
                 and isinstance(payload.get("content"), list)):
             text = "\n".join(c.get("text", "") for c in payload["content"]).strip()
-            if not text or RE_WRAP.match(text):
+            if not text or RE_MACHINE.match(text):
                 return None
             return text, False
         return None
@@ -457,6 +543,7 @@ class Corpus:
     opening_verbs: Counter[str] = field(default_factory=Counter)
     by_source: Counter[str] = field(default_factory=Counter)
     by_proj: Counter[str] = field(default_factory=Counter)
+    machine_sessions: set[str] = field(default_factory=set)
 
     def add(self, turn: "Turn") -> None:
         """classify one turn and fold it into the corpus.
@@ -630,16 +717,29 @@ class Corpus:
         a dict of file-name -> MergeCount for the merged corpora
         """
         out.mkdir(parents=True, exist_ok=True)
+        prompts = Ledger(out / "prompts.jsonl", identity=PROMPT_ID)
         # --------------------------------------------------
-        # the canonical corpora: merged, never dropped
+        # the canonical corpora: merged, never dropped. a stored row today's
+        # reader would refuse is MARKED stale rather than deleted - the ledger
+        # forgets only by mark - and a slash wrapper stored whole is re-read
+        # down to its args first, since its transcript may have expired
         # --------------------------------------------------
-        counts = {"prompts.jsonl": Ledger(out / "prompts.jsonl").merge(self.prompts),
+        refused: list[dict[str, Any]] = []
+        for row in prompts.read():
+            if row.get("stale") or not self.refuses(row):
+                continue
+            refused.append({**row, "stale": True})
+            if (slash := Reader.slash_command(row.get("text", ""))) is not None:
+                bucket, classes = self.classify(slash[0], interrupted=False, from_plan=slash[1])
+                refused.append({**row, "text": clip(slash[0], 500), "len": len(slash[0]),
+                                "bucket": bucket, "classes": classes})
+        counts = {"prompts.jsonl": prompts.merge([*self.prompts, *refused]),
                   "denials.jsonl": Ledger(out / "denials.jsonl").merge(self.denials)}
         # --------------------------------------------------
         # re-read the merged corpus: everything below projects the DURABLE set,
         # which is a superset of what this run happened to see
         # --------------------------------------------------
-        durable = self.from_records(Ledger(out / "prompts.jsonl").read())
+        durable = self.from_records(prompts.read())
         # --------------------------------------------------
         # back-compat views, derived; heat joins the rejection corpus too
         # --------------------------------------------------
@@ -670,8 +770,29 @@ class Corpus:
         """
         corpus = cls()
         for row in rows:
-            corpus.fold(row)
+            if not row.get("stale"):
+                corpus.fold(row)
         return corpus
+
+    def refuses(self, row: dict[str, Any]) -> bool:
+        """whether today's reader would keep this stored row out of the corpus.
+
+        # Arguments
+        * `row` - a prompt record read back off disk
+
+        # Returns
+        true for harness text, a stored slash wrapper, or a turn from a session
+        this run found to be machine-driven
+
+        # Example
+
+            >>> Corpus().refuses({"text": "<subagent_notification> {}"})
+            True
+            >>> Corpus().refuses({"text": "make it shorter"})
+            False
+        """
+        text = row.get("text", "")
+        return bool(RE_MACHINE.match(text) or RE_SLASH.match(text)) or row.get("session") in self.machine_sessions
 
     @staticmethod
     def _view(prompt: dict[str, Any]) -> dict[str, str]:
@@ -815,9 +936,14 @@ class Extractor:
     """walks the transcript sources and feeds every human turn to a Corpus."""
 
     transcripts: Transcripts
+    archive: Path
 
     def run(self) -> "Corpus":
         """read every file into a fresh Corpus.
+
+        the cold archive is consulted only for WHO drove each session: a row
+        stored while its transcript was live outlives that transcript, and the
+        archived copy is then the one place that can say it was a script
 
         # Returns
         the populated Corpus
@@ -828,6 +954,15 @@ class Extractor:
             for turn in reader.turns():
                 corpus.add(turn)
             corpus.denials.extend(reader.denials)
+            if reader.machine:
+                corpus.machine_sessions.add(reader.session)
+        # --------------------------------------------------
+        # the archive, only for which sessions were driven
+        # --------------------------------------------------
+        for path in sorted(self.archive.rglob("*.jsonl.gz")) if self.archive.exists() else []:
+            reader = Reader(path, "", "")
+            if reader.driven():
+                corpus.machine_sessions.add(reader.session)
         return corpus
 
 
@@ -848,22 +983,23 @@ def main() -> None:
     data = DataLayout.discover()
     out = (args.out or data.evidence).resolve()
     transcripts = Transcripts(SOURCES)
+    root = (args.archive_dir or find_archive()).resolve()
     # --------------------------------------------------
     # archive first: the source must be preserved BEFORE anything reads it
     # --------------------------------------------------
     if args.archive:
-        root = (args.archive_dir or find_archive()).resolve()
         archived, skipped, size = Archiver(transcripts, root).run()
         print(f"brain-extract archive -> {root}\n"
               f"  archived: {archived} | unchanged: {skipped} | {size / 1e6:.1f} MB written")
     # --------------------------------------------------
     # extract + merge
     # --------------------------------------------------
-    corpus = Extractor(transcripts).run()
+    corpus = Extractor(transcripts, root).run()
     counts = corpus.write(out)
     buckets = Counter(p["bucket"] for p in corpus.prompts)
     print("brain-extract done ->", out)
     print(f"  scanned: {len(corpus.prompts)} turns | " + " ".join(f"{k}:{v}" for k, v in buckets.most_common()))
+    print(f"  machine-driven sessions excluded: {len(corpus.machine_sessions)}")
     for name, count in sorted(counts.items()):
         print(f"  {name:<22} +{count.added:<5} -> {count.total}")
     # a second machine appending to the same corpus is the normal case, and a

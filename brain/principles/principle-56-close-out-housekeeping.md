@@ -43,6 +43,8 @@ the project memory (clean-worktree-targets).
   delete, after folding any still-true line into the master list and fixing the references that pointed at it.
 - worktrees, scratchpads, agents, containers and images the run made: remove and verify with `git worktree list`,
   not the sub-agent's word.
+- processes the run started - background shells, servers, watchers, builds - are stopped here too; the live
+  budget for them during the run is [[principle-69-reap-what-you-spawn]].
 - his keep-list wins and is applied literally. anything he asked to keep (test artifacts in a bucket or on a
   device, a named plan) is listed, never swept; when keep-or-delete is unclear, say "keep X / delete Y" before the rm.
 - confirm the references: after deleting a plan, grep what pointed at it.

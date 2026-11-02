@@ -54,6 +54,7 @@ LAYOUT = Layout.discover()
 # home is discovered, never spelled out (P32); a surface whose file is absent is
 # skipped rather than created, so this never invents config for a tool he doesn't run
 PREAMBLE_CARDS = (
+    "principle-09-git-sovereignty",
     "principle-37-comment-the-artifact-not-the-edit",
     "principle-43-report-state-not-changelog",
 )
