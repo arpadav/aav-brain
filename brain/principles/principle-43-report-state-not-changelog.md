@@ -2,25 +2,30 @@
 name: principle-43-report-state-not-changelog
 kind: principle
 tier: conditional
-rule: when work finishes, report STATE - is it done, what is left - not a tour of what was fixed. he reads the diff for the changelog. a how-to gets a one-liner, not a section. the fix that no longer matters is not news.
+rule: every reply he reads opens on the answer - done or not and what is left for a report, the answer itself for a question, one sentence of what to do for an explanation - and stops there unless more changes what he does next. he reads the diff for the changelog. a how-to gets a one-liner, not a section.
 interest: [intent-efficiency, intent-comprehension]
 confidence: very-high
-evidence_count: 25
-tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek", "make it way shorter it doesnt need to be an essay", "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin"]
+evidence_count: 125
+tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek", "make it way shorter it doesnt need to be an essay", "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin", "im not reading any of this dude. give me one sentence what to do", "you literally sent me a fucking novel. please dont send me this much fucking text"]
 ---
 
 # P43 - report state, not the changelog
 
 ## rule
-a completion report answers two things: **is it done, and what is left.** that is the whole contract.
-it is not a guided tour of the bugs that were fixed, the numbers that were measured, or the sections
-that were rewritten - he reads `git diff` for that, and a defect that no longer exists is not
-information.
+every reply he reads opens on the answer, in a line or two. a completion report answers **is it done,
+and what is left**; an answer to his question is the answer; an explanation starts with the one
+sentence of what to do. that is the whole contract. it is not a guided tour of the bugs that were
+fixed, the numbers that were measured, or the sections that were rewritten - he reads `git diff` for
+that, and a defect that no longer exists is not information. more detail earns its place only when it
+changes what he does next.
 
 the same ceiling applies to usage: **how to use a thing is a one-liner per thing**, not a section per
 thing with rationale and worked examples. he asked how to be quizzed and got four screens of decks,
 rules, weightings and a suggested daily schedule; what he wanted was
 `/quiz N` and `/drill N` on two lines.
+
+where the brain calls for "verbose", it means doc comments and plans written to files - never the
+length of a reply in chat.
 
 ## why
 verbosity is the single most reliable producer of heat in the corpus: **5 of 77 recorded heat events
@@ -38,6 +43,9 @@ failure, different surface. "no change narration" binds a completion report exac
 comment.
 
 ## how to apply
+- **a question is answered, not reported on.** 53 of 125 "too long" complaints (2026-06..10) were about
+  answers to his questions and explanations, not completion reports - the rule's old wording, "when
+  work finishes", let every one of them through.
 - **this isn't only a DONE-time rule.** a status query mid-run gets the same shape of answer -
   blockers first, in a few lines he can act on: *"im confused. should we wait for it to stop? are
   you ready to move on? what are blockers or things you need me to answer? i need an interactive

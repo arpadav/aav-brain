@@ -135,6 +135,8 @@ class Trace:
             <Locality.ELSEWHERE: 'elsewhere'>
             >>> Trace.locality({"affects": "x", "repo": "brain"}, "", Path())
             <Locality.ELSEWHERE: 'elsewhere'>
+            >>> Trace.locality({"affects": "/other/x", "repo": "brain"}, "brain", Path("/r"))
+            <Locality.ELSEWHERE: 'elsewhere'>
         """
         # --------------------------------------------------
         # a pointer-less entry is the HARDEST to reverse, so it is surfaced
@@ -150,6 +152,13 @@ class Trace:
         # --------------------------------------------------
         origin = str(row.get("repo", ""))
         if not here or (origin and origin != here):
+            return Locality.ELSEWHERE
+        # --------------------------------------------------
+        # an absolute path outside this checkout names another machine or
+        # checkout; probing it says nothing here and can hit a home this user
+        # cannot read
+        # --------------------------------------------------
+        if any(Path(p).is_absolute() and not Path(p).resolve().is_relative_to(root.resolve()) for p in paths):
             return Locality.ELSEWHERE
         return Locality.LIVE if all((root / p).exists() for p in paths) else Locality.GONE
     def mark(self, args: Args) -> None:

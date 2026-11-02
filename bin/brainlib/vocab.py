@@ -198,6 +198,7 @@ class Flag(StrEnum):
     PRUNED = "--pruned"
     REJECT = "--reject"
     RESTORE = "--restore"
+    RUN = "--run"
     SESSION = "--session"
     SINCE = "--since"
     SKILL = "--skill"
@@ -249,3 +250,5 @@ class Exit(IntEnum):
     USAGE = 2
     # brain-sync: a merge stopped on conflicting files, left in progress to resolve
     CONFLICT = 3
+    # brain-verify: a check the repo declares for the change exited non-zero
+    FAILED = 4

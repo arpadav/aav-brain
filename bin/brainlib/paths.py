@@ -403,11 +403,28 @@ def find_repo(start: Path | None = None) -> str:
         >>> find_repo(Path("/"))
         ''
     """
+    root = find_repo_root(start)
+    return root.name if root else ""
+
+
+def find_repo_root(start: Path | None = None) -> Path | None:
+    """the root of the git repository `start` sits in.
+
+    # Arguments
+
+    * `start` - where to start walking up from; the cwd when omitted
+
+    # Returns
+
+    the resolved repo directory, or None outside a repository
+
+    # Example
+
+        >>> find_repo_root(Path("/")) is None
+        True
+    """
     here = (start or Path.cwd()).resolve()
-    for directory in (here, *here.parents):
-        if (directory / ".git").exists():
-            return directory.name
-    return ""
+    return next((d for d in (here, *here.parents) if (d / ".git").exists()), None)
 
 
 def find_archive() -> Path:

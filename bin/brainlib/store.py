@@ -9,7 +9,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.paths import DataLayout, find_repo
+from brainlib.paths import DataLayout, find_repo, find_repo_root
 from brainlib.text import iso_now, read_text, write_text
 from brainlib.vocab import ENCODING, GIT_TIMEOUT
 
@@ -57,6 +57,12 @@ class Ledger:
     """
 
     path: Path
+
+    # the fields that make two records the same record; empty means the whole
+    # payload. a corpus whose rows are re-read by a newer classifier, or copied
+    # into a resumed session with the same stamp, names the fields that survive
+    # both - otherwise each copy hashes as a new record
+    identity: tuple[str, ...] = ()
 
     # fields the ledger owns rather than the record: `first_seen` is stamped by a
     # merge, `stale` and `pinned` by a mark. all three are excluded from identity
@@ -111,22 +117,32 @@ class Ledger:
                 out[mark] = True
         return out
 
-    @staticmethod
-    def record_id(record: dict[str, Any]) -> str:
+    def record_id(self, record: dict[str, Any]) -> str:
         """the stable content hash identifying one record.
 
         empty fields are dropped before hashing so a record written before an
         optional field existed collapses onto the same record written after it
-        was added but left blank
+        was added but left blank. a record missing one of the `identity` fields
+        falls back to its whole payload, since what is left cannot tell two
+        different records apart
 
         # Arguments
         * `record` - a json-serialisable dict
 
         # Returns
         a 16-hex-char content id
+
+        # Example
+
+            >>> keyed = Ledger(Path("x"), identity=("text", "ts"))
+            >>> keyed.record_id({"text": "go", "ts": "1", "session": "a"}) == keyed.record_id({"text": "go", "ts": "1"})
+            True
+            >>> keyed.record_id({"text": "go", "session": "a"}) == keyed.record_id({"text": "go"})
+            False
         """
+        keyed = bool(self.identity) and all(record.get(k) for k in self.identity)
         payload = {k: v for k, v in record.items()
-                   if k not in Ledger.META and v not in ("", None, [], {})}
+                   if (k in self.identity if keyed else k not in Ledger.META) and v not in ("", None, [], {})}
         blob = json.dumps(payload, ensure_ascii=False, sort_keys=True)
         # sha1 identifies content here, it does not protect it: the id is a
         # dedup key over rows this machine wrote (S324 reads it as a security hash)
@@ -695,4 +711,37 @@ class Decision:
         entry = {"ts": ts or iso_now(), "session": session, **vars(self)}
         # an unset repo means "the repo this ran in", which only this type knows
         entry["repo"] = entry["repo"] or find_repo()
+        entry["affects"] = self.portable(self.affects, find_repo_root())
         return target.append(entry)
+
+    @staticmethod
+    def portable(affects: str, root: Path | None) -> str:
+        """`affects` with every absolute path inside `root` made relative to it.
+
+        a machine-absolute path in the trace names one checkout on one machine;
+        read anywhere else it resolves to nothing, or to a home this user
+        cannot open (P32). a path outside the repo is kept as given, since
+        there is nothing to make it relative to
+
+        # Arguments
+
+        * `affects` - the comma-separated pointer as passed on the command line
+        * `root` - the repo the run happened in, or None outside one
+
+        # Returns
+
+        the same pointer, comma-separated, repo-relative where it could be
+
+        # Example
+
+            >>> Decision.portable("/r/a.md, b.md, /x/c.md", Path("/r"))
+            'a.md,b.md,/x/c.md'
+            >>> Decision.portable("/r/a.md", None)
+            '/r/a.md'
+        """
+        if root is None:
+            return affects
+        # resolved, so a path spelled through a symlinked checkout still lands inside it
+        paths = [Path(p.strip()) for p in affects.split(",") if p.strip()]
+        paths = [p.resolve() if p.is_absolute() else p for p in paths]
+        return ",".join(str(p.relative_to(root)) if p.is_relative_to(root) else str(p) for p in paths)

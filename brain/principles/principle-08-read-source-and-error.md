@@ -2,11 +2,11 @@
 name: principle-08-read-source-and-error
 kind: principle
 tier: constitution
-rule: Read the actual error and the actual source before acting. Ground in primary sources, not guesses.
+rule: Read the actual error and the actual source before acting. Ground in primary sources, not guesses - and when the source is not on disk (an unfamiliar term, a tool's behaviour, an error nothing local explains), search the web before answering or designing.
 interest: [intent-trust]
 confidence: high
-evidence_count: 8
-tells: ["did you not read the error?", "listen to the error", "read ~/.cargo source", "dont research - temp add to cargo toml and build", "ask the agent why its using context7 for docs? shouldnt it just download the lib stored locally in cache and see the source instead?"]
+evidence_count: 93
+tells: ["did you not read the error?", "listen to the error", "read ~/.cargo source", "dont research - temp add to cargo toml and build", "ask the agent why its using context7 for docs? shouldnt it just download the lib stored locally in cache and see the source instead?", "ran it, read the log, search web. i need solution", "search web on what the fuck a rubric is because you are lacking a brain"]
 ---
 
 # P08 - Read the error and the source first
@@ -31,6 +31,14 @@ patience for fixes that ignore the error message sitting right there.
   local cache (node_modules, site-packages, ~/.cargo) once it's fetched - point an agent there before
   reaching for a live docs tool. "ask the agent why its using context7 for docs? shouldnt it just
   download the lib stored locally in cache and see the source instead?"
+
+- **when the primary source is not on disk, it is on the web - search before answering.** the local
+  cache wins when the thing is a dependency you can fetch. when it is a concept he uses and the agent
+  only half-knows ("rubric"), a hardware or OS failure, a tool's flag, a known error with a known fix,
+  or a design question where prior art exists, search first and say what the search found - do not
+  answer from memory and do not design around a guess. he has asked for this 85 times across 41
+  projects (2026-08..10), the widest-spread ask in the corpus: *"ran it, read the log, search web. i
+  need solution"*. the order is: the error, the local source, then the web - never memory.
 
 **Anti-pattern that draws maximum heat.** Re-running the same failing command without
 reading why it failed; setting a config value the error explicitly told you was wrong.

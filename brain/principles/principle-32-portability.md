@@ -5,8 +5,8 @@ tier: narrow
 rule: be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (brain-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.
 interest: [intent-craft]
 confidence: high
-evidence_count: 4
-tells: ["is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT..."]
+evidence_count: 5
+tells: ["i want all options combinations to work", "is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT..."]
 ---
 
 # P32 - be portable: discover paths, never hardcode them
@@ -41,6 +41,12 @@ one discovered anchor, every other path derived from it, never a second hardcode
   need from it. a missing name is something to derive, not a refusal. `hml deploy --via local` refusing
   anything but x86_64 drew "there should be 0 hard coded architectures or weird architectural
   constraints ... if i say local, take local architecture".
+- the same holds for what is present. every installable part - the home config, aedit, the brain - installs
+  alone and in any combination, and a missing part is skipped, not assumed: he once pulled `home` without the
+  brain and expected his symlinks and aedit to install anyway. a repo with several such parts declares an
+  install matrix in its `verify.toml`, so VERIFY proves every combination on a fresh machine rather than this
+  one: "i want all options combinations to work ... seperable and can be installed individually and
+  independentally".
 
 ## provenance
 this card was created by brain-self-refine: two skills (brain-self-refine, brain-meta-style) and the

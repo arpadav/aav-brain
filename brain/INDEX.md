@@ -76,6 +76,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (brain-open-items.py)
 - [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
 - [[principles/principle-68-a-simplicity-restriction-is-droppable-when-free]] : a "(for now)" / "to keep it simple" restriction is a cost-limiter - lift it, scoped to the one feature that needs it, when lifting is as cheap; ask once if the cost is unknown
+- [[principles/principle-69-reap-what-you-spawn]] : every process the run starts is the run's to stop - kill it when its output is in hand or superseded, budget heavy jobs to the machine, leave nothing running at the end
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises
