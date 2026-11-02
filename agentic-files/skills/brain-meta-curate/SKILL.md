@@ -21,7 +21,6 @@ outside the repo). before you re-open a topic, EXECUTE the
 trace reader and check whether the brain already decided something here:
 ```bash
 python3 $AAV_BRAIN/bin/store/brain-trace.py --against          # decisions that rejected an option
-python3 $AAV_BRAIN/bin/store/brain-trace.py --low-confidence   # decisions worth revisiting
 ```
 if a past entry's `affects` pointer covers what you're about to change, the call was already made
 THERE: either reinforce it (strengthen the card/prompt wording), revise it (the `--reject` reasons no
@@ -56,7 +55,7 @@ call, or code that merely exists. an applied diff is not a preference.
 2. add/keep its pointer line in brain/INDEX.md.
 
 ## hygiene
-- dont duplicate. check for an existing card first (`python3 $AAV_BRAIN/bin/run/brain-recall.py --tells <phrase>`
+- dont duplicate. check for an existing card first (`python3 $AAV_BRAIN/bin/run/brain-recall.py --tells <<'EOF'`, the phrase on the next line, then `EOF`
   + grep brain/principles). update beats create.
 - dont always ADD. gauge first whether an existing principle should be EXPANDED instead of adding a
   new card (P29). new cards must be atomic and orthogonal to the existing set.

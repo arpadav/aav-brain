@@ -2,11 +2,11 @@
 name: principle-55-the-run-is-visible
 kind: principle
 tier: conditional
-rule: on a long run, where it stands - the flow stage, the plan phase, what is running, what is left - is a page he can open, hosted locally and kept current at each merge, so knowing it never costs him a question.
+rule: on a long run, where it stands - the flow stage, the plan phase, what is running, what is left - is a page he can open, hosted locally and kept current at each merge, so knowing it never costs him a question. one background job over a minute is announced with its progress measure and time estimate; "status?" gets one line: percent and time left. the page is the run's to stop at the end (P69).
 interest: [intent-control, intent-comprehension]
 confidence: medium
-evidence_count: 3
-tells: ["what brain stage and plan phase are we at ? can i see ? can you host ?", "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals", "it looks good, can you update the status page?"]
+evidence_count: 45
+tells: ["what brain stage and plan phase are we at ? can i see ? can you host ?", "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals", "it looks good, can you update the status page?", "status? like estimate progress percent", "status? percent"]
 ---
 
 # P55 - the run is visible
@@ -16,6 +16,10 @@ a multi-hour, multi-agent build is opaque from the terminal: merges, reviews and
 past. its state is one small page - the brain's flow with the current stage marked, the plan's
 phases with their status, what is running, what comes next, and the live app's address - served on
 his LAN, and updated as each merge lands rather than rebuilt when he asks.
+
+the same holds at the scale of one job. a background job expected to run over a minute is
+announced with what measures its progress and its estimated time, in the message that starts it.
+a "status?" gets one line: percent done and time left.
 
 ## why
 he steers by state ([[intent-control]]) and he asked for it in three questions at once, mid-run:

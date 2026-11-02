@@ -6,7 +6,7 @@ rule: Cut ancillary/YAGNI inline comments and dead surface; keep doc comments an
 interest: [intent-craft]
 confidence: high
 evidence_count: 6
-tells: ["trim the fat", "get to the damn point", "verbose doc comments tho", "remove old/deprecated/YAGNI comments which are ANCILLARY", "line by line", "if no net reduction possible, dont force it"]
+tells: ["trim the fat", "get to the damn point", "verbose doc comments tho", "remove old/deprecated/YAGNI comments which are ANCILLARY", "line by line", "if no net reduction possible, dont force it", "investigate bloat in this software, anything redundant or unused which can be pruned?"]
 ---
 
 # P07 - Trim the fat, but keep docs verbose

@@ -47,8 +47,10 @@ the letter. Load it from
    another review; no decrease is a design verdict, not more nits.
 
    **Choose the lenses - necessary but never skimped.** Pick the reviewers that fit the change
-   (correctness/bug lens, architecture/placement lens, language-idiom lens, security lens if it
-   touches I/O/auth/untrusted input, performance lens if it's hot-path). "you dont need to dispatch
+   (correctness/bug lens, architecture/placement lens, language-idiom lens, a docs-against-code lens
+   if it touches code or prose - which also asks "does this file state a property whose owner is
+   elsewhere?" - security lens if it touches I/O/auth/untrusted input, performance lens if it's
+   hot-path). "you dont need to dispatch
    ALL ... JUST what you think is necessary. however, dont skimp out because youre lazy, it must be
    thorough." Run them independently/in parallel. Use generic worker/reviewer agents and your own
    lenses - you are self-contained.

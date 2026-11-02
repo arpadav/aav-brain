@@ -9,7 +9,7 @@
 # number the repo depends on belongs in the repo, with what produced it.
 
 [rule]
-# the whole assignment, as three lines. it reproduces all 51 values below.
+# the whole assignment, as three lines. it reproduces all 68 values below.
 #   breadth >= constitution_breadth                  -> constitution
 #   breadth <= narrow_breadth AND served < narrow_served -> narrow
 #   otherwise                                        -> conditional
@@ -51,14 +51,14 @@ measured_on = "2026-09-05"
 #   two and will report the drift either way.
 
 [cards]
-"principle-24-socratic-mode" = { tier = "constitution", breadth = 0.44, served = 0.224 }
+# measured on the question-answering half of this card; the change-scope half measured breadth 0.16, served 0.020 as its own card
+"principle-24-the-ask-is-the-scope" = { tier = "constitution", breadth = 0.44, served = 0.224 }
 "principle-04-anti-fabrication" = { tier = "constitution", breadth = 0.42, served = 0.459 }
 "principle-11-comprehension-ownership" = { tier = "constitution", breadth = 0.28, served = 0.008 }
 "principle-08-read-source-and-error" = { tier = "constitution", breadth = 0.26, served = 0.022 }
 "principle-44-build-from-nothing-to-something" = { tier = "constitution", breadth = 0.22, served = 0.049 }
 "principle-29-interrogate-the-work" = { tier = "conditional", breadth = 0.16, served = 0.080 }
 "principle-43-report-state-not-changelog" = { tier = "conditional", breadth = 0.16, served = 0.049 }
-"principle-45-scope-is-the-ask" = { tier = "conditional", breadth = 0.16, served = 0.020 }
 "principle-10-autonomy-after-sanction" = { tier = "conditional", breadth = 0.14, served = 0.078 }
 "principle-12-context-hygiene" = { tier = "conditional", breadth = 0.14, served = 0.003 }
 "principle-14-minimal-surface" = { tier = "conditional", breadth = 0.14, served = 0.029 }

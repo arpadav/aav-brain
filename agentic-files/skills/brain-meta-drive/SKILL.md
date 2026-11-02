@@ -52,13 +52,13 @@ the flow is a program; you RUN it, you do not interpret it. you MUST execute `$A
 every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.toml` and reason about
 transitions yourself - that re-derives the machine by hand, non-deterministically, and is the exact bug
 this design exists to prevent. if a script errors, FIX the error; never fall back to reading the data
-file and guessing. same for brain-recall: run it, use its output; do not hand-walk graph.json.
+file and guessing. same for brain-recall: run it, use its output; do not hand-pick cards.
 
 ## the trampoline (the engine itself) - loop from `$STATE` until a terminal
 ```bash
 step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE")     # the state's owner + recall flag
 ```
-- if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/run/brain-recall.py "<active task>"` FIRST to load
+- if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the active task on the next line, then `EOF`, FIRST to load
   the relevant cards. this is the ONLY call into the graph (context); the graph never decides the next
   step. the query is the task PLUS the state's own job from its doc line ("<task> - judge names,
   extension, use" at PLANGATE), so each state gets its own cards. the output is an index: READ the

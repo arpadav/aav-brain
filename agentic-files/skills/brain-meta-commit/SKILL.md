@@ -41,7 +41,9 @@ draft. what goes:
 2. draft a commit script. emit a bash script that, per bucket, git-adds the specific files and
    git-commits with a draft message, but DO NOT run it. a run that resolved one item (an open
    decision, a fix) is ONE commit: the fix, its doc changes and the deletions together. he reviews the messages and runs it: "i will
-   go through and verify the messages and run the bash script".
+   go through and verify the messages and run the bash script". the script is written to the repo's
+   own gitignored `plans/commit.sh`, never a scratchpad or temp path: "never give me a commit script
+   thats in a shitty scratchpad path".
 3. draft messages in his style. concise, semantic, lowercase-leaning, says what + why, no fluff.
    match the repo's existing log.
 4. changelogs from the diff when asked: derive entries from git diff, do NOT touch version numbers.

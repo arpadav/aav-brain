@@ -35,7 +35,7 @@ to existing code. for a NEW project the IDEATION -> INTENT -> ASK front-end does
 interrogation: decompose his ask into INTERESTS (what does he want this to BE?), mirror his own move
 ("1. what else am i missing? 2. talk to me and iterate"), and never assume implementation detail under
 ambiguity. ASK MORE than feels necessary, and ask it verbosely - he interrogates, he does not just
-command ([[principle-24-socratic-mode]]), and a question is cheaper than a wrong plan
+command ([[principle-24-the-ask-is-the-scope]]), and a question is cheaper than a wrong plan
 ([[principle-01-no-assumptions]]). do NOT recite a fixed checklist: GENERATE the questions from the
 brain each time ([[principle-29-interrogate-the-work]]) - recall the cards the ask touches and ask
 "what would arpad ask here?", then surface them. cover, at minimum, verbosely: what is this FOR and

@@ -18,7 +18,6 @@ shows WHERE it was made (`affects`) so it can be reversed precisely. written + r
   ],
   "affects": "<path the call lives at>",   // where a reversal would edit
   "principle": ["P29", "P32"],             // the cards that governed the call
-  "confidence": "high",            // high | medium | low
   "supersedes": "",                 // ts of a prior entry this call overturns ("" if none)
   "repo": "brain",                  // NAME of the git repo affects is relative to (envelope)
   "stale": true,                    // MARK, present only when pruned; readers skip it
@@ -35,7 +34,6 @@ shows WHERE it was made (`affects`) so it can be reversed precisely. written + r
   non-empty `against` is what `--against` surfaces for revisiting.
 - `affects` : the precise path (file, or a glob/dir when the call spans many); the reversal pointer.
 - `principle` : the cards cited; one `--principle` each.
-- `confidence` : `--low-confidence` surfaces the `low` ones.
 - `supersedes` : the `ts` of the entry this one overturns (ts is microsecond-unique, so it names
   exactly one entry). a read (`--against`) marks the superseded entry `[SUPERSEDED]` so a settled
   reversal is not re-litigated as an open decision.
@@ -64,7 +62,6 @@ shows WHERE it was made (`affects`) so it can be reversed precisely. written + r
 
 ## read modes
 - `brain-trace.py --against`          : entries that rejected an option (worth revisiting).
-- `brain-trace.py --low-confidence`   : entries marked low confidence.
 - `brain-trace.py --stale-candidates` : entries old enough to be worth judging for pruning.
 - `brain-trace.py --pruned`           : entries currently marked stale.
 

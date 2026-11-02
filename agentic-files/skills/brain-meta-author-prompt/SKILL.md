@@ -10,7 +10,7 @@ the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
 discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 
 load his style: `$AAV_BRAIN/brain/voice/VOICE.md` and `LEXICON.md`, plus
-the relevant cards via `python3 $AAV_BRAIN/bin/run/brain-recall.py "<work unit>"`.
+the relevant cards via `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the work unit on the next line, then `EOF`.
 
 ## input -> output
 you get an interest + a unit of work. you output a dispatch prompt for a specific worker agent that,
@@ -40,7 +40,7 @@ and never loaded ([[principle-40-idiom-needs-exemplars]]).
 2. **THE LANGUAGE ROW**, from [[principle-06-idiomatic-per-language]]. a language with no row is a
    question for him, never a guess. rust resolves to `aav-rust-implementer`, which already carries
    the doctrine; every other language gets it from you, injected into the worker prompt.
-3. **THE EXEMPLARS, PASTED IN.** run `brain-recall.py "<task>" --binds code` (plus `--binds <lang>`; `--binds docs` when the task writes prose, which carries P57 and `brain-register.py`)
+3. **THE EXEMPLARS, PASTED IN.** run `brain-recall.py --binds code <<'EOF'`, the task on the next line, then `EOF` (plus `--binds docs` when the task writes prose, which carries P57 and `brain-register.py`)
    and copy the relevant before/after pairs from P40's catalogue INTO the prompt. do not write "be
    idiomatic", "follow his style", or "make it clean" - a worker resolves an adjective against its
    own priors, so the wrong form and the right form both go on the page.
@@ -76,7 +76,7 @@ budgeting service; this phase builds the tax engine." "the mission is making thi
 and correct; this task is the two lines ruff is complaining about."
 
 it is there so the worker can tell aligned extra work from adjacent extra work, which is the line
-[[principle-45-scope-is-the-ask]] alone cannot draw. a worker dispatched for a lint fix on a run
+[[principle-24-the-ask-is-the-scope]] alone cannot draw. a worker dispatched for a lint fix on a run
 whose mission IS idiom, that also makes the file idiomatic, has served the mission - that work is
 KEPT, and reverting it costs twice ([[principle-50-the-standing-mission]]). the same worker renaming
 his constants has not.

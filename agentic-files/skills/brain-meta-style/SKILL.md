@@ -13,7 +13,7 @@ the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
 discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 
 load: `$AAV_BRAIN/brain/CONSTITUTION.md`, pull task cards with
-`python3 $AAV_BRAIN/bin/run/brain-recall.py "<subject>"`. cite cards by name.
+`python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the subject on the next line, then `EOF`. cite cards by name.
 
 ## plan lens (architectural scrutiny, before execution)
 for each new artifact (struct/type/module/function/file):

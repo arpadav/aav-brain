@@ -13,8 +13,7 @@ tells: ["does it deterministically follow a flow chart", "the brain flow chart w
 
 ## rule
 two distinct artifacts, never conflated:
-- the GRAPH (brain/graph/graph.json) = the context fetcher/manager. nodes are cards, edges are
-  serves/relates. brain-recall traverses it to answer "which principles apply." it is KNOWLEDGE.
+- the GRAPH = KNOWLEDGE: brain-recall answers "which principles apply."
 - the FLOW (brain/flow/flow.toml) = the execution sequence. states are work phases, transitions are
   guarded edges. brain-walk steps it to answer "what is the next step." it is SEQUENCE.
 when executing a task, deterministically FOLLOW the flow: to take any step, query brain-walk against
@@ -33,8 +32,7 @@ states/transitions), and call-direction keeps both honest.
   state. same input, same next step.
 - knowledge never steers sequence: which card ranks #1 cannot change a transition. transitions depend
   only on (current state, outcome event, guard).
-- rebuild + --check both artifacts when they change: `brain-graph.py` for the graph, `brain-flow.py`
-  for the flow.
+- rebuild + --check the flow when it changes: `brain-flow.py`.
 
 ## anti-pattern
 describing the flow only as drifting prose/mermaid (un-deterministic, un-checkable). using "node/edge"

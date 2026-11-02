@@ -42,7 +42,7 @@ handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-me
 the cold gate above is only HALF of a brain review. it has no brain memory by design. so, INDEPENDENTLY
 and after it, run a second brain-guided pass on the same diff - this is the superposition, not a
 replacement, and the cold pass is never warmed by it:
-- recall the cards the diff touches: `python3 $AAV_BRAIN/bin/run/brain-recall.py "<what the diff changes>"`.
+- recall the cards the diff touches: `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, what the diff changes on the next line, then `EOF`.
 - with that memory loaded, interrogate the diff at EVERY granularity - "would arpad write THIS file
   like this? this folder structure like this? this individual function like this?" (P29). a "no" is
   binding only with a reason - cite the card it violates.

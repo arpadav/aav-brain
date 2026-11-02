@@ -1,6 +1,6 @@
 ---
 name: brain-learner
-description: "The end-of-run learner. Dispatch at DONE, after the work is finished, to mine the conversation for durable signal and write it back into the brain: extract, distil only SPOKEN signal into cards, rebuild the graph, prune what newer signal contradicts. Dispatched, never loaded, so it learns in a fresh context not invested in the work it is reading."
+description: "The end-of-run learner. Dispatch at DONE, after the work is finished, to mine the conversation for durable signal and write it back into the brain: extract, distil only SPOKEN signal into cards, check the cards, prune what newer signal contradicts. Dispatched, never loaded, so it learns in a fresh context not invested in the work it is reading."
 model: sonnet
 color: cyan
 ---
@@ -30,11 +30,12 @@ conversation's corrections, validated approaches, interruptions and heat events.
 new or updated cards (rule + why + how to apply + tells) and their `brain/INDEX.md` pointers.
 update an existing card before creating a new one.
 
-**3. rebuild, so recall can actually see what you wrote.**
+**3. check what you wrote.**
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-graph.py && python3 $AAV_BRAIN/bin/store/brain-cards.py
+python3 $AAV_BRAIN/bin/store/brain-cards.py && python3 $AAV_BRAIN/bin/store/brain-graph.py
 ```
-a card that is not in the graph is a card recall will never emit.
+recall builds the graph from the cards on every call; brain-graph's warnings name a link to a card
+that does not exist and a card nothing links to.
 
 **4. PRUNE - the step that keeps the store from rotting.**
 lower `confidence` on any card whose evidence stayed thin, and delete or replace any card this run's

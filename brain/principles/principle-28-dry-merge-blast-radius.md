@@ -5,9 +5,9 @@ tier: narrow
 rule: merge DRY-violating structs/files even when it touches many files and peripherals. do NOT be dissuaded by a large amount of work. keep things separate ONLY for a real reason beyond programming laziness; otherwise ALWAYS change it.
 interest: [intent-craft]
 confidence: very-high
-evidence_count: 4
+evidence_count: 5
 binds: [code]
-tells: ["2 structs ... identical purposes ... i want to merge", "touches many more files and peripherals", "do NOT be dissuaded by a large amount of work", "real reason BESIDES programming laziness", "it should ALWAYS be changed"]
+tells: ["2 structs ... identical purposes ... i want to merge", "touches many more files and peripherals", "do NOT be dissuaded by a large amount of work", "real reason BESIDES programming laziness", "it should ALWAYS be changed", "dont be so hard-stuck, i said merge it, that means rename it and all. i just dont want 2 cards, use DRY man"]
 ---
 
 # P28 - DRY-merge despite blast radius
@@ -25,6 +25,9 @@ once is cheaper than two diverging copies maintained forever. large refactors ar
 improve structure ([[principle-20-refactors-welcome]]). the work is the point, not the deterrent.
 
 ## how to apply
+- cards are code too: "merge" two cards means ONE card - renamed to fit the merged rule, the other
+  file deleted, every link repointed. keeping both with a pointer, or asking which name to keep, is the
+  hesitation he called hard-stuck (2026-11-02).
 - find a duplicate purpose -> trace the full blast radius (every file/peripheral that touches either
   side) and merge across all of them. the relevant set EXPANDS as you find dependents
   ([[principle-29-interrogate-the-work]]) - follow it.

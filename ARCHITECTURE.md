@@ -25,9 +25,7 @@ TIER 2 - corpus (retrieved on demand via the graph)
   brain/intents/*.md         interest cards (the why: positions->interests)
   brain/voice/*.md           how to write/review as me + idiom lexicon
 
-TIER 2.5 - graph = CONTEXT (the knowledge graph; "which principles apply")
-  brain/graph/graph.json     nodes (principle + interest) + edges (serves/served_by/relates/tension)
-  built by bin/store/brain-graph.py, walked by bin/run/brain-recall.py
+TIER 2.5 - graph: the cards' links as a graph (bin/brainlib/graph.py)
 
 TIER 2.6 - flow = SEQUENCE (the execution flow; "what step is next") - SEPARATE from the graph
   brain/flow/flow.toml       AUTHORED data: entries, states (work phases), transitions (guarded edges)
@@ -53,9 +51,8 @@ TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with bin/st
 the GRAPH and the FLOW are two distinct deterministic artifacts, never conflated (P30). the graph is
 KNOWLEDGE (cards/edges) answering "which principles apply"; the flow is SEQUENCE (states/transitions)
 answering "what is the next step". coupling is one-directional: a flow state with `recall: true` CALLS
-brain-recall to load context; the graph never calls the flow. both are byte-identical on re-run and
-`--check`-guarded (`brain-graph.py --check`, `brain-flow.py --check`). file-first, zero servers. neo4j
-is an optional export only; see schema/optional-graph.md.
+brain-recall to load context; the graph never calls the flow. file-first, zero servers; the graph's
+export and neo4j: see schema/optional-graph.md.
 
 ## scope: what is and is not the brain
 
@@ -69,11 +66,11 @@ elsewhere.
 
 skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FIVE
 user-callable ENTRY skills + six `brain-meta-*` machinery skills + the agents (categorized under
-`agentic-files/agents/{brain,general,lang/rust,style,custom}`). you only ever call the entries; the
+`agentic-files/agents/{brain,general,lang/rust,style}`). you only ever call the entries; the
 `brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
 claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
-every skill EXECUTES the bundled scripts rather than reading flow.toml/graph.json and reasoning by hand -
+every skill EXECUTES the bundled scripts rather than reading flow.toml or the cards and reasoning by hand -
 running a script keeps its code out of context and is deterministic. the discovery preamble
 (`eval "$(brain-find --export)"`, brain-find on PATH) sets `$AAV_BRAIN` with no hardcoded path on any
 machine; the skill then invokes `$AAV_BRAIN/bin/<store|run|check>/<script>.py` - no layout-assuming per-skill symlink (P32).
@@ -93,7 +90,7 @@ the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directl
 | brain-meta-style | review as me (plan lens + style lens), cite cards; runs brain-fmt.py |
 | brain-meta-curate | self-editing memory: corrections -> update the store; consults the trace |
 | brain-meta-commit | prepare the git record, never publish it |
-| brain-learner (agent) | dispatched at DONE: re-extract + curate + rebuild + PRUNE; calls brain-extract.py |
+| brain-learner (agent) | dispatched at DONE: re-extract + curate + check + PRUNE; calls brain-extract.py |
 
 agents (cold dispatch, separate window - a distinct category, NOT `brain-meta-*`):
 | agent | role |
@@ -134,10 +131,10 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
 
 ## 4. data flow end to end
 1. learn: bin/store/brain-extract.py mines ~/.codex (sessions + archived_sessions) + ~/.claude/projects ->
-   tier-3 evidence (every turn). brain-meta-curate distills durable lessons into tier-2 cards, then
-   bin/store/brain-graph.py rebuilds the graph. explicit signal only.
-2. recall: a task arrives -> brain-recall walks the graph and returns the relevant cards -> they
-   become the working context. small, targeted (context hygiene, P12).
+   tier-3 evidence (every turn). brain-meta-curate distills durable lessons into tier-2 cards. explicit
+   signal only.
+2. recall: a task arrives -> brain-recall returns the cards relevant to the task (bin/brainlib/recall.py)
+   -> they become the working context. small, targeted (context hygiene, P12).
 3. act: brain-execute drives the loop, dispatching workers via brain-meta-author-prompt, gating with the
    brain-review-gate + brain-verifier agents.
 4. record: brain-meta-commit prepares the commit. i run it.
@@ -153,8 +150,8 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
 - the agents it bundles are DECOUPLED + general-purpose: they reference the current repo's layout +
   conventions, never a specific project (the semantic-architecture reviewer discovers the repo's
   crates/CLAUDE.md instead of hardcoding them; no machine-specific paths, P32).
-- the store is plain markdown + the brainlib library + the tools (extract, graph, recall, flow, walk,
-  fmt, cards, trace, find, lint, compile), all importing brainlib. no services to start.
+- the store is plain markdown + the brainlib library + the tools under `bin/`, all importing brainlib.
+  no services to start.
 
 ## 6. how to use it
 see README.md for the quickstart. the entrypoints (the only skills you call):

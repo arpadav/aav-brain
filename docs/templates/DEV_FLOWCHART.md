@@ -1,10 +1,9 @@
 # my end-to-end dev flowchart (the execution flow)
 
 this is the EXECUTION FLOW - the sequence of how the brain runs a task. it is SEPARATE from the
-knowledge GRAPH (brain/graph/graph.json), which is the context fetcher ("which principles apply").
-the flow answers "what step is next"; the graph answers "which cards apply". they never conflate, and
-the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the vocabulary never
-overlaps (P30).
+knowledge GRAPH: the flow answers "what step is next"; the graph answers "which cards apply". they
+never conflate, and the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the
+vocabulary never overlaps (P30).
 
 the source of truth is `brain/flow/flow.toml` (authored DATA, like the cards are the graph's data).
 `bin/run/brain-walk.py` reads and validates it directly and steps it deterministically.
@@ -27,7 +26,7 @@ execute-through; BLOCKED is the only post-sanction stop (ask arpad, resume on /c
 
 <!-- fill: owner table -->
 
-## 3. how brain-meta-drive steps it
+## 3. how brain-meta-drive steps the flow
 
 brain-meta-drive does not invent the sequence - it queries brain-walk:
 1. `brain-walk --state <id> --mode <mode>` returns the state's owner + recall flag.

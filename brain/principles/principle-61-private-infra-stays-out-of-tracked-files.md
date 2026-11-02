@@ -2,21 +2,26 @@
 name: principle-61-private-infra-stays-out-of-tracked-files
 kind: principle
 tier: conditional
-rule: his real hosts, LAN ips, usernames and device ids belong to live runs, plans/ and memory - never to a tracked doc, test or source file. tracked files carry neutral placeholders (`user@gpu-host`); a real value that gets pushed is a leak he has to rewrite history to undo.
+rule: his real hosts, LAN ips, usernames and device ids belong to live runs, untracked plans/ and memory - never to a doc, test or source file git tracks or will track. those carry neutral placeholders (`user@gpu-host`); a real value that gets pushed is a leak he has to rewrite history to undo. his tailnet names count too. what the scan checks and cannot see: `brain-private.py --help`.
 interest: [intent-sovereignty, intent-control]
-confidence: medium
-evidence_count: 1
+confidence: high
+evidence_count: 2
 binds: [code]
-tells: ["`rg <lan-ip>` and please remove these from docs and tests (fine in plans)", "like can you roll back a commit, edit files, then i commit and force-push? these should not have landed onto the git repo", "actually, its fine. when i merge i will squash anyway. just make the appropriate changes and let me know when done"]
+tells: ["`rg <lan-ip>` and please remove these from docs and tests (fine in plans)", "like can you roll back a commit, edit files, then i commit and force-push? these should not have landed onto the git repo", "actually, its fine. when i merge i will squash anyway. just make the appropriate changes and let me know when done", "also please do NOT embed my ip addresses or my tailscale tailnet url in a test are you stupid?? oh my god... its completely independent from that"]
 ---
 
 # P61 - private infra stays out of tracked files
 
 ## rule
 the machine he tests against is his, not the repo's. the real LAN ip, the `user@host` pair, device ids and
-the name of his box are fine in the command he runs, in `plans/` (untracked scratch), and in memory. they are
-not fine in anything git tracks: docs, test fixtures, expected strings, source. there the same shape is
-spelled with a neutral placeholder (`user@gpu-host`, `user@gpu-host.lan`).
+the name of his box are fine in the command he runs, in an untracked file under `plans/`, and in memory
+(the brain's private data dir). they are not fine in anything git tracks or will track: docs, test
+fixtures, expected strings, source - a new test file is untracked until the commit that leaks it. there
+the same shape is spelled with a neutral placeholder (`user@gpu-host`, `user@gpu-host.lan`). his tailnet
+domain and magicdns names are the same class as a LAN ip.
+
+`bin/check/brain-private.py` enforces it, and `brain-verify.py --run` runs it in VERIFY. what the scan
+checks and cannot see: `brain-private.py --help`.
 
 ## why
 [[intent-sovereignty]]: the permanent record is his, and a pushed value is in the shared repo's history for

@@ -7,7 +7,7 @@ interest: [intent-craft, intent-efficiency, intent-control]
 confidence: high
 evidence_count: 2
 binds: [code]
-tension: [principle-45-scope-is-the-ask]
+tension: [principle-24-the-ask-is-the-scope]
 tells: ["slow down - the MAIN GOAL is to make this budget app", "if those edits are aligned with that goal, despite going above and beyond the original ask, then it is fine", "they did way too much! i need to revert this", "above and beyond"]
 ---
 
@@ -24,7 +24,7 @@ given" but **"does this move the mission"**.
   making the code idiomatic.
 - merely adjacent, therefore out: the same worker renaming his constants, re-cutting
   separators, or fixing content in files the mission never touches
-  ([[principle-45-scope-is-the-ask]]).
+  ([[principle-24-the-ask-is-the-scope]]).
 
 **above and beyond does not mean MORE CODE.** it means more aligned with the end goal. a
 worker that writes a speculative abstraction nobody asked for has not gone above and
@@ -34,13 +34,13 @@ beyond, it has gone sideways ([[principle-14-minimal-surface]]).
 reverting work that served the mission costs twice: the work, and then his attention to
 undo the revert. it happened - a worker was dispatched for a lint fix on a refactor whose
 whole point was idiom, delivered the idiom too, and the orchestrator read
-[[principle-45-scope-is-the-ask]] and moved to revert it. he stopped that by hand:
+[[principle-24-the-ask-is-the-scope]] and moved to revert it. he stopped that by hand:
 
 > "slow down - the MAIN GOAL is to make this budget app, and right now this refactor to
 > make things more idiomatic and correct. if those edits are aligned with that goal,
 > despite going 'above and beyond' the original ask, then it is fine"
 
-the brain had P45 and no counterweight, so the orchestrator applied the only rule it had.
+the brain had P24 and no counterweight, so the orchestrator applied the only rule it had.
 serving [[intent-craft]] is the point of the run; spending his turn on a revert that
 un-serves it is the opposite of [[intent-efficiency]].
 
@@ -57,7 +57,7 @@ un-serves it is the opposite of [[intent-efficiency]].
   ([[principle-01-no-assumptions]]).
 
 ## orthogonality
-[[principle-45-scope-is-the-ask]] is about the SURFACE a change presents to the gate: a
+[[principle-24-the-ask-is-the-scope]] is about the SURFACE a change presents to the gate: a
 change that drags in unrequested cosmetics gets reviewed on the widened surface and burns his
 attention on nits. that is still true, and P50 does not soften it. **the two divide by
 DECISION, not by context, and the split is total:**
@@ -65,13 +65,13 @@ DECISION, not by context, and the split is total:**
 | | before the work | after the work |
 |---|---|---|
 | the question | should i take this on? | should i revert what was delivered? |
-| the card | **P45.** could the ASK be satisfied without this edit? if yes, do not start it | **P50.** did it move the MISSION? if yes, keep it |
+| the card | **P24.** could the ASK be satisfied without this edit? if yes, do not start it | **P50.** did it move the MISSION? if yes, keep it |
 | the case | do not rename his constants while moving `main()` | do not revert an idiomatic pass on a run whose mission is idiom |
 
-so on a run with a stated mission, a worker is scoped tightly by P45 going in AND its
+so on a run with a stated mission, a worker is scoped tightly by P24 going in AND its
 delivered work is judged by P50 coming out. those are not in conflict: the worker keeps what
 it built, and the NEXT dispatch is scoped tighter. with no stated mission there is nothing for
-P50 to weigh against, and P45 governs both halves.
+P50 to weigh against, and P24 governs both halves.
 
 ## verbatim tells
 > "slow down - the MAIN GOAL is to make this budget app"

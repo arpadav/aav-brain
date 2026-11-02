@@ -5,10 +5,10 @@ tier: conditional
 rule: when every available fix makes the code worse, or the valid-finding count stops dropping across review rounds, the DESIGN is the defect and the patch is not. leave the impl loop for DESIGN, measure the build against his own step list, and redesign that ONE atomic part from his canonical statement - harvesting the edge cases the old code learned. destructive and drastic proposals are sanctioned there, because a good design fixes the symptoms as a side effect.
 interest: [intent-craft, intent-comprehension, intent-efficiency]
 confidence: high
-evidence_count: 7
+evidence_count: 8
 binds: [code]
 tension: [principle-14-minimal-surface]
-tells: ["if there is spaghettificstion of code, then the DESIGN is faulty", "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work", "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions", "hold up wtf?", "get OUT of impl and back to design/plan", "many bugs = bad design, so go bsck to a plan/design phase", "why is it 16 massive modules for this simple 4 stages", "has this been over-engineered? its taken like 2-3 weeks to get this working, would a shell script have been easier in some places? be completely honest", "its 30k lines and constantly finding issues", "i need you to make and execute a seperate plan. in your own workspace or worktree, i want you to do a complete refactor of this to reduce the lines of codes", "it just seems like so much went into this but the initial design was bad", "yes its not perfect and might be a bit spaghetti, but the general gist and edge cases which i havent described should be accounted for", "if anything in the repo *disagrees* with the 1-4 i described, it is wrong and 1-4 is canonical and true", "learn from this bad design and see where the faults always keep happening", "they think its TOO simple with the balena device ssh, its more complex than that", "this should not be 1/7... i thought this was a simple cut to remove?"]
+tells: ["if there is spaghettificstion of code, then the DESIGN is faulty", "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work", "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions", "hold up wtf?", "get OUT of impl and back to design/plan", "many bugs = bad design, so go bsck to a plan/design phase", "why is it 16 massive modules for this simple 4 stages", "has this been over-engineered? its taken like 2-3 weeks to get this working, would a shell script have been easier in some places? be completely honest", "its 30k lines and constantly finding issues", "i need you to make and execute a seperate plan. in your own workspace or worktree, i want you to do a complete refactor of this to reduce the lines of codes", "it just seems like so much went into this but the initial design was bad", "yes its not perfect and might be a bit spaghetti, but the general gist and edge cases which i havent described should be accounted for", "if anything in the repo *disagrees* with the 1-4 i described, it is wrong and 1-4 is canonical and true", "learn from this bad design and see where the faults always keep happening", "they think its TOO simple with the balena device ssh, its more complex than that", "this should not be 1/7... i thought this was a simple cut to remove?", "well, follow the brain. if issues keep coming up, that means re-design is required. why havent you done this?"]
 ---
 
 # P51 - spaghettification is evidence the design is wrong
@@ -64,6 +64,10 @@ check is the agent's job to run first (see [[principle-14-minimal-surface]], whi
 card says what to do once it is already over-built).
 
 ## how to apply
+- a review count that RISES after a redesign is still the tell, not a stop: group the new findings by
+  seam and redesign each seam they cluster on. when the gate script caps the loop and the call goes to
+  him, the recommended option is that redesign - never "fix them all in place" or "stop here"
+  (2026-11-02, after 38 -> 54 findings across rounds).
 - **scope is the PART, never the plan.** the error model. the id scheme. the one seam the
   findings keep circling. a subdesign that reaches for a second part is a re-plan, and
   re-planning a sanctioned build is his call ([[principle-02-plan-before-build]]).

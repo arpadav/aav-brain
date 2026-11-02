@@ -67,8 +67,8 @@ exist?) and after (would i keep it?). asking is cheaper than rewriting.
 ## orthogonality
 this is the brain interrogating its OWN work (brain -> brain). distinct from its neighbours:
 - [[principle-01-no-assumptions]]: when AMBIGUITY blocks me, ask YOU (brain -> arpad), never guess.
-- [[principle-24-socratic-mode]]: my interrogative VOICE in conversation - a disposition to question,
-  not a review of a built artifact.
+- [[principle-24-the-ask-is-the-scope]]: my questions in conversation get answered, not acted on, and an ask
+  bounds its change - a rule about the conversation, not a review of a built artifact.
 P29 needs no human in the loop; it is the brain holding its own output to my standard.
 
 ## verbatim tells

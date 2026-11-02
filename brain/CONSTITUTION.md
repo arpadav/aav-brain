@@ -67,7 +67,7 @@ is the state machine that encodes this.
 21. i instruct in ordered steps; honor the sequence, run sanctioned steps back to back. [[principles/principle-21-sequencing]] -> [[intents/intent-control]]
 22. names and layout are deliberate: descriptive snake_case, grouped imports, no cryptic locals. [[principles/principle-22-naming-conventions]] -> [[intents/intent-craft]]
 23. honor my standing decisions (criterion, winnow, uv, the suite) without re-litigating. [[principles/principle-23-standing-decisions]] -> [[intents/intent-craft]]
-24. i ask to understand; a question gets a plain direct answer first, not action. [[principles/principle-24-socratic-mode]] -> [[intents/intent-comprehension]]
+24. the ask is the scope: a question gets a plain direct answer first, not action; a change gets that change and nothing nearby. [[principles/principle-24-the-ask-is-the-scope]] -> [[intents/intent-comprehension]]
 25. deploy the simplest way to my own infra: worlds-simplest docker, 0.0.0.0, cloudflared to truenas. [[principles/principle-25-deploy-infra]] -> [[intents/intent-craft]]
 26. struct/class-based, not standalone functions; logic lives on a named type. [[principles/principle-26-struct-based]] -> [[intents/intent-craft]]
 27. organization & hierarchy are critical; reorg both ways by threshold (flat<->tree). [[principles/principle-27-organization-reorg]] -> [[intents/intent-craft]]
@@ -95,5 +95,5 @@ every human turn is a training signal - not just the rejections. plans, build re
 questions, naming, and my dominant sequencing tell all count. the brain-meta-curate skill watches sessions
 and writes new cards / updates existing ones (self-editing memory). to refresh:
 1. `python3 bin/store/brain-extract.py` - re-mine every prompt from ~/.codex + ~/.claude into the evidence.
-2. `python3 bin/store/brain-graph.py` - rebuild the knowledge graph so recall sees the new cards.
+2. `python3 bin/store/brain-graph.py` - export the knowledge graph and print what the new cards broke (unknown links, orphans).
 the store only gets sharper.

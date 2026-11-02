@@ -29,12 +29,13 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     flow/  graph/      the deterministic flow + the graph derived from the cards
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
-    skills/            the 12 skills (universal SKILL.md across claude / codex / ~/.agents)
-    agents/            categorized: brain/  general/  lang/rust/  style/  custom/
-  bin/                 all tooling. brain-find and brainlib (the shared lib) at the top, then
-    store/             build and keep the knowledge: -cards, -graph, -flow, -extract, -trace, compile
-    run/               used while a task runs: -walk, -recall, -gate, -open-items
-    check/             measure: -lint, -fmt, -shape, -register
+    skills/            the 13 skills (universal SKILL.md across claude / codex / ~/.agents)
+    agents/            categorized: brain/  general/  lang/rust/  style/
+  bin/                 all tooling: brain-find and brainlib (the shared lib) at the top; each
+                       script under store/, run/ and check/ answers --help
+    store/             build and keep the knowledge
+    run/               used while a task runs
+    check/             measure
   prune.toml           how old a trace entry must be before it is eligible to be judged
   shape.toml           the numbers behind P27 and P28, and a secondary change budget (G01)
   tiers.toml           which cards always load, which are scored, and the measurement behind it
@@ -54,7 +55,9 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
 python3 bin/store/brain-extract.py          # or: uv run bin/store/brain-extract.py
 
 # 2. ask the brain what it knows about a task
-python3 bin/run/brain-recall.py "rust idiomatic review, dont commit, dont fake the benchmark"
+python3 bin/run/brain-recall.py <<'EOF'
+rust idiomatic review, dont commit, dont fake the benchmark
+EOF
 
 # 3. read the index
 python3 bin/run/brain-recall.py --all

@@ -77,9 +77,8 @@ python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-edit \
 ```
 SINGLE-quote every value. his ask routinely contains backticks, `$(...)`, `!` and quotes, and in a
 double-quoted argument the shell expands them before the tool ever sees the string - a decision text
-is data, never something to evaluate. set `--confidence` to what the call actually warrants; leaving
-it at the default `medium` is fine and is what makes `--low-confidence` mean something. add
-`--supersedes <ts>` when the edit reverses a decision step 1 surfaced.
+is data, never something to evaluate. add `--supersedes <ts>` when the edit reverses a decision
+step 1 surfaced.
 
 ## stops
 a transition to a `blocked`/ASK state is the only sanctioned pause. post-sanction, never assume - a

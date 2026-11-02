@@ -2,11 +2,11 @@
 name: principle-14-minimal-surface
 kind: principle
 tier: conditional
-rule: Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical.
+rule: Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical. Bloat means unnecessary code, never a line count: what he asked for is not bloat.
 interest: [intent-craft]
 confidence: high
-evidence_count: 6
-tells: ["no clap, custom cli", "worlds simplest docker image", "do NOT add superfluous things just for the sake of adding them - just what is critical"]
+evidence_count: 7
+tells: ["no clap, custom cli", "worlds simplest docker image", "do NOT add superfluous things just for the sake of adding them - just what is critical", "investigate bloat in this software, anything redundant or unused which can be pruned?", "bloat", "redundant", "just review as-is, LOC =/= bloat, bloat is unnecessary stuff, but i asked for this, no?"]
 ---
 
 # P14 - Minimal surface (only what is critical)
@@ -26,6 +26,8 @@ multi-stage cathedral.
 - "do NOT add superfluous things just for the sake of adding them - just what is critical."
 - New types/modules must justify themselves; prefer extending an existing primitive
   ([[principle-05-reuse-first]]).
+- bloat is code nobody needs, not a line count. features he asked for are not bloat however many
+  lines they take; a proportion check weighs only the excess beyond the ask (2026-11-02).
 - This composes with [[principle-07-trim-fat-verbose-docs]]: minimal surface, but the
   docs on that surface are thorough.
 

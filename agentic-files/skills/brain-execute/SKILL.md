@@ -73,7 +73,7 @@ would-arpad SUPERPOSITION is applied at the gate (PHASEGATE/VERIFY), per brain-r
 and a worker resolves an adjective against its own priors ([[principle-40-idiom-needs-exemplars]]).
 DOCTRINE runs BEFORE this state for exactly that reason: it resolves the purpose register
 ([[principle-41-rigor-scales-with-purpose]]) and the language row, loads the bound doctrine set
-(`brain-recall.py "<task>" --binds code`), and writes the before/after pairs into the worker's prompt
+(`brain-recall.py --binds code <<'EOF'`, the task on the next line, then `EOF`), and writes the before/after pairs into the worker's prompt
 along with the find-exhaustively ask. rust additionally has `aav-rust-implementer`, which carries the
 same doctrine natively ([[principle-23-standing-decisions]]); every other language gets it because
 DOCTRINE injected it, not because the worker happened to know it.

@@ -83,8 +83,8 @@ python3 $AAV_BRAIN/bin/check/brain-lint.py             # every installed python 
 python3 $AAV_BRAIN/bin/check/brain-fmt.py --stale $AAV_BRAIN/bin/*.py   # comments naming a symbol the file lost (P37)
 python3 $AAV_BRAIN/bin/check/brain-shape.py "$AAV_BRAIN"  # file length, folder fan-out, one datatype twice (P27, P28)
 python3 $AAV_BRAIN/bin/store/brain-trace.py --against        # decisions that rejected an option
-python3 $AAV_BRAIN/bin/store/brain-trace.py --low-confidence # decisions worth revisiting
 python3 $AAV_BRAIN/bin/store/brain-trace.py --stale-candidates # entries whose affects resolves to nothing
+python3 $AAV_BRAIN/bin/check/brain-misses.py           # his heated/interrupting/rejecting turns since the last self-refine, with the cards recall ranks for each
 grep -rn -- '/home/[a-z]\|-home-[a-z]' "$AAV_BRAIN/bin" "$AAV_BRAIN/agentic-files"  # hardcoded paths incl hyphen-encoded form (P32)
 find "$AAV_BRAIN/agentic-files" -type l -lname '*../*'          # layout-baking symlinks: the P32 costume case grep cannot see
 ```
@@ -118,7 +118,7 @@ such staging - they are versioned, so git is their undo.
 
 ## 3. generate the questions - ASK THE BRAIN, do not hardcode them (point 7, the hard rule)
 do NOT ship a fixed checklist. for each finding (and for the store as a whole), pull the cards it
-touches with `python3 $AAV_BRAIN/bin/run/brain-recall.py "<finding>"` and ask, in context: "what would arpad ask
+touches with `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the finding on the next line, then `EOF`, and ask, in context: "what would arpad ask
 about this?" the recalled principles + tells generate the questions. examples the brain has produced
 before (illustrative, NOT the list): "why does this artifact exist - is it consumed, or dead output?",
 "should this be read instead of generated?", "is this its own principle or an expansion of an existing

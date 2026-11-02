@@ -12,7 +12,7 @@ discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
 load the method:
 - `$AAV_BRAIN/docs/INTENT_MAP.md` (the positions->interests table; Fisher & Ury: focus on interests not positions; BATNA)
 - `$AAV_BRAIN/brain/intents/*.md` (the six interest cards)
-- `python3 $AAV_BRAIN/bin/run/brain-recall.py "<request>"` for task-specific cards
+- `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the request on the next line, then `EOF`, for task-specific cards
 
 ## what to produce
 0. PURPOSE, asked at the beginning. what is this artifact FOR - a scratch/learning workspace, a

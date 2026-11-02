@@ -67,7 +67,7 @@ branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one
 delivered is an uncommitted apply onto the branch he is on, so he can read `git diff` there: "give me a script
 to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff". a side branch he
 is not on is never the answer to "where is it". after he says he edited a file ("i edited re-read"), re-read
-it before touching it; his edit is the base ([[principle-45-scope-is-the-ask]]).
+it before touching it; his edit is the base ([[principle-24-the-ask-is-the-scope]]).
 
 **Anti-pattern that draws heat.** Auto-committing; bumping a version; a linter/agent
 reverting his hand-edited `Cargo.toml` ("im the one who editted this. whats wrong with

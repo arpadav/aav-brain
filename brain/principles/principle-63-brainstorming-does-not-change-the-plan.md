@@ -15,7 +15,7 @@ tells: ["and yea im thinking A. note this doesnt change your plan, we are just b
 he explores alternatives (submodule vs subtree, wheel scoping, folding into the monorepo) while a plan is live. he labels it himself: "this doesnt change your plan". treat the exploration as read-only conversation: explain, compare, confirm, one sentence when asked. the plan file and the work in flight are untouched.
 
 ## why
-his stated reason is the label itself; he wants to understand ("im not familiar with wheels") before deciding, and a plan that silently shifts under a question is a plan he can no longer trust. relates [[principle-45-scope-is-the-ask]] and [[principle-38-a-non-answer-is-not-consent]] (a question is not sanction).
+his stated reason is the label itself; he wants to understand ("im not familiar with wheels") before deciding, and a plan that silently shifts under a question is a plan he can no longer trust. relates [[principle-24-the-ask-is-the-scope]] and [[principle-38-a-non-answer-is-not-consent]] (a question is not sanction).
 
 ## how to apply
 - answer the exact question, short; confirm facts he asks to be confirmed ("confirm it does more than .py") by checking, not asserting.

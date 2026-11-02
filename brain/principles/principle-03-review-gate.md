@@ -95,7 +95,7 @@ can trust it without reading every line."*
   reviewing its okay just fix it up, continue, then review at the end".
 - **Named reviewers are lenses of the one gate.** An agent he names for review goes into the
   brain-review-gate dispatch; dispatching it beside the gate runs it twice.
-- **Scope discipline is what keeps the round count down** ([[principle-45-scope-is-the-ask]]).
+- **Scope discipline is what keeps the round count down** ([[principle-24-the-ask-is-the-scope]]).
   The gate reviews whatever surface you hand it; widen the diff and you commission findings
   about work nobody asked for.
 

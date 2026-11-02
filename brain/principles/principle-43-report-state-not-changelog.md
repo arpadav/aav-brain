@@ -5,8 +5,8 @@ tier: conditional
 rule: every reply he reads opens on the answer - done or not and what is left for a report, the answer itself for a question, one sentence of what to do for an explanation - and stops there unless more changes what he does next. he reads the diff for the changelog. a how-to gets a one-liner, not a section.
 interest: [intent-efficiency, intent-comprehension]
 confidence: very-high
-evidence_count: 125
-tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek", "make it way shorter it doesnt need to be an essay", "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin", "im not reading any of this dude. give me one sentence what to do", "you literally sent me a fucking novel. please dont send me this much fucking text"]
+evidence_count: 126
+tells: ["why the fuck would i care about some bug that no longer exists? i can see git diff just fine", "bro you are so shit at teaching. just say 'use /quiz N to quiz glossary term N' - give me a simple one-liner usage", "stop dumping this entire slop grenade at me. simply say: best order: <list>", "too much bullshit to read. simply: 1. run review, fix mistakes 2. give me bullet note of todo items", "the phase 1 agent wrote WAY too much. update all the guiding docs to MINIMIZE the amount of bullshit they write", "i need an interactive format to answer because you keep overwhelming me with blocks of text - i dont have the same context as you", "how much left? progress percent and a sneak peek", "make it way shorter it doesnt need to be an essay", "describe what we are doing with hml deploy solo install? like once sentence ... im talking to justin", "im not reading any of this dude. give me one sentence what to do", "you literally sent me a fucking novel. please dont send me this much fucking text", "why is it my job to fix that? just tell me whats wrong and proposed actions"]
 ---
 
 # P43 - report state, not the changelog
@@ -43,6 +43,8 @@ failure, different surface. "no change narration" binds a completion report exac
 comment.
 
 ## how to apply
+- a blocker in his file is reported as what is wrong plus the proposed action, ready for a yes - never
+  "his to fix" handed back as a chore (2026-11-02).
 - **a question is answered, not reported on.** 53 of 125 "too long" complaints (2026-06..10) were about
   answers to his questions and explanations, not completion reports - the rule's old wording, "when
   work finishes", let every one of them through.
