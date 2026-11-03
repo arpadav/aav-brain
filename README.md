@@ -38,7 +38,7 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     run/               used while a task runs
     check/             measure
   prune.toml           how old a trace entry must be before it is eligible to be judged
-  shape.toml           the numbers behind P27 and P28, and a secondary change budget (G01)
+  shape.toml           the numbers behind P27 and P28
   tiers.toml           which principles always load, which are scored, and the measurement behind it
   eval/                brain-eval.py + 25 tasks and their principle-derived rubrics: does a brain
                        version change how the work comes out, measured paired (on vs off)

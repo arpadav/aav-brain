@@ -45,10 +45,10 @@ COMMANDS: Mapping[str, tuple[Flag, ...]] = MappingProxyType({
     "b-misses": (Flag.SINCE,),
     "b-open-items": (),
     "b-principles": (Flag.CHECK,),
-    "b-private": (Flag.STAGING, Flag.SINCE, Flag.TIP),
+    "b-private": (Flag.SINCE, Flag.TIP),
     "b-recall": (Flag.COUNT, Flag.BINDS, Flag.TELLS, Flag.NEIGHBORS, Flag.ALL),
     "b-register": (),
-    "b-shape": (Flag.CHECK, Flag.SINCE),
+    "b-shape": (Flag.CHECK,),
     "b-sync": (Flag.CHECK,),
     "b-trace": (Flag.SKILL, Flag.DECISION, Flag.CHOSEN, Flag.REJECT, Flag.AFFECTS, Flag.PRINCIPLE, Flag.SUPERSEDES,
                 Flag.SESSION, Flag.AGAINST, Flag.STALE_CANDIDATES, Flag.PRUNE, Flag.RESTORE, Flag.PRUNED),
@@ -459,11 +459,11 @@ class Tool:
             >>> sorted(Layout.command(script) for script in Layout.discover().scripts) == sorted(COMMANDS)
             True
             >>> print(Tool.legend(["b-walk", "b-principles"]))
-            legend: short=long, ARG takes a value, letters combine (b-shape -cs HEAD), -h=--help on every command
+            legend: short=long, ARG takes a value, letters combine (b-gate phase -ls HEAD), -h=--help on every command
             b-principles -c=--check
             b-walk -s=--state ARG, -m=--mode ARG, -o=--on ARG, -d=--doc, -l=--legend
         """
-        combined = f"b-shape {Flag.CHECK.short}{Flag.SINCE.short.removeprefix('-')} HEAD"
+        combined = f"b-gate phase {Flag.LAST.short}{Flag.SINCE.short.removeprefix('-')} HEAD"
         head = (f"legend: short=long, {VALUE} takes a value, letters combine ({combined}), "
                 f"{Flag.HELP.spelling} on every command")
         return "\n".join([head, *(Tool(name, None, COMMANDS[name]).row() for name in sorted(commands))])

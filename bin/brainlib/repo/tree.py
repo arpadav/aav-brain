@@ -33,6 +33,8 @@ from typing import ClassVar
 GITLINK_MODE = "160000"
 # the status `RepoTree.since` gives a file git does not track
 UNTRACKED = "?"
+# the top-level directory of a repo that holds his scratch and open items
+PLANS = "plans"
 # the most lines `GitRun.detail` gives: what a hook said, then git's own word
 DETAIL_LINES = 5
 # how each stderr line git writes itself opens; what a hook printed comes before the first

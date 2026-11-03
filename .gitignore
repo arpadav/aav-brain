@@ -23,8 +23,5 @@ eval/results/
 # written by bin/store/brain-graph.py
 brain/graph/graph.json
 
-# his plan drafts: scratch that may name private infrastructure (P61), which
-# b-private exempts and b-sync's `git add -A` would otherwise push.
-# the open items are tracked by design
-plans/*
-!plans/open-items/
+# scratch and open items, per machine, never committed
+/plans/

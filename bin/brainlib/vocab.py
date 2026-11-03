@@ -280,7 +280,6 @@ class Flag(StrEnum):
     SESSION = "--session", "s", VALUE
     SINCE = "--since", "s", VALUE
     SKILL = "--skill", "k", VALUE
-    STAGING = "--staging", "i"
     STALE = "--stale", "S"
     STALE_CANDIDATES = "--stale-candidates", "S"
     STATE = "--state", "s", VALUE

@@ -7,7 +7,6 @@
 
     b-private                         # the tree around the cwd
     b-private REPO                    # the one repo holding REPO, no superproject or submodule
-    b-private -i [REPO]               # what `git add -A` would stage there: plans/ included
     b-private -s REF [-T TIP] [REPO]  # what pushing TIP (HEAD by default) over REF sends
 
 FINDINGS on a hit; FAILED when a file is unscanned and nothing hit, the
@@ -45,10 +44,8 @@ read is bounded by its source, also printed:
 two places are exempt, because P61 is where those values belong: the brain's
 private-data submodule (wherever the brain's own `.gitmodules` puts its
 `logs` entry), and an untracked file under a repo's top-level `plans/` - a TRACKED one is
-pushed, so it is scanned. `--staging` drops the second exemption, since
-`git add -A` stages that file too; under `--since` it is moot, as every
-committed file is pushed. `b-verify -r` runs the tree scan as one of
-its checks.
+pushed, so it is scanned; under `--since` it is moot, as every committed file
+is pushed. `b-verify -r` runs the tree scan as one of its checks.
 
     # private.toml
     values = ["gpu-host.lan", "192.0.2.40"]
@@ -81,9 +78,8 @@ def main(args: Args) -> Exit:
     # Arguments
 
     * `args` - the parsed command line; the first positional names the repo to
-      scan, `--staging` scans what `git add -A` would stage, and `--since REF`
-      scans the commits a push of HEAD, or of `--tip TIP`, over REF sends
-      instead of files
+      scan, and `--since REF` scans the commits a push of HEAD, or of
+      `--tip TIP`, over REF sends instead of files
 
     # Returns
 
@@ -104,7 +100,7 @@ def main(args: Args) -> Exit:
     # --------------------------------------------------
     named = args.positional()
     scope = ScanScope.of(RepoTree.containing(Path(named[0])) if named else RepoTree.around(Path.cwd()))
-    source = scope.source(since, args.value(Flag.TIP, "HEAD"), staging=args.has(Flag.STAGING))
+    source = scope.source(since, args.value(Flag.TIP, "HEAD"))
     # --------------------------------------------------
     # say what the scan covers, then gather the values and scan
     # --------------------------------------------------
@@ -113,4 +109,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool.of(TOOL, __doc__, positionals=(0, 1), modes=((Flag.STAGING,), (Flag.SINCE, Flag.TIP))).run(main)
+    Tool.of(TOOL, __doc__, positionals=(0, 1)).run(main)

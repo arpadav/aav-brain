@@ -15,7 +15,7 @@ Author: aav
 # --------------------------------------------------
 from brainlib.paths import Layout
 from brainlib.repo.push import Excerpt, Origin, Outgoing
-from brainlib.repo.tree import RepoTree
+from brainlib.repo.tree import PLANS, RepoTree
 from brainlib.text import Json, read_text
 from brainlib.vocab import ENCODING, Exit, NoVerdict
 
@@ -53,8 +53,6 @@ PROBE_TIMEOUT = 10
 SYS_NET = Path("/sys/class/net")
 # the largest file the scan reads whole; a larger one is UNSCANNED and fails the scan
 MAX_BYTES = 8 * 1024 * 1024
-# the top-level directory name under which an untracked file is his scratch, not a leak
-PLANS = "plans"
 # what no source detects, stated with every scan so a pass is not read as more than it is
 LIMITS = ("not checked: short hostnames and other machines' lan ips unless in private.toml; ipv6 lan addresses; "
           "usernames; device ids; encoded forms")
@@ -113,7 +111,7 @@ class ScanScope:
         return [f"skips {repo}: the brain's private memory, where P61 allows them"
                 for repo in self.tree.repos if repo not in self.scanned.repos]
 
-    def source(self, since: str, tip: str, *, staging: bool) -> "WorkTree | Outgoing":
+    def source(self, since: str, tip: str) -> "WorkTree | Outgoing":
         """what of the scope a scan reads: the commits a push of `tip` over `since` sends, else the files.
 
         both ends of a range resolve before any probe runs, in the named repo
@@ -123,7 +121,6 @@ class ScanScope:
 
         * `since` - the ref the push goes over; "" reads the files instead
         * `tip` - the commit the push sends, the far end of the range
-        * `staging` - read the files as `git add -A` would stage them, plans/ scratch included
 
         # Returns
 
@@ -135,7 +132,7 @@ class ScanScope:
         for a range over more than one scanned repo
         """
         if not since:
-            return WorkTree(self, staging)
+            return WorkTree(self)
         ends = self.scanned if self.scanned.repos else self.tree
         return replace(Outgoing(ends, since, tip).resolved(), tree=self.scanned)
 
@@ -164,19 +161,15 @@ class Unscanned:
 
 @dataclass(frozen=True)
 class WorkTree:
-    """every file a scope's repos list, read as git would push it; untracked plans/ scratch left out unless staging."""
+    """every file a scope's repos list, read as git would push it; untracked plans/ scratch left out."""
 
     scope: ScanScope
-    # what `git add -A` would stage: an untracked file under plans/ is not exempt
-    staging: bool = False
     # what the excerpts leave out, stated after every scan of them
     unread: ClassVar[str] = "file names, the git index and history"
 
     @cached_property
     def files(self) -> list[tuple[Path, Path]]:
         """every file the scan reads, with its repo: the tracked files, then the untracked ones not exempt.
-
-        under `staging` none is exempt, which is the set `git add -A` stages
 
         # Returns
 
@@ -197,19 +190,17 @@ class WorkTree:
             ...         (repo / name).parent.mkdir(parents=True, exist_ok=True)
             ...         _ = (repo / name).write_text("x")
             ...     _ = git(repo, "add", "plans/kept.md")
-            ...     for staging in (False, True):
-            ...         source = WorkTree(ScanScope.of(RepoTree.around(repo)), staging)
-            ...         sorted(p.relative_to(repo).as_posix() for _, p in source.files)
+            ...     source = WorkTree(ScanScope.of(RepoTree.around(repo)))
+            ...     sorted(p.relative_to(repo).as_posix() for _, p in source.files)
             ['plans/kept.md', 'src/plans/x.md']
-            ['plans/kept.md', 'plans/x.md', 'src/plans/x.md']
         """
         repos = self.scope.scanned.repos
         # --------------------------------------------------
-        # tracked files, then the untracked ones that count: all of them when staging
+        # tracked files, then the untracked ones that count
         # --------------------------------------------------
         tracked = [(repo, path) for repo in repos for path in RepoTree((repo,)).tracked()]
         untracked = [(repo, path) for repo in repos for path in RepoTree((repo,)).untracked()
-                     if self.staging or not self.exempt(repo, path)]
+                     if not self.exempt(repo, path)]
         return [*tracked, *untracked]
 
     def covers(self) -> list[str]:
@@ -217,15 +208,14 @@ class WorkTree:
 
         # Returns
 
-        how many files of how many repos, then whether untracked scratch is scanned or skipped
+        how many files of how many repos, then the untracked scratch skipped
 
         # Raises
 
         RepoError when git cannot list a repo
         """
-        scratch = (f"stages untracked files under a repo's top-level {PLANS}/, so scans them" if self.staging else
-                   f"skips untracked files under a repo's top-level {PLANS}/: his scratch, where P61 allows them")
-        return [f"{len(self.files)} listed file(s) of {len(self.scope.scanned.repos)} repo(s)", scratch]
+        return [f"{len(self.files)} listed file(s) of {len(self.scope.scanned.repos)} repo(s)",
+                f"skips untracked files under a repo's top-level {PLANS}/: his scratch, where P61 allows them"]
 
     def excerpts(self) -> Iterator[Excerpt | Unscanned]:
         """each file's content, its first line at line 1 of its path relative to its repo; or why it is unread.

@@ -76,28 +76,24 @@ same doctrine natively ([[principle-23-standing-decisions]]); every other langua
 DOCTRINE injected it, not because the worker happened to know it.
 
 ## when the gate fires (the budget, not the phase count)
-PHASEGATE is no longer bought by finishing a phase - it is bought by the SIZE of what the phase
-changed. at each phase boundary run:
+PHASEGATE is bought by the SIZE of what the phase changed, never by finishing a phase. at each
+phase boundary run:
 
 ```bash
 b-gate phase -t SIZE   # SIZE: the plan's S, M or L for this phase; -l on the final phase
 ```
 
 and emit what it prints: `gate N` -> `implemented`, PHASEGATE with N reviewers (2-6); `defer` ->
-`phase_done`, the next phase. its word is final. the score is code lines plus a weight per added,
-deleted or renamed file; PROSE scores nothing (`shape.toml`'s `[scan] prose`), so a doc-only build
-never buys the cold review - it gets STYLE. the tag is the plan's expected size and outranks a small
-diff, which is how a two-line change to an authorization door still buys the gate.
+`phase_done`, the next phase; `defer` under `-l` -> `last_deferred`, straight to VERIFY. its word
+is final. the score is code lines plus a weight per added, deleted or renamed file; PROSE scores
+nothing (`shape.toml`'s `[scan] prose`), so a doc-only build never buys the cold review - it gets
+STYLE. the tag is the plan's expected size and outranks a small diff, which is how a two-line change
+to an authorization door still buys the gate.
 
 **small phases accumulate, and the script remembers them.** it keeps the pending score per checkout
 from the last gate that actually ran, so three deferred phases are reviewed together; `-l`
 gates whatever is still pending. a ref git cannot resolve stops it with a usage error - never read
 that as `defer`.
-
-`b-shape -s <the last gated ref>` is the SECONDARY budget (`shape.toml [budget]`): run it
-beside, and when `b-gate` says `defer` on the final phase its under-budget verdict emits
-`under_budget`, straight to VERIFY. where the two disagree, `b-gate` wins and the disagreement goes into plans/open-items/G01-two-gate-arming-checks.md,
-which decides whether the second budget stays.
 
 this exists because the gate used to cost the same whether the phase was 5885 new lines or two
 lines of formatter appeasement, so a trivial fix bought a full multi-lens review and the review
@@ -105,7 +101,7 @@ budget went where the phases were, not where the risk was
 ([[principle-53-rigor-scales-with-the-change]]). a stale count in a doc is the canonical false
 arm: re-measure it, correct it, move on ([[principle-54-a-count-is-a-measurement]]).
 
-`b-shape` with no `-s` is the gate's STRUCTURE input - file lengths, folder fan-out,
+`b-shape` is the gate's STRUCTURE input - file lengths, folder fan-out,
 duplicated datatypes - and that half runs at every gate, armed or not, because none of it is
 visible in a diff (P27, P28).
 

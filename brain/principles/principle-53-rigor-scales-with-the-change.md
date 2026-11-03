@@ -30,8 +30,6 @@ script with a usage error - that is never a `defer`.
 **small changes accumulate; they do not each dodge the review.** `b-gate` keeps the pending
 score per checkout from the last review that ACTUALLY RAN, so two deferred phases are measured
 together with the third. `b-gate phase -l` on the final phase gates whatever is still pending.
-`b-shape -s` is a second, cruder budget kept beside it while
-plans/open-items/G01-two-gate-arming-checks.md is open; where they disagree, `b-gate` wins.
 
 **KIND overrides size in one direction only.** a two-line change to an authorization door is ARMED
 - tag its phase `L` and the plan's expected size outranks the small diff. a thousand lines of

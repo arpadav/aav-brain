@@ -66,11 +66,14 @@ dialogue at the start, not a delivery.
    last phase always gates). the real call is `b-gate phase` after each phase, on the
    measured diff, which overrides the tags when a phase is bigger than tagged. each gate: one
    brain-review-gate dispatch, 2-6 reviewers sized to the batch, two rounds at most.
-5. proportion, then reuse + minimal surface. state the problem in HIS steps, quoted ("pull, send, run
-   trt, copy back. thats it"). estimate the dumbest version that works - often a shell script - and
-   its size, beside the plan's expected size. if the plan is several times that, each layer above the
-   baseline gets a one-line reason it earns its place, or the plan shrinks. then existing primitives
-   to reuse, smallest viable surface, no speculative deps.
+5. proportion and generality, then reuse + minimal surface. state the problem in HIS steps, quoted
+   ("pull, send, run trt, copy back. thats it"). estimate the dumbest version that works - often a
+   shell script - and its size, beside the plan's expected size. if the plan is several times that,
+   each layer above the baseline gets a one-line reason it earns its place, or the plan shrinks. both
+   halves bind: simple but hard-coded (not generic) fails, and so does generic in a heavier language
+   than the bottleneck needs - C++ where a bash script does it, rust where python does it, and python
+   where speed IS the bottleneck. a generic bash script beats an over-engineered python script. then
+   existing primitives to reuse, smallest viable surface, no speculative deps.
 6. open decisions. anything ambiguous, as a question with options + a rec - and err toward MORE
    questions, stated verbosely, not fewer (P24, P01). a decision that outlives this session (he
    wants to think, or it waits on someone) becomes an open-item file instead, per P66:

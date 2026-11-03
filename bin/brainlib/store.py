@@ -455,15 +455,14 @@ class PrunePolicy:
 
 @dataclass(frozen=True)
 class ShapePolicy:
-    """the numbers behind P27 and P28, and the secondary change budget.
+    """the numbers behind P27 and P28.
 
     P27 says a file that is "too long" should split to a tree and P28 says a
     datatype defined twice should merge. both are adjectives, and a worker
     resolves an adjective against its own priors (P40). these fields are what
-    make the two principles measurable, and `budget` is what decouples the cold
-    review from the phase COUNT and attaches it to the phase SIZE. the build
-    that forced these numbers is recorded once, on principle-27 under
-    `## the measurement`, and is not retold here
+    make the two principles measurable. the build that forced these numbers is
+    recorded once, on principle-27 under `## the measurement`, and is not
+    retold here
 
     a crossing is a FINDING, not a verdict, exactly as PrunePolicy's window is
     eligibility and not a prune: a 2400-line table of sourced constants is one
@@ -481,8 +480,6 @@ class ShapePolicy:
     collapse_lines: int = 120
     exempt: tuple[str, ...] = ()
     duplicate_type_files: int = 2
-    changed_files: int = 4
-    changed_lines: int = 400
     suffixes: frozenset[str] = frozenset({".rs", ".py", ".ts", ".tsx", ".js", ".go", ".c", ".h", ".cpp", ".hpp", ".md"})
     excluded: tuple[str, ...] = ("/vendor/", "/node_modules/", "/target/", "/.generated/")
     prose: frozenset[str] = frozenset({".md", ".markdown", ".rst", ".txt"})
@@ -516,7 +513,7 @@ class ShapePolicy:
         # --------------------------------------------------
         try:
             data = tomllib.loads(read_text(path))
-            tree, budget, scan = data.get("tree", {}), data.get("budget", {}), data.get("scan", {})
+            tree, scan = data.get("tree", {}), data.get("scan", {})
             return cls(
                 file_lines=max(1, int(tree.get("file_lines", cls.file_lines))),
                 folder_files=max(1, int(tree.get("folder_files", cls.folder_files))),
@@ -524,8 +521,6 @@ class ShapePolicy:
                 collapse_lines=max(1, int(tree.get("collapse_lines", cls.collapse_lines))),
                 exempt=tuple(sorted(cls.listed(tree, "exempt", frozenset(cls.exempt)))),
                 duplicate_type_files=max(2, int(tree.get("duplicate_type_files", cls.duplicate_type_files))),
-                changed_files=max(1, int(budget.get("changed_files", cls.changed_files))),
-                changed_lines=max(1, int(budget.get("changed_lines", cls.changed_lines))),
                 suffixes=cls.listed(scan, "suffixes", cls.suffixes),
                 excluded=tuple(sorted(cls.listed(scan, "excluded", frozenset(cls.excluded)))),
                 prose=cls.listed(scan, "prose", cls.prose),
@@ -590,30 +585,6 @@ class ShapePolicy:
         if path.suffix not in self.suffixes:
             return False
         return not self.matches(path, self.excluded)
-
-    def arms(self, path: Path) -> bool:
-        """whether this path's churn counts toward the review budget.
-
-        prose is measured for LENGTH like anything else, but it may not ARM a
-        cold code review: a handoff document rewritten in place is hundreds of
-        changed lines that no reviewer lens reads, and arming on it spends five
-        reviewers on a diff with no code in it
-
-        # Arguments
-
-        * `path` - a repo-relative path
-
-        # Returns
-
-        true when the path is measured AND is not prose
-
-        # Example
-
-            >>> policy = ShapePolicy()
-            >>> policy.arms(Path("src/ledger.rs")), policy.arms(Path("plan/NEXT-STEPS.md"))
-            (True, False)
-        """
-        return self.is_source(path) and path.suffix not in self.prose
 
     def is_exempt(self, folder: Path) -> bool:
         """whether a folder's fan-out is the deliberate form, not a defect.

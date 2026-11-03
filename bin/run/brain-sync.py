@@ -13,20 +13,22 @@ git run there answers for the store - and is named in a warning instead.
 
 b-private's scan guards both ends (P61), run in this process with the
 values probed once per run, at the first scan: before anything in a repo is
-committed it scans the repo as `git add -A` would stage it, and before the
-push it scans exactly the commits the push sends. what each scan reads, what
+committed it scans the repo's work tree, and before the push it scans
+exactly the commits the push sends. what each scan reads, what
 it leaves unread and which repo it exempts is b-private's to say:
 `b-private -h`.
 
 each repo goes through these steps in order. BASE and TIP are commit ids,
 each resolved once, and every later step takes the id; local main is merged
-by its full ref, which no tag can shadow:
+by its full ref, which no tag can shadow. a step that stages takes everything
+but the repo's top-level `plans/`, his per-machine scratch and open items, so
+nothing there is committed even in a repo whose .gitignore lacks the rule:
 
     1. check origin fetches from one url and pushes to that url, fetch
        origin's main into a ref only b-sync writes, and resolve it to BASE
-    2. on main, clean, at BASE and no `brain-sync` branch: nothing to carry,
-       so nothing is scanned
-    3. scan what `git add -A` would stage
+    2. on main, nothing staged or to stage, at BASE and no `brain-sync`
+       branch: nothing to carry, so nothing is scanned
+    3. scan the work tree, as `b-private REPO` does
     4. a merge resolved on `brain-sync`: stage everything, as step 3 scanned
        it, and commit
     5. cut `brain-sync` from HEAD - main, a detached submodule checkout,
@@ -66,6 +68,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from brainlib import (
     LONG_GIT_TIMEOUT,
     NO_REPLACE,
+    PLANS,
     Args,
     Ending,
     Exit,
@@ -104,6 +107,10 @@ IDENTITY = tuple(arg for role in ("author", "committer")
                  for arg in ("-c", f"{role}.name={AUTHOR_NAME}", "-c", f"{role}.email={AUTHOR_EMAIL}"))
 # the message on every commit and merge commit this tool makes
 MESSAGE = "brain-sync"
+# every path of the repo but what is under its top-level plans/, as a pathspec: what steps 2, 4
+# and 5 stage. the first letter is bracketed because `git add` fails on an ignored path that an
+# exclusion spells out literally, and a bracket is a wildcard it does not compare
+UNPLANNED = ("--", ":(top)", f":(top,exclude,glob)[{PLANS[0]}]{PLANS[1:]}/**")
 # the remote every repo is carried to
 REMOTE = "origin"
 # the branch every repo is carried to, by name (switch) and as the one ref it is (fetch, merge, push)
@@ -129,7 +136,7 @@ class Stop(StrEnum):
 
     REMOTE = "origin fetches from more than one url, or pushes somewhere other than the one url it fetches from"
     FETCH = f"origin's {MAIN_REF} could not be fetched into {BASE_REF}, or {BASE_REF} names no commit"
-    STAGED = "the scan of what `git add -A` would stage did not pass, or could not run"
+    STAGED = "the scan of the work tree before its commit did not pass, or could not run"
     MERGING = "a merge is in progress on a branch other than brain-sync"
     CONFLICT = "a merge stopped on conflicting files; it is left in progress on brain-sync to resolve"
     STALE = "a brain-sync branch exists but is not checked out: switch to it to resume, or delete it"
@@ -305,7 +312,7 @@ class Repo:
             raise SyncError(self.path, Stop.MERGING, "finish or abort it by hand")
         if unmerged := self.conflicts():
             raise SyncError(self.path, Stop.CONFLICT, f"unmerged: {', '.join(unmerged)}")
-        self.write(Stop.GIT, "add", "-A")
+        self.write(Stop.GIT, "add", "-A", *UNPLANNED)
         self.write(Stop.GIT, "commit", "--no-edit", "-m", MESSAGE)
 
     def verify_remote(self) -> None:
@@ -336,7 +343,7 @@ class Repo:
         return self.read("rev-parse", "--verify", "--end-of-options", f"{BASE_REF}^{{commit}}", stop=Stop.FETCH)
 
     def even(self, base: str) -> bool:
-        """step 2: on main, nothing uncommitted, at BASE, and no SYNC_BRANCH left over.
+        """step 2: on main, nothing staged or to stage, at BASE, and no SYNC_BRANCH left over.
 
         # Arguments
 
@@ -359,12 +366,16 @@ class Repo:
             ...     repo.write(Stop.GIT, "commit", "-q", "--allow-empty", "-m", MESSAGE)
             ...     base = repo.tip()
             ...     clean = repo.even(base)
+            ...     (repo.path / PLANS).mkdir()
+            ...     _ = (repo.path / PLANS / "x.md").write_text("x")
+            ...     planned = repo.even(base)
             ...     _ = (repo.path / "new.nix").write_text("x")
-            ...     clean, repo.even(base)
-            (True, False)
+            ...     clean, planned, repo.even(base)
+            (True, True, False)
         """
         return (self.read("branch", "--show-current") == MAIN
-                and not self.read("status", "--porcelain")
+                and not self.read("diff", "--cached", "--name-only")
+                and not self.read("status", "--porcelain", *UNPLANNED)
                 and self.tip() == base
                 and not self.has_branch(SYNC_BRANCH))
 
@@ -380,7 +391,7 @@ class Repo:
             if self.has_branch(SYNC_BRANCH):
                 raise SyncError(self.path, Stop.STALE, f"HEAD is on {current or 'a detached commit'}")
             self.write(Stop.GIT, "switch", "-c", SYNC_BRANCH)
-        self.write(Stop.GIT, "add", "-A")
+        self.write(Stop.GIT, "add", "-A", *UNPLANNED)
         if self.read("diff", "--cached", "--name-only"):
             self.write(Stop.GIT, "commit", "-m", MESSAGE)
 
@@ -419,19 +430,42 @@ class Repo:
     def follow(self, tip: str) -> None:
         """step 9: main follows what origin accepted, made at it when there is none, and SYNC_BRANCH goes.
 
+        main is moved to TIP from TIP, never checked out at its old commit:
+        that checkout would write back the files old main tracks and TIP does
+        not, over an untracked or ignored copy on disk - a plan file TIP
+        stopped tracking among them - and moving on to TIP would then delete
+        them
+
         # Arguments
 
-        * `tip` - TIP, which origin's main now holds
+        * `tip` - TIP, which origin's main now holds and HEAD is at
 
         # Raises
 
-        SyncError with FOLLOW when main will not fast-forward to TIP or the branch will not delete
+        SyncError with FOLLOW when main is not an ancestor of TIP, or main
+        will not move or the branch will not delete
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     repo = Repo(Path(tmp).resolve())
+            ...     repo.write(Stop.GIT, "init", "-q", "-b", MAIN)
+            ...     (repo.path / PLANS).mkdir()
+            ...     _ = (repo.path / PLANS / "x.md").write_text("committed")
+            ...     repo.write(Stop.GIT, "add", "-A")
+            ...     repo.write(Stop.GIT, "commit", "-q", "-m", MESSAGE)
+            ...     repo.write(Stop.GIT, "switch", "-q", "-c", SYNC_BRANCH)
+            ...     repo.write(Stop.GIT, "rm", "-q", "--cached", f"{PLANS}/x.md")
+            ...     repo.write(Stop.GIT, "commit", "-q", "-m", MESSAGE)
+            ...     _ = (repo.path / PLANS / "x.md").write_text("his edit")
+            ...     repo.follow(repo.tip())
+            ...     repo.read("branch", "--show-current"), (repo.path / PLANS / "x.md").read_text()
+            ('main', 'his edit')
         """
         if self.has_branch(MAIN):
-            self.write(Stop.FOLLOW, "switch", MAIN)
-            self.write(Stop.FOLLOW, "merge", "--ff-only", tip)
-        else:
-            self.write(Stop.FOLLOW, "switch", "-c", MAIN, tip)
+            self.write(Stop.FOLLOW, "merge-base", "--is-ancestor", MAIN_REF, tip)
+        self.write(Stop.FOLLOW, "switch", "-C", MAIN, tip)
         self.write(Stop.FOLLOW, "branch", "-d", SYNC_BRANCH)
 
     def sync(self, guard: "Guard") -> None:
@@ -522,7 +556,7 @@ class Guard:
         * `repo` - the work tree to scan
         * `stop` - the stop anything but a pass is
         * `since` - BASE, to scan the commits a push of `tip` sends; "" scans
-          what `git add -A` would stage
+          the work tree
         * `tip` - TIP, the commit the push sends
 
         # Raises
@@ -530,12 +564,12 @@ class Guard:
         SyncError with `stop` on anything but a pass: a hit, an unscanned file,
         and a scan that gave no verdict
         """
-        flags = (Flag.SINCE, since, Flag.TIP, tip) if since else (Flag.STAGING,)
+        flags = (Flag.SINCE, since, Flag.TIP, tip) if since else ()
         print(f"+ {shlex.join((Layout.command(Layout.PRIVATE), *flags, str(repo)))}  # in this process",
               file=sys.stderr, flush=True)
         try:
             scope = ScanScope.of(RepoTree.containing(repo))
-            source = scope.source(since, tip, staging=not since)
+            source = scope.source(since, tip)
             scope.announce(source)
             verdict = self.values.run(source)
         except NoVerdict as blind:

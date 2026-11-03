@@ -39,7 +39,7 @@ from brainlib.recall import (
 from brainlib.repo.diff import Patch
 from brainlib.repo.private import PrivateScan, ScanScope
 from brainlib.repo.push import NO_REPLACE, Excerpt, Origin, Outgoing
-from brainlib.repo.tree import UNTRACKED, Change, Ending, GitRun, RepoError, RepoTree, git
+from brainlib.repo.tree import PLANS, UNTRACKED, Change, Ending, GitRun, RepoError, RepoTree, git
 from brainlib.session import Mark, SessionLog, SessionRecord
 from brainlib.store import Decision, Ledger, MergeCount, PrunePolicy, ShapePolicy
 from brainlib.text import (
@@ -91,7 +91,8 @@ from brainlib.vocab import (
 # the public surface, named once so a reader sees it without chasing modules
 __all__ = [
     "BEST_SHARE", "ENCODING", "EXPLAIN_FLOOR", "GIT_TIMEOUT", "INLINE_BYTES", "INLINE_PRINCIPLES",
-    "LONG_GIT_TIMEOUT", "MAX_N", "MAX_REFERENCES", "NO_REPLACE", "PYTHON_VERSION", "REFERENCE_FLOOR", "UNTRACKED",
+    "LONG_GIT_TIMEOUT", "MAX_N", "MAX_REFERENCES", "NO_REPLACE", "PLANS", "PYTHON_VERSION", "REFERENCE_FLOOR",
+    "UNTRACKED",
     "Args", "Artifact", "Change", "Claude", "Confidence", "DataLayout", "Decision", "Denied", "Driven", "Edge",
     "Ending", "Entry", "Env", "Event", "EvidenceLayout", "Excerpt", "Exit", "Flag", "Flow", "Frontmatter", "GitRun",
     "Graph", "Harness", "Harnesses", "Interrupted", "Json", "Kind", "Layout", "Ledger", "Mark", "MergeCount",

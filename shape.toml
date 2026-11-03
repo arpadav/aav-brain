@@ -1,6 +1,5 @@
-# the shape policy: the NUMBERS behind P27 and P28, and the budget that arms a
-# phase gate. authored data, like flow.toml and prune.toml - brainlib reads it,
-# no tool hardcodes a number.
+# the shape policy: the NUMBERS behind P27 and P28. authored data, like
+# flow.toml and prune.toml - brainlib reads it, no tool hardcodes a number.
 #
 # these exist because "a file that is too long" is an ADJECTIVE, and a worker
 # resolves an adjective against its own priors (P40). the measurement that
@@ -45,31 +44,6 @@ exempt = ["/brain/principles/", "/brain/intents/"]
 # per-module `Error` enum is idiomatic rust, not duplication.
 duplicate_type_files = 2
 
-[budget]
-# SECONDARY: `b-gate phase` decides whether a phase buys the gate; this
-# budget only takes the `under_budget` exit on a final phase b-gate
-# deferred. plans/open-items/G01-two-gate-arming-checks.md decides whether it
-# stays.
-#
-# the phase gate is ARMED when a phase's accumulated change crosses either of
-# these. under both, the phase still ends with VERIFY and STYLE - it just does
-# not buy a cold multi-lens review.
-#
-# this is the milestone half of the gate: PHASEGATE used to fire once per phase
-# whether the phase was thousands of new lines or two lines of formatter
-# appeasement, so the same machinery reviewed both. arming decouples the cold
-# review from the phase COUNT and attaches it to the phase SIZE.
-#
-# lines are counted as CHURN (added + removed) over source files only, with
-# untracked new files included: a phase that deletes 5000 lines changed a great
-# deal, and a regenerated graph changed nothing worth reviewing.
-#
-# prose does NOT count toward these two - see `prose` under [scan]. everything
-# else in this file measures a markdown file exactly like a rust one; arming is
-# the one place that would be wrong.
-changed_files = 4
-changed_lines = 400
-
 [scan]
 # the suffixes measured. a file whose suffix is absent here is invisible to
 # every measurement, so an omission reads as cleanliness - `.md` is here
@@ -84,10 +58,10 @@ suffixes = [
 
 # the suffixes above whose contents are PROSE. they are measured for length and
 # for folder fan-out like anything else, and they are never scanned for a type
-# declaration - but their churn may not ARM a cold review, here or in
-# b-gate, which reads this same list. a handoff document
-# rewritten in place is hundreds of changed lines that no code lens reads, and
-# arming on it spends five reviewers on a diff with no code in it.
+# declaration - and b-gate, which reads this same list, scores their churn at
+# zero, so they never buy a cold review. a handoff document rewritten in place
+# is hundreds of changed lines that no code lens reads, and arming on it spends
+# five reviewers on a diff with no code in it.
 prose = [".md", ".markdown", ".rst", ".txt"]
 
 # path fragments excluded from every measurement. each one is a tree this repo

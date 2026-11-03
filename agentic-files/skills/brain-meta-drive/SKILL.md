@@ -128,9 +128,13 @@ bag-of-skills composition (P18).
 only at gates, and only what he cant see himself: verdicts, blockers, the single next action. no diff
 recaps. lowercase, terse, ends on the next action.
 
-every gate report also answers ONE line, unasked: would a much simpler thing do this job, and is the
-work proportionate to it? the test: if he asked "is this over-engineered?" right now and you would
-agree, you owed him that sentence before he asked. a critique produced only on request is an omission.
+every gate report also answers ONE line, unasked: is this the simplest AND the most generic way to
+do the job? both halves bind. simple but hard-coded (not generic) is bad. generic but heavier than
+needed is bad: C++ where a bash script does it, rust where python does it. the language follows the
+real bottleneck, so python instead of rust is also wrong when speed IS the bottleneck. a generic
+bash script beats an over-engineered python script. the test: if he asked "is this
+over-engineered?" right now and you would agree, you owed him that sentence before he asked. a
+critique produced only on request is an omission.
 
 ## the review barrier - a review's input tree is FROZEN
 a review is a measurement, and a measurement of a moving target is noise. three rules, all hard:
