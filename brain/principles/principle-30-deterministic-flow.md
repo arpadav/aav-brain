@@ -13,29 +13,27 @@ tells: ["does it deterministically follow a flow chart", "the brain flow chart w
 
 ## rule
 two distinct artifacts, never conflated:
-- the GRAPH (brain/graph/graph.json) = the context fetcher/manager. nodes are cards, edges are
-  serves/relates. brain-recall traverses it to answer "which principles apply." it is KNOWLEDGE.
+- the GRAPH = KNOWLEDGE: b-recall answers "which principles apply."
 - the FLOW (brain/flow/flow.toml) = the execution sequence. states are work phases, transitions are
-  guarded edges. brain-walk steps it to answer "what is the next step." it is SEQUENCE.
-when executing a task, deterministically FOLLOW the flow: to take any step, query brain-walk against
+  guarded edges. b-walk steps it to answer "what is the next step." it is SEQUENCE.
+when executing a task, deterministically FOLLOW the flow: to take any step, query b-walk against
 the committed flow file. the brain does not invent the sequence; it reads it.
 
 ## why
 the flow keeps me the architect of the process ([[intent-control]]) and makes execution reproducible
 and leverage-able ([[intent-efficiency]]). a graph that fetched context AND decided sequence would be
-two concerns in one artifact - brittle and unauditable. separation by file, vocabulary (cards/edges vs
+two concerns in one artifact - brittle and unauditable. separation by file, vocabulary (principles/edges vs
 states/transitions), and call-direction keeps both honest.
 
 ## how to apply
-- one-directional coupling only: a flow state may CALL the graph (its `recall: true` flag fires
-  brain-recall to load the relevant cards before the owner runs). the graph NEVER calls the flow.
-- step deterministically: `brain-walk --state X --on <outcome> --regime <r>` returns the single next
+- one-directional coupling only: a flow state may reach the graph (its `recall = true` makes b-walk
+  print the b-recall call the agent runs to load the relevant principles before the owner runs). the graph NEVER reaches the flow.
+- step deterministically: `b-walk -s X -o <outcome> -m <mode>` returns the single next
   state. same input, same next step.
-- knowledge never steers sequence: which card ranks #1 cannot change a transition. transitions depend
+- knowledge never steers sequence: which principle ranks #1 cannot change a transition. transitions depend
   only on (current state, outcome event, guard).
-- rebuild + --check both artifacts when they change: `brain-graph.py` for the graph, `brain-flow.py`
-  for the flow.
+- rebuild + check the flow when it changes: `b-flow`, then `b-flow -c`.
 
 ## anti-pattern
 describing the flow only as drifting prose/mermaid (un-deterministic, un-checkable). using "node/edge"
-to mean both a card and an execution state. letting the graph decide the next step.
+to mean both a principle and an execution state. letting the graph decide the next step.

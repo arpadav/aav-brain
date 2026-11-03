@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-register: flag conversational filler in docs (P57, textbook / ICD register).
+"""b-register: flag conversational filler in docs (P57, textbook / ICD register).
 
 a doc heading is a noun phrase and an instruction is an imperative. the flagged
 forms, each from his corrections: "Now the bytes" -> "Bytes", "The struct" ->
@@ -11,10 +11,10 @@ forms, each from his corrections: "Now the bytes" -> "Bytes", "The struct" ->
 "Example: without length". prose is checked for a closed set of filler phrases.
 fenced code is skipped. a hit is a finding to rewrite, never an auto-fix
 
-    python3 brain-register.py [FILE...]   lint the named .md files; with none,
-                                          every changed or untracked .md in the repo
+    b-register [FILE...]  lint the named .md files; with none,
+                          every changed or untracked .md in the repo
 
-exits 1 when anything is flagged
+FINDINGS when anything is flagged
 
 Author: aav
 """
@@ -27,20 +27,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit
+from brainlib import Args, Exit, Layout, RepoTree, Tool, find_repo_root
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import re
-import subprocess
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
+# an atx heading line; the group is its text without the leading and any closing hashes
 HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
+# the line that opens or closes a fenced code block, backtick or tilde
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 # a heading longer than this is a sentence title (an open item's one-line problem
 # statement), which is the right form there; the rules target short fragments
@@ -61,6 +62,7 @@ FILLER = (
     "the short version", "tl;dr", "buckle up", "voila", "the punchline", "the trick is",
     "turns out", "what i need from you", "game changer", "magic happens",
 )
+# every filler phrase as one alternation
 FILLER_RE = re.compile(r"\b(" + "|".join(re.escape(p) for p in FILLER) + r")\b", re.IGNORECASE)
 
 
@@ -114,34 +116,46 @@ def lint_text(text: str) -> list[tuple[int, str, str]]:
     return found
 
 
-def changed_docs() -> list[str]:
-    """the changed and untracked .md files in the current repo.
+def changed_docs() -> list[Path]:
+    """the changed and untracked .md files in the current repo; none outside a repo.
 
     # Returns
 
-    repo-relative paths, sorted
+    absolute paths, sorted
+
+    # Raises
+
+    RepoError when git cannot list the repo
     """
-    def lines(*argv: str) -> list[str]:
-        done = subprocess.run(["git", *argv], capture_output=True, text=True, check=False)  # noqa: S603, S607
-        return done.stdout.splitlines() if done.returncode == 0 else []
-
-    names = set(lines("diff", "--name-only", "HEAD")) | set(lines("ls-files", "--others", "--exclude-standard"))
-    return sorted(n for n in names if n.endswith(".md") and Path(n).exists())
+    root = find_repo_root()
+    changed = RepoTree((root,) if root else ()).changed()
+    return sorted(p for p in changed if p.suffix == ".md" and p.is_file())
 
 
-def main() -> None:
-    """lint the files and report."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__)
-    files = args.positional() or changed_docs()
+def main(args: Args) -> Exit:
+    """lint the files and report.
+
+    each finding prints as `file:line: rule: text`; the tally goes to stderr so
+    stdout stays a clean list of findings
+
+    # Arguments
+
+    * `args` - the parsed command line; positionals are the markdown files to
+      lint, defaulting to the docs the working tree has changed
+
+    # Returns
+
+    `Exit.FINDINGS` when any file has a finding, else `Exit.OK`
+    """
+    files = [Path(name) for name in args.positional()] or changed_docs()
     total = 0
     for name in files:
-        for number, rule, text in lint_text(Path(name).read_text()):
+        for number, rule, text in lint_text(name.read_text()):
             print(f"{name}:{number}: {rule}: {text}")
             total += 1
     print(f"{TOOL}: {total} finding(s) in {len(files)} file(s)", file=sys.stderr)
-    sys.exit(Exit.DRIFT if total else Exit.OK)
+    return Exit.FINDINGS if total else Exit.OK
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, positionals=(0, None)).run(main)

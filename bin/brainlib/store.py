@@ -1,8 +1,10 @@
 """brainlib.store: the append-only logs and the authored policies over them.
 
-one reader and one writer for every jsonl corpus, so "a log may only ever
-grow" lives in a single place; the policies beside it are authored data read
-from toml, so no tool hardcodes a number
+one reader and one writer for every corpus that may only ever grow - the
+evidence views and the decision trace - so that invariant lives in a single
+place. the session logs are a per-machine cache, not a corpus, and keep
+their own reader and writer (brainlib.session). the policies beside them are
+authored data read from toml, so no tool hardcodes a number
 
 Author: aav
 """
@@ -10,8 +12,9 @@ Author: aav
 # local
 # --------------------------------------------------
 from brainlib.paths import DataLayout, find_repo, find_repo_root
+from brainlib.repo.tree import git
 from brainlib.text import iso_now, read_text, write_text
-from brainlib.vocab import ENCODING, GIT_TIMEOUT
+from brainlib.vocab import ENCODING
 
 # --------------------------------------------------
 # external
@@ -19,15 +22,12 @@ from brainlib.vocab import ENCODING, GIT_TIMEOUT
 import datetime as dt
 import hashlib
 import json
-import os
-import shutil
-import subprocess
 import sys
 import tomllib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 @dataclass(frozen=True)
 class MergeCount:
@@ -117,6 +117,25 @@ class Ledger:
                 out[mark] = True
         return out
 
+    @staticmethod
+    def is_record(value: object) -> TypeGuard[dict[str, Any]]:
+        """whether a parsed json line is an object, the one shape a record has; json keys are always strings.
+
+        # Arguments
+
+        * `value` - one line of a ledger, as `json.loads` returned it
+
+        # Returns
+
+        True for an object, which narrows the type for the caller; False for any other json value
+
+        # Example
+
+            >>> Ledger.is_record({"ts": "2026-01-01"}), Ledger.is_record(["ts"]), Ledger.is_record(None)
+            (True, False, False)
+        """
+        return isinstance(value, dict)
+
     def record_id(self, record: dict[str, Any]) -> str:
         """the stable content hash identifying one record.
 
@@ -149,10 +168,19 @@ class Ledger:
         return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:16]  # noqa: S324
 
     def read(self) -> list[dict[str, Any]]:
-        """read the corpus, skipping any line that does not parse.
+        r"""read the corpus, skipping any line that is not a json object.
 
         # Returns
         the parsed records, or an empty list if the file does not exist
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     corpus = Path(tmp) / "c.jsonl"
+            ...     _ = corpus.write_text('{"a": 1}\n[1]\n"text"\n{torn\n')
+            ...     Ledger(corpus).read()
+            [{'a': 1}]
         """
         if not self.path.exists():
             return []
@@ -163,6 +191,8 @@ class Ledger:
             try:
                 row = json.loads(line)
             except ValueError:
+                continue
+            if not self.is_record(row):
                 continue
             key = self.record_id(row)
             # a union merge of two machines' logs leaves both copies of a record
@@ -423,57 +453,16 @@ class PrunePolicy:
         return (moment - back).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-def git(repo: Path, *argv: str) -> str | None:
-    """run a read-only git command in a repo and return its stdout.
-
-    the ONE place the brain shells out to git. it was two - a policy method and
-    a tool copied its body verbatim, comments included - which is the exact
-    duplication P31 forbids, found in the diff that shipped the tool for finding
-    it
-
-    None and "" are different answers and the distinction is load-bearing: a
-    caller that cannot tell "git said nothing" from "git could not run" reports
-    a clean scan of a repo it never opened
-
-    # Arguments
-
-    * `repo` - the repository to run in
-    * `argv` - the git subcommand and its arguments
-
-    # Returns
-
-    stdout on success; None when git is missing, the path is not a repo, or the
-    command failed
-    """
-    found = shutil.which("git")
-    if found is None:
-        return None
-    # GIT_DIR and GIT_WORK_TREE outrank -C, so an inherited environment would
-    # silently measure a DIFFERENT repo than the one asked for
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    # argv is the caller's own literals plus a discovered repo path; nothing here
-    # is remote input, and shell=False keeps it an exec not a shell (S603)
-    try:
-        done = subprocess.run([found, "-C", str(repo), *argv], capture_output=True,  # noqa: S603
-                              text=True, check=False, env=env, timeout=GIT_TIMEOUT)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return done.stdout if done.returncode == 0 else None
-
-
 @dataclass(frozen=True)
 class ShapePolicy:
-    """the numbers behind P27 and P28, and the secondary change budget.
+    """the numbers behind P27 and P28.
 
     P27 says a file that is "too long" should split to a tree and P28 says a
     datatype defined twice should merge. both are adjectives, and a worker
-    resolves an adjective against its own priors (P40). the build that forced
-    these numbers is recorded once, on principle-27 under `## the measurement`,
-    and is not retold here. these fields are what make the two cards
-    measurable, and `budget` is
-    what decouples the cold review from the phase COUNT and attaches it to the
-    phase SIZE. the evidence is stated once, on principle-27 itself, under
-    `## the measurement` - not retold here
+    resolves an adjective against its own priors (P40). these fields are what
+    make the two principles measurable. the build that forced these numbers is
+    recorded once, on principle-27 under `## the measurement`, and is not
+    retold here
 
     a crossing is a FINDING, not a verdict, exactly as PrunePolicy's window is
     eligibility and not a prune: a 2400-line table of sourced constants is one
@@ -491,8 +480,6 @@ class ShapePolicy:
     collapse_lines: int = 120
     exempt: tuple[str, ...] = ()
     duplicate_type_files: int = 2
-    changed_files: int = 4
-    changed_lines: int = 400
     suffixes: frozenset[str] = frozenset({".rs", ".py", ".ts", ".tsx", ".js", ".go", ".c", ".h", ".cpp", ".hpp", ".md"})
     excluded: tuple[str, ...] = ("/vendor/", "/node_modules/", "/target/", "/.generated/")
     prose: frozenset[str] = frozenset({".md", ".markdown", ".rst", ".txt"})
@@ -510,18 +497,23 @@ class ShapePolicy:
         the policy; the field defaults when the file is absent, unreadable,
         malformed or the wrong shape. a broken config must still MEASURE, the
         same way a broken prune policy still reports - a tool that goes silent
-        on a bad config is the failure this whole card set exists to prevent
+        on a bad config is the failure this whole principle set exists to prevent
         """
+        # --------------------------------------------------
+        # no policy file: the same rule the tool follows, never go quiet about a measurement
+        # you could not take. a silently-swapped policy scans eleven suffixes
+        # where the authored one scans twenty-five, and reports the shortfall
+        # as a clean repo
+        # --------------------------------------------------
         if not path.is_file():
-            # the same rule the tool follows: never go quiet about a measurement
-            # you could not take. a silently-swapped policy scans eleven suffixes
-            # where the authored one scans twenty-five, and reports the shortfall
-            # as a clean repo
             print(f"no {path.name} at {path.parent}; measuring against built-in defaults", file=sys.stderr)
             return cls()
+        # --------------------------------------------------
+        # parse the authored policy, clamping every number to its floor
+        # --------------------------------------------------
         try:
             data = tomllib.loads(read_text(path))
-            tree, budget, scan = data.get("tree", {}), data.get("budget", {}), data.get("scan", {})
+            tree, scan = data.get("tree", {}), data.get("scan", {})
             return cls(
                 file_lines=max(1, int(tree.get("file_lines", cls.file_lines))),
                 folder_files=max(1, int(tree.get("folder_files", cls.folder_files))),
@@ -529,8 +521,6 @@ class ShapePolicy:
                 collapse_lines=max(1, int(tree.get("collapse_lines", cls.collapse_lines))),
                 exempt=tuple(sorted(cls.listed(tree, "exempt", frozenset(cls.exempt)))),
                 duplicate_type_files=max(2, int(tree.get("duplicate_type_files", cls.duplicate_type_files))),
-                changed_files=max(1, int(budget.get("changed_files", cls.changed_files))),
-                changed_lines=max(1, int(budget.get("changed_lines", cls.changed_lines))),
                 suffixes=cls.listed(scan, "suffixes", cls.suffixes),
                 excluded=tuple(sorted(cls.listed(scan, "excluded", frozenset(cls.excluded)))),
                 prose=cls.listed(scan, "prose", cls.prose),
@@ -596,35 +586,11 @@ class ShapePolicy:
             return False
         return not self.matches(path, self.excluded)
 
-    def arms(self, path: Path) -> bool:
-        """whether this path's churn counts toward the review budget.
-
-        prose is measured for LENGTH like anything else, but it may not ARM a
-        cold code review: a handoff document rewritten in place is hundreds of
-        changed lines that no reviewer lens reads, and arming on it spends five
-        reviewers on a diff with no code in it
-
-        # Arguments
-
-        * `path` - a repo-relative path
-
-        # Returns
-
-        true when the path is measured AND is not prose
-
-        # Example
-
-            >>> policy = ShapePolicy()
-            >>> policy.arms(Path("src/ledger.rs")), policy.arms(Path("plan/NEXT-STEPS.md"))
-            (True, False)
-        """
-        return self.is_source(path) and path.suffix not in self.prose
-
     def is_exempt(self, folder: Path) -> bool:
         """whether a folder's fan-out is the deliberate form, not a defect.
 
         the one place a real crossing may be silenced, so it is authored and
-        narrow: a zettelkasten is one file per card on purpose
+        narrow: a zettelkasten is one file per principle on purpose
 
         # Arguments
 
@@ -687,7 +653,6 @@ class Decision:
     affects: str = ""
     repo: str = ""
     principle: list[str] = field(default_factory=list)
-    confidence: str = "medium"
     supersedes: str = ""
 
     def trace(self, ledger: "Ledger | None" = None, session: str = "", ts: str = "") -> Path:

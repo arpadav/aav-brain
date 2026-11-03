@@ -19,8 +19,8 @@ why this matters: obey positions literally and the brain is a brittle command-fo
 the moment a position is slightly wrong for the situation. serve the interest and it can pick the
 best position for the moment, even one i didnt name. the brain serves interests, not commands.
 
-## the six interests (cards in brain/intents/)
-| interest | one-line | card |
+## the six interests (in brain/intents/)
+| interest | one-line | file |
 |---|---|---|
 | CONTROL | stay the architect-in-the-loop; no surprises; power balance | [[../brain/intents/intent-control]] |
 | TRUST | act only on whats real; no fabrication | [[../brain/intents/intent-trust]] |

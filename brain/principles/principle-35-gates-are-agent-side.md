@@ -33,7 +33,7 @@ self-testing surfaced ([[intent-trust]]).
   only genuine forks ([[principle-01-no-assumptions]]).
 - if a phase is too small to gate, say so; do not silently drop it. "too small" is MEASURED and
   the verdict is spoken ([[principle-53-rigor-scales-with-the-change]]) - that is what separates
-  it from the skipping this card forbids.
+  it from the skipping this principle forbids.
 
 ## anti-pattern
 reading "don't pause for me" as "don't gate at all", then reporting phases complete

@@ -2,7 +2,7 @@
 name: principle-39-style-contract
 kind: principle
 tier: conditional
-rule: every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with brain-fmt.py --gate rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.
+rule: every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with b-fmt -g rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.
 interest: [intent-craft]
 confidence: very-high
 evidence_count: 5
@@ -16,9 +16,9 @@ tells: ["they do not follow my style guide", "adhering to my style should be bak
 the style spec is not advice given at the end of a build. it is a contract resolved before the first
 line and enforced by a gate that can fail.
 
-**it lives on this card, deliberately not in the plan.** a plan written elsewhere - by him, by another
+**it lives on this principle, deliberately not in the plan.** a plan written elsewhere - by him, by another
 tool, by a previous session - carries no style section, and if the contract lived in `brain-plan` then
-executing a foreign plan would silently skip it. the flow reaches this card regardless of where the
+executing a foreign plan would silently skip it. the flow reaches this principle regardless of where the
 plan came from. a plan MAY name an exception and override; its silence changes nothing.
 
 ## the language registry
@@ -29,7 +29,7 @@ with no row is a question for him, never a guess - which is [[principle-06-idiom
 applied to style rather than to the build toolchain.
 
 ## the four lenses own the spec; the flow dispatches them
-`aav-style-separators`, `aav-style-docs`, `aav-style-imports`, `aav-style-items`. before this card they
+`aav-style-separators`, `aav-style-docs`, `aav-style-imports`, `aav-style-items`. before this principle they
 were named in ZERO flow states and ZERO skills - four agent files holding the spec that nothing ever
 called. they are now the STYLE state's dispatched owners, alongside `brain-meta-style:style`.
 
@@ -39,7 +39,7 @@ region that could not fail - every other one loops until a metric holds. so a ho
 thorough one were indistinguishable to the machine, and "the style pass always runs" was true and
 meaningless simultaneously.
 
-it now emits `unstyled` and loops. `brain-fmt.py --gate` supplies the countable half:
+it now emits `unstyled` and loops. `b-fmt -g` supplies the countable half:
 
 - function bodies with zero local separators (§11, the spec's own "most important part")
 - a blank line following a separator (the spec says never)
@@ -48,7 +48,7 @@ it now emits `unstyled` and loops. `brain-fmt.py --gate` supplies the countable 
 
 what a script cannot judge - whether a local separator is NAMED well - stays with the lenses.
 
-## why this card exists at all
+## why this principle exists at all
 measured on a seven-variant CUDA suite the brain had just declared complete:
 
 ```
@@ -57,7 +57,7 @@ blank line after a separator          53
 global labels outside the whitelist  109
 ```
 
-and the reason the end-of-build pass did not catch it: `brain-fmt.py`'s rewriting path was hardcoded
+and the reason the end-of-build pass did not catch it: `b-fmt`'s rewriting path was hardcoded
 to `#`, so it silently skipped every `.cu` and `.cpp` handed to it. it reported "10 file(s) rewritten"
 having touched only the python. **a style tool that cannot see the language reports success by
 saying nothing.**
@@ -65,7 +65,7 @@ saying nothing.**
 ## how to apply
 - resolve the language row at INTENT, before the plan, not at STYLE.
 - STYLE is always required. only an explicit instruction against it skips it.
-- run `brain-fmt.py --gate` and let the number decide; do not emit `styled` on judgement.
+- run `b-fmt -g` and let the number decide; do not emit `styled` on judgement.
 - the scope of a style pass is whatever he points it at, in every language in that diff: "please do a style pass
   on the git diff compared to main (+4.7k -200 lines). shell and python and all". a python repo with posix sh
   templates and a Dockerfile gets all three passes, not just the language the brain thinks of first.
@@ -76,6 +76,6 @@ saying nothing.**
   tune - tuning the bar until it passes is the failure [[principle-04-anti-fabrication]] names.
 - in a shared repo whose own rules differ (havoc-ml's AGENTS.md: "keep comments minimal"), ask once; he chose
   his style on the lines the change writes ONLY. the lenses review the diff hunks; a rule that needs untouched
-  lines is reported, never applied; `brain-fmt.py` changes on untouched lines are out of scope. calibrate to
+  lines is reported, never applied; `b-fmt` changes on untouched lines are out of scope. calibrate to
   HIS code in that repo, not the abstract spec: his havoc-ml `deploy/` docstrings end sentences with periods,
   so a lens asking to strip them on touched lines only was rejected (it would mix styles in one docstring).

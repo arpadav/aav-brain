@@ -3,14 +3,12 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-shape: measure a repo's SHAPE, so P27 and P28 stop being adjectives.
+"""b-shape: measure a repo's SHAPE, so P27 and P28 stop being adjectives.
 
 a recurring deterministic check (P19), and the one measurement the phase gate
 never had. it reports four crossings against shape.toml - a file past
 `file_lines`, a folder past `folder_files`, a folder small enough to collapse
-back to flat, and a type name declared in `duplicate_type_files` or more files
-- plus, under --since, the SECONDARY change budget (brain-gate.py decides whether
-a phase boundary buys a cold review).
+back to flat, and a type name declared in `duplicate_type_files` or more files.
 
 it exists because a review scoped to a diff cannot see any of them. a phase that
 adds 800 lines to a 6700-line file produces a diff that reads fine; the FILE is
@@ -20,13 +18,12 @@ once, in principle-27-organization-reorg, rather than retold here
 a crossing is a FINDING, never a verdict. it says look here; whether the file
 should actually split is a judgement made against what the file IS
 
-it refuses rather than reassures: if the tree cannot be listed, or a --since ref
-does not resolve, it says so and exits non-zero. a scan that reports CLEAN
-having measured nothing is the failure this tool was written to end
+it refuses rather than reassures: if the tree cannot be listed, it says so and
+exits non-zero. a scan that reports CLEAN having measured nothing is the failure
+this tool was written to end
 
-    python3 brain-shape.py [PATH]              report every crossing
-    python3 brain-shape.py [PATH] --check      exit 1 if anything crossed
-    python3 brain-shape.py [PATH] --since REF  the secondary change budget since a ref
+    b-shape [PATH]     report every crossing
+    b-shape [PATH] -c  FINDINGS when anything crossed
 
 Author: aav
 """
@@ -39,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Layout, ShapePolicy, git, read_text
+from brainlib import Args, Exit, Flag, Layout, NoVerdict, ShapePolicy, Tool, git, read_text
 
 # --------------------------------------------------
 # external
@@ -52,8 +49,8 @@ from enum import StrEnum
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 
 # every path inside the brain, spelled once (brainlib.Layout)
 LAYOUT = Layout.discover()
@@ -64,7 +61,7 @@ LAYOUT = Layout.discover()
 # work while two declaring `struct Ledger` is the duplication P31 forbids; a
 # declaration must be FOLLOWED by an opening delimiter, which excludes both a
 # c++ forward declaration `class Widget;` and a rust `type Err = ...` alias; and
-# prose suffixes are never scanned, so a card discussing `class Foo` does not
+# prose suffixes are never scanned, so a principle discussing `class Foo` does not
 # read as a definition of one
 TYPE_DECL = (
     # rust, c/c++, java, kotlin, swift, ts - the keyword leads the declaration
@@ -132,52 +129,12 @@ class Crossing:
         return f"  {self.axis.value:<5}  {self.where}  {self.measured} (limit {self.limit}) - {self.note}"
 
 
-@dataclass(frozen=True)
-class Budget:
-    """how much a phase changed, and whether that arms a cold gate.
-
-    `armed` is deliberately true when the change could NOT be measured: an
-    unresolvable ref must buy the review, never cancel it. a typo that silently
-    disarms a gate is the same defect class this whole tool exists to report
-    """
-
-    files: int
-    lines: int
-    armed: bool
-    measured: bool
-
-    def line(self, ref: str) -> str:
-        """this budget as one report line.
-
-        # Arguments
-
-        * `ref` - the ref the phase started from, for the message
-
-        # Returns
-
-        the rendered line, verdict included
-
-        # Example
-
-            >>> Budget(0, 0, armed=True, measured=False).line("HEAD~9").endswith("by a typo")
-            True
-        """
-        if not self.measured:
-            unmeasured = "NOT MEASURABLE (the ref does not resolve) -> ARMED, a gate is not cancelled by a typo"
-            return f"{TOOL}: since {ref}: {unmeasured}"
-        armed = "ARMED - the next phase boundary buys a cold gate"
-        under = "under budget - VERIFY and STYLE only"
-        verdict = armed if self.armed else under
-        return f"{TOOL}: since {ref}: {self.files} file(s), {self.lines} changed line(s) -> {verdict}"
-
-
 @dataclass
 class Shape:
     """the measured shape of one repo, against one policy.
 
     `crossings` accumulate across the tree measurements and fail the --check
-    gate together; the budget is reported separately because it is not a defect
-    at all, it is the question of whether the next gate is worth dispatching
+    gate together
     """
 
     root: Path
@@ -317,85 +274,37 @@ class Shape:
             return False
         return bool(tree.get(folder.parent))
 
-    def budget(self, ref: str) -> Budget:
-        """the change accumulated since a git ref, and whether it arms a gate.
 
-        this is the secondary half of the gate measurement; brain-gate.py
-        decides. PHASEGATE fired once per phase whether the phase was 5885 new
-        lines or two lines of formatter appeasement, so the same cold
-        multi-lens review was spent on both
-
-        counted the way the tree is counted: only files shape.toml admits, only
-        under the measured path, and untracked new files included. a regenerated
-        graph must not arm a review, and five new untracked source files must
-
-        PROSE IS EXCLUDED HERE and nowhere else - it is still measured for
-        length by the tree scan. a rewritten handoff document is hundreds of
-        changed lines that no code lens reads
-
-        # Arguments
-
-        * `ref` - the git ref the current phase started from
-
-        # Returns
-
-        the Budget; `measured` false when the ref does not resolve, which ARMS
-        """
-        if git(self.root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}") is None:
-            return Budget(0, 0, armed=True, measured=False)
-        files = 0
-        changed = 0
-        for row in (git(self.root, "diff", "--numstat", ref, "--", ".") or "").splitlines():
-            added, removed, name = (*row.split("\t", 2), "", "", "")[:3]
-            if not name or not self.policy.arms(Path(name)):
-                continue
-            files += 1
-            # a binary file reports `-` for both counts: a changed file that
-            # contributes no lines. a removal counts as change - a phase that
-            # deletes 5000 lines is not a phase that changed nothing
-            if added.isdigit() and removed.isdigit():
-                changed += int(added) + int(removed)
-        for name in (git(self.root, "ls-files", "-z", "--others", "--exclude-standard") or "").split("\0"):
-            if not name or not self.policy.arms(Path(name)):
-                continue
-            files += 1
-            try:
-                changed += len(read_text(self.root / name).splitlines())
-            except (OSError, UnicodeDecodeError):
-                continue
-        armed = files >= self.policy.changed_files or changed >= self.policy.changed_lines
-        return Budget(files, changed, armed=armed, measured=True)
-
-
-def main() -> None:
+def main(args: Args) -> Exit:
     """measure the named repo, report every crossing, and gate --check on them.
 
-    `--since REF` adds the SECONDARY change budget; brain-gate.py decides whether
-    a phase boundary buys a cold review
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the repo root
+      (the cwd by default)
+
+    # Returns
+
+    `Exit.FINDINGS` under `--check` when any crossing exists, else `Exit.OK`; a
+    tree that cannot be listed raises `NoVerdict`
     """
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK, Flag.SINCE)
-    if starved := args.starved(Flag.SINCE):
-        print(f"{TOOL}: {starved[0]} needs a ref", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+    # --------------------------------------------------
+    # measure the tree, refusing a clean report of one it never read
+    # --------------------------------------------------
     positional = args.positional()
     root = Path(positional[0]).resolve() if positional else Path.cwd()
     shape = Shape(root, ShapePolicy.load(LAYOUT.shape_toml))
     if not shape.measure():
-        print(f"{TOOL}: cannot list {root} - not a git repo, or git is unavailable", file=sys.stderr)
-        print(f"{TOOL}: refusing to report a clean scan of a tree it never read", file=sys.stderr)
-        sys.exit(Exit.USAGE)
+        raise NoVerdict(f"cannot list {root} - not a git repo, or git is unavailable; "
+                        f"refusing to report a clean scan of a tree it never read")
+    # --------------------------------------------------
+    # report every crossing, then gate --check on them
+    # --------------------------------------------------
     for crossing in shape.crossings:
         print(crossing.line())
     print(f"{TOOL}: {len(shape.crossings)} crossing(s) in {root.name}")
-    # --------------------------------------------------
-    # the arming question, asked only when a ref is named
-    # --------------------------------------------------
-    if since := args.value(Flag.SINCE):
-        print(shape.budget(since).line(since))
-    if args.has(Flag.CHECK) and shape.crossings:
-        sys.exit(Exit.DRIFT)
+    return Exit.FINDINGS if args.has(Flag.CHECK) and shape.crossings else Exit.OK
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, positionals=(0, 1)).run(main)

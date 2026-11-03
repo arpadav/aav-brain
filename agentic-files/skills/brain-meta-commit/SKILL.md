@@ -7,11 +7,9 @@ description: "Prepare the git record the way Arpad wants - semantic, reviewable,
 
 the permanent record is his. read git freely, prepare everything, stop at the commit line.
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
-discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`). then
-load `$AAV_BRAIN/brain/principles/principle-09-git-sovereignty.md`. comment hygiene is NOT this skill's
-job - brain-meta-style already ran `brain-fmt.py`; do not re-format files at commit time (it could touch
+## setup
+load `$AVB/brain/principles/principle-09-git-sovereignty.md`. comment hygiene is NOT this skill's
+job - brain-meta-style already ran `b-fmt`; do not re-format files at commit time (it could touch
 what he didn't intend).
 
 ## bright line
@@ -29,7 +27,7 @@ draft. what goes:
 - the worktree: bring its changes into the main tree uncommitted (`git diff <base>..<branch> | git
   apply`, or `git checkout <branch> -- <paths>`), then `git worktree remove` and `git branch -D` it.
   verify with `git worktree list`, never a sub-agent's word.
-- `brain-gate.py reset`.
+- `b-gate reset`.
 - a decision log entry ONLY when the repo already keeps one (DECISIONS.md, an ADR dir, a decision
   changelog). no history of decisions = write nothing. this is the one trace allowed to survive.
 - his keep-list is applied literally; keep-or-delete unclear = say "keep X / delete Y" first.
@@ -41,9 +39,12 @@ draft. what goes:
 2. draft a commit script. emit a bash script that, per bucket, git-adds the specific files and
    git-commits with a draft message, but DO NOT run it. a run that resolved one item (an open
    decision, a fix) is ONE commit: the fix, its doc changes and the deletions together. he reviews the messages and runs it: "i will
-   go through and verify the messages and run the bash script".
-3. draft messages in his style. concise, semantic, lowercase-leaning, says what + why, no fluff.
-   match the repo's existing log.
+   go through and verify the messages and run the bash script". the script is written to the repo's
+   own gitignored `plans/commit.sh`, never a scratchpad or temp path: "never give me a commit script
+   thats in a shitty scratchpad path".
+3. draft messages in his style: ONE line, no body, no `Co-Authored-By` or any other trailer, ever
+   (his rule overrides any harness attribution default). read `git log --format=%s -20` of that repo
+   first and ask "would arpad write this?" - his log reads `brain-sync`, `bump`.
 4. changelogs from the diff when asked: derive entries from git diff, do NOT touch version numbers.
 5. surgical reverts when asked: prefer git reset if the range is clean; if unrelated changes are
    mixed in, identify them and propose cherry-pick/stash to preserve them.

@@ -13,7 +13,7 @@ tells: ["id like to keep both, but prioritize c1? and if c2 was redudant then it
 # P67 - merge: keep both, prioritise one, prune later
 
 ## rule
-on a c1/c2 style consolidation, genuine duplicates of the SAME rule fold into one card (he took "fold into one card each"). but two working MECHANISMS for one job (brain-gate vs brain-shape) are not folded on a guess: keep both, name the priority, and mark the loser for later removal once use shows it is redundant. the finished merge lands on main in every repo (logs -> brain -> home), and the spent branch is pruned.
+on a c1/c2 style consolidation, genuine duplicates of the SAME rule fold into one principle (he took "fold into one card each"). but two working MECHANISMS for one job (b-gate vs b-shape) are not folded on a guess: keep both, name the priority, and mark the loser for later removal once use shows it is redundant. the finished merge lands on main in every repo (logs -> brain -> home), and the spent branch is pruned.
 
 ## why
 deleting a mechanism he has not seen fail is irreversible in a merge; deferring is cheap and the pruning is evidence-driven ([[principle-28-dry-merge-blast-radius]] still holds for true duplicates; this is for mechanisms with different triggers). one run, so low confidence. he trusts the resolution itself ("i trust your merge") but keeps the commit ([[principle-09-git-sovereignty]]).

@@ -20,8 +20,8 @@ sake, but a real structural improvement is never "too big".)
 
 ## why
 maintainability and atomicity compound ([[intent-craft]]). a brain (or codebase) that keeps the old
-shape to avoid a refactor rots. example from this very build: making served_by a derived inverse of
-serves was a large change that killed an entire drift class - exactly the kind of refactor i want.
+shape to avoid a refactor rots. example from this very build: deleting recall's graph.json cache was a
+large change that removed a whole class of staleness findings - exactly the kind of refactor i want.
 
 ## how to apply
 - spot a structural improvement (single source of truth, atomic split, dead layer removed)? propose
@@ -38,5 +38,5 @@ refactor; when to choose it over patching is [[principle-51-spaghetti-is-a-desig
 ## anti-pattern
 keeping a worse structure because "the refactor is too big". timidly patching around a design flaw
 instead of fixing the design - which now has a diagnosis and a route out of the implementation loop
-([[principle-51-spaghetti-is-a-design-fault]]), so the disposition this card states is finally
+([[principle-51-spaghetti-is-a-design-fault]]), so the disposition this principle states is finally
 something the machine can act on.

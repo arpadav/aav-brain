@@ -5,10 +5,10 @@ tier: conditional
 rule: when every available fix makes the code worse, or the valid-finding count stops dropping across review rounds, the DESIGN is the defect and the patch is not. leave the impl loop for DESIGN, measure the build against his own step list, and redesign that ONE atomic part from his canonical statement - harvesting the edge cases the old code learned. destructive and drastic proposals are sanctioned there, because a good design fixes the symptoms as a side effect.
 interest: [intent-craft, intent-comprehension, intent-efficiency]
 confidence: high
-evidence_count: 7
+evidence_count: 8
 binds: [code]
 tension: [principle-14-minimal-surface]
-tells: ["if there is spaghettificstion of code, then the DESIGN is faulty", "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work", "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions", "hold up wtf?", "get OUT of impl and back to design/plan", "many bugs = bad design, so go bsck to a plan/design phase", "why is it 16 massive modules for this simple 4 stages", "has this been over-engineered? its taken like 2-3 weeks to get this working, would a shell script have been easier in some places? be completely honest", "its 30k lines and constantly finding issues", "i need you to make and execute a seperate plan. in your own workspace or worktree, i want you to do a complete refactor of this to reduce the lines of codes", "it just seems like so much went into this but the initial design was bad", "yes its not perfect and might be a bit spaghetti, but the general gist and edge cases which i havent described should be accounted for", "if anything in the repo *disagrees* with the 1-4 i described, it is wrong and 1-4 is canonical and true", "learn from this bad design and see where the faults always keep happening", "they think its TOO simple with the balena device ssh, its more complex than that", "this should not be 1/7... i thought this was a simple cut to remove?"]
+tells: ["if there is spaghettificstion of code, then the DESIGN is faulty", "a good design will naturally fix issues, as a side effect of being a good design, rather than having agents just patch work", "ITS OKAY TO MAKE DESTRUCTIVE/DRASTIC suggestions", "hold up wtf?", "get OUT of impl and back to design/plan", "many bugs = bad design, so go bsck to a plan/design phase", "why is it 16 massive modules for this simple 4 stages", "has this been over-engineered? its taken like 2-3 weeks to get this working, would a shell script have been easier in some places? be completely honest", "its 30k lines and constantly finding issues", "i need you to make and execute a seperate plan. in your own workspace or worktree, i want you to do a complete refactor of this to reduce the lines of codes", "it just seems like so much went into this but the initial design was bad", "yes its not perfect and might be a bit spaghetti, but the general gist and edge cases which i havent described should be accounted for", "if anything in the repo *disagrees* with the 1-4 i described, it is wrong and 1-4 is canonical and true", "learn from this bad design and see where the faults always keep happening", "they think its TOO simple with the balena device ssh, its more complex than that", "this should not be 1/7... i thought this was a simple cut to remove?", "well, follow the brain. if issues keep coming up, that means re-design is required. why havent you done this?"]
 ---
 
 # P51 - spaghettification is evidence the design is wrong
@@ -29,7 +29,7 @@ the tell is mechanical, and it is not "this feels messy":
 
 any one of those means: stop patching. the machine has a state for this - ADJUDICATE emits
 `design_fault` and the walk goes to DESIGN, whose whole scope is ONE atomic part. a review count
-that does not drop across rounds (`brain-gate.py round` -> `not_converging`) reaches the same state.
+that does not drop across rounds (`b-gate round` -> `not_converging`) reaches the same state.
 
 his step list is the yardstick. `hml deploy` was four steps (find the onnx, find a device, trtexec, write the
 artifacts) and became 13.5k lines plus 10.9k of tests, then drew 22, 36, 40, 22 findings across five gates on a
@@ -51,19 +51,23 @@ round's findings were about the patch. he stopped it by hand:
 
 [[principle-20-refactors-welcome]] already NAMED this anti-pattern - "timidly patching around
 a design flaw instead of fixing the design" - and had nowhere to route it, which is how a
-correct card watched it happen. the file sizes that ended that build are recorded once, under
+correct principle watched it happen. the file sizes that ended that build are recorded once, under
 [[principle-27-organization-reorg]]'s `## the measurement`. they are evidence that the tree
-was never looked at; they are NOT independent evidence for this card's cause, and citing them
-twice for two different causes would be exactly the failure both cards are about.
+was never looked at; they are NOT independent evidence for this principle's cause, and citing them
+twice for two different causes would be exactly the failure both principles are about.
 
 [[intent-craft]]: many bugs = bad design, in his words - a design that keeps producing issues is wrong at the root,
 and each patch round buys the next one. [[intent-efficiency]]: weeks of remediation cost more than a rewrite
 bounded by the steps he named. [[intent-comprehension]]: he must be able to read the result; 16 modules for 4
 stages cannot be read. he also noticed the brain only agreed it was over-engineered when HE asked - the proportion
 check is the agent's job to run first (see [[principle-14-minimal-surface]], which bounds the artifact, where this
-card says what to do once it is already over-built).
+principle says what to do once it is already over-built).
 
 ## how to apply
+- a review count that RISES after a redesign is still the tell, not a stop: group the new findings by
+  seam and redesign each seam they cluster on. when the gate script caps the loop and the call goes to
+  him, the recommended option is that redesign - never "fix them all in place" or "stop here"
+  (2026-11-02, after 38 -> 54 findings across rounds).
 - **scope is the PART, never the plan.** the error model. the id scheme. the one seam the
   findings keep circling. a subdesign that reaches for a second part is a re-plan, and
   re-planning a sanctioned build is his call ([[principle-02-plan-before-build]]).
@@ -76,7 +80,7 @@ card says what to do once it is already over-built).
   ([[principle-02-plan-before-build]]).
 - **then return to REMEDIATE** and fix the remaining findings against the new shape. the
   subdesign replaces the patch; it does not excuse the rest of the round.
-- measure before you claim it: `brain-shape.py <repo>` puts numbers on the file lengths,
+- measure before you claim it: `b-shape <repo>` puts numbers on the file lengths,
   folder fan-out and duplicated datatypes that usually accompany this
   ([[principle-27-organization-reorg]], [[principle-28-dry-merge-blast-radius]]).
 
@@ -105,7 +109,7 @@ card says what to do once it is already over-built).
 - **when a gate's findings concentrate in one artifact round after round, cut that artifact.** a changelog install
   recipe drew findings two gates running while the ci job doing the same install was tested; replacing the prose
   with a pointer to the job ended it.
-- **at gate scale it is the DESIGN state.** `brain-gate.py round` sends a non-dropping count there,
+- **at gate scale it is the DESIGN state.** `b-gate round` sends a non-dropping count there,
   and ADJUDICATE sends a design-fault verdict there: map the flow and dependency graph, split hard
   from soft requirements, regroup (merge, split, reorder, cut), and accept only on a net decrease at
   the re-review. within one part it proceeds; a regroup that reaches past one part is a re-plan and

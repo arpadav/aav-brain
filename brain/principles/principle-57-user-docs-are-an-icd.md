@@ -52,16 +52,16 @@ write the house rules down as a contract with bad/why/good pairs (P40), walk it 
 sentence and title, and look at the rendered page (P48). on the tinyklv book the contract is
 `plans/book2/manifesto.md`.
 
-- `brain-register.py` lints changed .md files for the mechanical forms (short headings only; a
+- `b-register` lints changed .md files for the mechanical forms (short headings only; a
   sentence title such as an open item's one-line problem statement is the right form there). a hit
   is a rewrite, never an auto-fix.
 - the lint is a floor. reread headings as a table of contents: each should read as an index entry.
 - chat replies follow the same register: state, then reason; no openers, no recaps.
-- how MUCH to write is [[principle-07-trim-fat-verbose-docs]]; this card is how it reads.
+- how MUCH to write is [[principle-07-trim-fat-verbose-docs]]; this principle is how it reads.
 
 ## orthogonality
 [[principle-44-build-from-nothing-to-something]] is how HE learns (interactive ladders he builds);
-this card is how a book for OTHER users reads. [[principle-07-trim-fat-verbose-docs]] is code doc
+this principle is how a book for OTHER users reads. [[principle-07-trim-fat-verbose-docs]] is code doc
 comments, which stay verbose.
 
 ## verbatim tells

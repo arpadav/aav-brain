@@ -3,26 +3,25 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-gate: decide WHEN the review gate runs, how big it is, and when it stops.
+"""b-gate: decide WHEN the review gate runs, how big it is, and when it stops.
 
-the gate used to run after every phase with a fixed lens set, and loop until a
-pass came back clean. a 3-line phase drew the same review as a 2k-line one, and
-a design that kept producing findings was patched round after round (measured:
-62 top-level dispatches, 154 subagent transcripts, one session). this tool makes
-the three calls deterministic, from the diff and the round counts, never from
-the agent's mood (P30):
+a fixed lens set after every phase, looped until a pass comes back clean, would
+review a 3-line phase like a 2k-line one and patch a design that keeps
+producing findings round after round. this tool makes the three calls
+deterministic, from the diff and the round counts, never from the agent's
+mood (P30):
 
-    python3 brain-gate.py phase [--since REV] [--tag S|M|L] [--last]
+    b-gate phase [-s REV] [-t S|M|L] [-l]
         score the phase just built and add it to the pending total. prints
         `gate N` (run the review gate now, N reviewers) or `defer` (take the next
         phase; a later gate covers this one). --last gates any nonzero pending score
-    python3 brain-gate.py round VALID SERIOUS
+    b-gate round VALID SERIOUS
         record one adjudicated round: VALID findings, SERIOUS of them medium or
         worse. prints the ADJUDICATE event: all_invalid | valid_remain |
         final_fix | not_converging | capped
-    python3 brain-gate.py design
+    b-gate design
         mark that DESIGN ran; the next round is its acceptance test (net decrease)
-    python3 brain-gate.py reset
+    b-gate reset
         delete this repo's gate state (CLEANUP runs it; the run leaves no residue)
 
 the score: changed lines in code at 1, plus a structural weight per added,
@@ -41,21 +40,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Layout, ShapePolicy, find_gate_state
+from brainlib import (
+    UNTRACKED,
+    Args,
+    Change,
+    Flag,
+    Layout,
+    NoVerdict,
+    RepoTree,
+    ShapePolicy,
+    Tool,
+    UsageError,
+    XdgLayout,
+)
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import hashlib
 import json
-import subprocess
 from dataclasses import asdict, dataclass, field
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # pending score at which the gate fires. about 300 changed code lines, or a
 # handful of new modules - one reviewable sitting
 THRESHOLD = 300.0
@@ -76,6 +86,8 @@ ADDED_WEIGHT = 40.0
 DELETED_WEIGHT = 20.0
 RENAMED_WEIGHT = 40.0
 BINARY_WEIGHT = 10.0
+# each git status's weight; an untracked file is a new one
+EVENT_WEIGHT = {"A": ADDED_WEIGHT, UNTRACKED: ADDED_WEIGHT, "D": DELETED_WEIGHT, "R": RENAMED_WEIGHT}
 
 
 @dataclass
@@ -122,6 +134,23 @@ class GateState:
         path.write_text(json.dumps(asdict(self)) + "\n")
 
 
+def checkout() -> RepoTree:
+    """the repo the cwd is in, alone: no superproject, no submodules.
+
+    # Returns
+
+    the one-repo tree
+
+    # Raises
+
+    NoVerdict outside a checkout
+    """
+    tree = RepoTree.containing(Path.cwd())
+    if not tree.repos:
+        raise NoVerdict(f"{Path.cwd()} is not inside a git checkout")
+    return tree
+
+
 def state_path() -> Path:
     """the gate-state file for the current checkout.
 
@@ -130,102 +159,42 @@ def state_path() -> Path:
 
     # Returns
 
-    `<find_gate_state()>/<repo>-<hash8>.json`
+    `<XdgLayout.gate_state>/<repo>-<hash8>.json`
     """
-    top = git("rev-parse", "--show-toplevel").strip()
-    digest = hashlib.sha256(top.encode()).hexdigest()[:8]
-    return find_gate_state() / f"{Path(top).name}-{digest}.json"
+    top = checkout().repos[0]
+    digest = hashlib.sha256(str(top).encode()).hexdigest()[:8]
+    return XdgLayout.discover().gate_state / f"{top.name}-{digest}.json"
 
 
-def git(*argv: str) -> str:
-    """run git and return stdout; fail loud on error.
+def score(change: Change) -> float:
+    """one changed file's score: its changed lines, plus the weight of its file event.
+
+    prose scores nothing - it gets the style gate. a file whose lines cannot be
+    counted, binary or unreadable, scores BINARY_WEIGHT in their place
 
     # Arguments
 
-    * `argv` - the git arguments
+    * `change` - the file, as `RepoTree.since` lists it
 
     # Returns
 
-    git's stdout
-    """
-    done = subprocess.run(["git", *argv], capture_output=True, text=True, check=False)  # noqa: S603, S607
-    if done.returncode != 0:
-        print(f"{TOOL}: git {' '.join(argv)}: {done.stderr.strip()}", file=sys.stderr)
-        sys.exit(Exit.USAGE)
-    return done.stdout
-
-
-def line_weight(path: str) -> float:
-    """the score of one changed line in this file.
-
-    # Arguments
-
-    * `path` - the file path
-
-    # Returns
-
-    0.0 for a prose file, 1.0 otherwise
+    the file's score
 
     # Example
 
-        >>> line_weight("book/intro.md"), line_weight("src/lib.rs")
-        (0.0, 1.0)
+        >>> changes = [Change(Path("/r/a.rs"), "M", (10, 2)), Change(Path("/r/b.rs"), "R", (0, 0)),
+        ...            Change(Path("/r/logo.png"), "A", None), Change(Path("/r/docs/x.md"), "A", (8, 0))]
+        >>> [score(change) for change in changes]
+        [12.0, 40.0, 50.0, 0.0]
     """
-    return 0.0 if Path(path).suffix in PROSE else 1.0
-
-
-def score_numstat(numstat: str) -> float:
-    r"""the line score of `git diff --numstat` output.
-
-    # Arguments
-
-    * `numstat` - the numstat text: `added<TAB>deleted<TAB>path` per line
-
-    # Returns
-
-    weighted changed lines; a binary file (`-` counts) scores BINARY_WEIGHT
-
-    # Example
-
-        >>> score_numstat("10\t2\tsrc/a.rs\n8\t0\tREADME.md\n-\t-\tlogo.png\n")
-        22.0
-    """
-    total = 0.0
-    for row in numstat.splitlines():
-        added, deleted, path = row.split("\t", 2)
-        if added == "-":
-            total += BINARY_WEIGHT
-            continue
-        total += (int(added) + int(deleted)) * line_weight(path)
-    return total
-
-
-def score_status(name_status: str) -> float:
-    r"""the structural score of `git diff --name-status --find-renames` output.
-
-    # Arguments
-
-    * `name_status` - the name-status text: `<letter>[score]<TAB>path...` per line
-
-    # Returns
-
-    the added, deleted and renamed file weights summed; a prose file's event is free
-
-    # Example
-
-        >>> score_status("A\tsrc/new.rs\nM\tsrc/a.rs\nR094\tsrc/b.rs\tsrc/c.rs\nA\tdocs/x.md\n")
-        80.0
-    """
-    weights = {"A": ADDED_WEIGHT, "D": DELETED_WEIGHT, "R": RENAMED_WEIGHT}
-    return sum(
-        weights.get(row[:1], 0.0)
-        for row in name_status.splitlines()
-        if row and line_weight(row.rsplit("\t", 1)[-1])
-    )
+    if change.path.suffix in PROSE:
+        return 0.0
+    lines = change.lines()
+    return (BINARY_WEIGHT if lines is None else float(lines)) + EVENT_WEIGHT.get(change.status, 0.0)
 
 
 def measure(since: str) -> float:
-    """the score of everything changed since `since`, untracked files included.
+    """the score of everything the checkout changed since `since`, untracked files included.
 
     # Arguments
 
@@ -233,29 +202,13 @@ def measure(since: str) -> float:
 
     # Returns
 
-    the line score plus the structural score of the working tree against `since`
+    the summed score of every changed file
+
+    # Raises
+
+    RepoError when `since` does not resolve or git cannot list the checkout
     """
-    # --------------------------------------------------
-    # tracked: lines, then file events
-    # --------------------------------------------------
-    total = score_numstat(git("diff", "--numstat", "--find-renames", since))
-    total += score_status(git("diff", "--name-status", "--find-renames", since))
-    # --------------------------------------------------
-    # untracked: each non-prose file is a new file of its full length
-    # --------------------------------------------------
-    for path in git("ls-files", "--others", "--exclude-standard").splitlines():
-        # --------------------------------------------------
-        # skip prose: it scores nothing, it gets the style gate
-        # --------------------------------------------------
-        if not line_weight(path):
-            continue
-        try:
-            lines = len(Path(path).read_text().splitlines())
-        except (UnicodeDecodeError, OSError):
-            total += BINARY_WEIGHT + ADDED_WEIGHT
-            continue
-        total += lines + ADDED_WEIGHT
-    return total
+    return sum(map(score, checkout().since(since)), 0.0)
 
 
 def reviewers(pending: float) -> int:
@@ -313,11 +266,26 @@ def round_event(rounds: list[list[int]], *, design_tried: bool) -> str:
     return "capped" if design_tried else "not_converging"
 
 
-def main() -> None:
-    """dispatch the subcommand."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.SINCE, Flag.TAG, Flag.LAST)
-    command, *rest = args.positional() or ["--help"]
+def main(args: Args) -> None:
+    """dispatch the subcommand: `phase`, `round`, `design` or `reset`.
+
+    `phase` accumulates the pending score and prints `gate N` or `defer`; `round`
+    records a review round and prints the event it implies; `design` marks that a
+    redesign was tried; `reset` deletes the state file. the state is persisted
+    after every subcommand but `reset`
+
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the subcommand,
+      the rest are its operands (`round VALID SERIOUS`), and `--tag`, `--since`
+      and `--last` shape `phase`
+
+    # Raises
+
+    UsageError for an unknown or incomplete subcommand, or a `--tag` that is not
+    one of the plan tags
+    """
+    command, *rest = args.positional()
     path = state_path()
     state = GateState.load(path)
     # --------------------------------------------------
@@ -326,8 +294,7 @@ def main() -> None:
     if command == "phase":
         tag = args.value(Flag.TAG).upper()
         if tag and tag not in TAG_SCORE:
-            print(f"{TOOL}: --tag is one of {', '.join(TAG_SCORE)}", file=sys.stderr)
-            sys.exit(Exit.USAGE)
+            raise UsageError(f"{Flag.TAG.spelling} is one of {', '.join(TAG_SCORE)}")
         state.tagged += TAG_SCORE.get(tag, 0.0)
         measured = measure(args.value(Flag.SINCE, "HEAD"))
         pending = max(state.tagged, measured - state.gated_at)
@@ -362,9 +329,8 @@ def main() -> None:
         path.unlink(missing_ok=True)
         print(f"reset {path.name}")
         return
-    print(f"{TOOL}: unknown command; `--help` lists them", file=sys.stderr)
-    sys.exit(Exit.USAGE)
+    raise UsageError(f"unknown or incomplete command {command!r}")
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, positionals=(1, 3)).run(main)

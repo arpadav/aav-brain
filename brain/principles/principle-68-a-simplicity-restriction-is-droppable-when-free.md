@@ -21,7 +21,7 @@ some of his constraints are positions that serve an interest of "easy to build" 
 - widgets were "just a view, api call, no mutating interactions (for now)"; then he asked for an archived-todo resurrect prompt on a widget, which must write. the question that worked: the restriction was for simplicity, this one action needs to mutate, drop the rule for it? he said yes, and the cost framing ("if its just as easy") was his.
 - when the collision is certain and the lift is trivial, state the lift in one line and build it; when the cost is unclear, ask once with a recommended default ([[principle-65-numbered-recommendations-get-one-word-replies]]).
 - keep the exception visible where the restriction was written (the plan's widget definition), so the next reader sees "view-only, except resurrect".
-- a restriction he gave a reason for ("never X because Y") is not this card: it is a requirement, and [[principle-45-scope-is-the-ask]] and [[principle-14-minimal-surface]] still govern.
+- a restriction he gave a reason for ("never X because Y") is not this principle: it is a requirement, and [[principle-24-the-ask-is-the-scope]] and [[principle-14-minimal-surface]] still govern.
 
 ## anti-pattern
 treating "(for now)" as a wall and building a resurrect action that cannot write, or an indirect hack around the rule; or the reverse, repealing the whole restriction because one feature needed a hole in it.

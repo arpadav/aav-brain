@@ -2,11 +2,11 @@
 name: principle-09-git-sovereignty
 kind: principle
 tier: conditional
-rule: Prepare the record, never publish it. No commit, push, PR, artifact or upload unless he asks for that exact act, no version bumps, and never overwrite his manual edits.
+rule: Prepare the record, never publish it. No commit, push, PR, artifact or upload unless he asks for that exact act, no version bumps, and never overwrite his manual edits. A commit message is one line, no body, no Co-Authored-By or other trailer.
 interest: [intent-sovereignty]
 confidence: very-high
-evidence_count: 40
-tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read", "yo i never NEVER asked you to commit, let me change the commit message", "i NEVER asked you to open a PR. i said make me a PR description", "i NEVER asked you to put this online as an artifact"]
+evidence_count: 41
+tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read", "yo i never NEVER asked you to commit, let me change the commit message", "i NEVER asked you to open a PR. i said make me a PR description", "i NEVER asked you to put this online as an artifact", "whats my one rule for committing? look at brain principles.. no co-authorship, and single line commits. literally look at my commit history and ask \"would arpad write this?\" for the commit message. why do you fail at this all the time?"]
 ---
 
 # P09 - Git sovereignty (prepare, don't publish)
@@ -21,6 +21,11 @@ under a blessed plan; the line is any act that leaves it:
 - **no version bumps** - he bumps `Cargo.toml` by hand.
 - **never overwrite or revert his manual edits.**
 
+
+a commit message is ONE line, no body, and never carries a `Co-Authored-By` or any other trailer -
+his rule overrides any harness default that asks for attribution. read that repo's `git log --format=%s`
+first; his log reads `brain-sync`, `bump`. the test is "would arpad write this?" (2026-11-03: "no
+co-authorship, and single line commits... why do you fail at this all the time?").
 ## why
 Commits, tags, and published crates are irreversible and carry his name
 ([[intent-sovereignty]]). He wants every entry semantic, reviewable, and personally
@@ -67,7 +72,12 @@ branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one
 delivered is an uncommitted apply onto the branch he is on, so he can read `git diff` there: "give me a script
 to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff". a side branch he
 is not on is never the answer to "where is it". after he says he edited a file ("i edited re-read"), re-read
-it before touching it; his edit is the base ([[principle-45-scope-is-the-ask]]).
+it before touching it; his edit is the base ([[principle-24-the-ask-is-the-scope]]).
+
+a private value that reached a PUBLIC repo's history is his to purge, and the history rewrite is his call:
+lay out the options (branch, scrub on main, force push, rebase and sync) and let him pick; he picks purge over
+leaving it ("yes overwrite history but i want it purged, this is public repo"). never rewrite or force push
+on your own, and never propose "leave it in history" as the default for a public repo.
 
 **Anti-pattern that draws heat.** Auto-committing; bumping a version; a linter/agent
 reverting his hand-edited `Cargo.toml` ("im the one who editted this. whats wrong with

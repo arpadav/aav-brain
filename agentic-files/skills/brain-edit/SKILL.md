@@ -13,11 +13,8 @@ style for a two-line change. brain-edit is the third door: the same rails, minus
 it does NOT walk the flow by hand - the walk is `brain-meta-drive`'s job. this entry reconstructs
 where the last run left off, sets the start node and the regime, and gets out of the way.
 
-## setup (run first - discover the brain, no hardcoded path)
-```bash
-eval "$(brain-find --export)"   # sets $AAV_BRAIN
-```
-read `$AAV_BRAIN/brain/CONSTITUTION.md`.
+## setup
+read `$AVB/brain/CONSTITUTION.md`.
 
 ## 1. reconstruct - what did the last run build? (the engine reconstructs NOTHING)
 an edit with no memory of the build it follows is exactly the rogue turn this skill exists to
@@ -26,12 +23,12 @@ replace. read, in this order, and stop as soon as the picture is sufficient:
 git -C . log --oneline -15                      # what landed, most recent first
 git -C . status --short && git -C . diff --stat  # what is still uncommitted
 ls plans/ 2>/dev/null                            # the plan the last build followed, if this repo has one
-python3 $AAV_BRAIN/bin/store/brain-trace.py --against | grep -A2 "$(basename "$PWD")" | head -40  # what that run DECIDED
+b-trace -g | grep -F -A2 "$(basename "$PWD")" | head -40  # what that run DECIDED
 ```
 the trace is the part that is easy to skip and expensive to lose: it names the forks the last run
 already resolved. **an edit that reverses one of them without saying so is the failure mode.** if his
 ask contradicts a logged decision, say which one, in one line, before you touch anything - he may be
-deliberately reversing it, and then it gets a `--supersedes` entry rather than a silent flip.
+deliberately reversing it, and then it gets a `b-trace -k brain-edit -d '...' -c '...' -u '<ts>'` entry rather than a silent flip.
 
 if this session already ran brain-plan / brain-execute / brain-edit, that transcript IS the
 reconstruction and the commands above are confirmation, not discovery.
@@ -66,20 +63,18 @@ whichever he picks the brain still learns from the edit - that is the whole poin
   not exist, and `EDIT --unchecked--> STYLE` is guarded `edit`, so the skip-verification dial only
   exists when you pass it.
 
-handoff: with `$STATE`/`$REGIME` set and `$MODE` = `edit`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode edit` (paste the output) - the handoff contract lives in brain-meta-drive.
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `edit`, call `Skill(brain-meta-drive)` and run `b-walk -s "$STATE" -m edit` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## 5. log the edit to the trace
 an edit that leaves no trace entry is invisible to the next brain-edit and to the next self-refine,
 which is how a small change becomes a decision nobody can find later:
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-edit \
-  --decision 'what he asked for' --chosen 'what you did' --affects 'path/to/file'
+b-trace -k brain-edit -d 'what he asked for' -c 'what you did' -a 'path/to/file'
 ```
 SINGLE-quote every value. his ask routinely contains backticks, `$(...)`, `!` and quotes, and in a
 double-quoted argument the shell expands them before the tool ever sees the string - a decision text
-is data, never something to evaluate. set `--confidence` to what the call actually warrants; leaving
-it at the default `medium` is fine and is what makes `--low-confidence` mean something. add
-`--supersedes <ts>` when the edit reverses a decision step 1 surfaced.
+is data, never something to evaluate. add `-u <ts>` when the edit reverses a decision
+step 1 surfaced.
 
 ## stops
 a transition to a `blocked`/ASK state is the only sanctioned pause. post-sanction, never assume - a

@@ -44,5 +44,5 @@ you report; P34 governs what you consume.
 
 ## anti-pattern
 "it is only my own filenames" - that is exactly the case that shipped an RCE. and a
-store with no security card at all: `brain-recall "security untrusted input shell
+store with no security principle at all: `brain-recall "security untrusted input shell
 injection"` returned **no matching cards** while this bug was live.

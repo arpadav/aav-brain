@@ -3,11 +3,11 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-flow: populate docs/DEV_FLOWCHART.md from its template and flow.toml.
+"""b-flow: populate docs/DEV_FLOWCHART.md from its template and flow.toml.
 
-    python3 brain-flow.py            write docs/DEV_FLOWCHART.md
-    python3 brain-flow.py --check    fail if the doc drifts from a fresh render
-    python3 brain-flow.py --mermaid  print the mermaid view alone
+    b-flow     write docs/DEV_FLOWCHART.md
+    b-flow -c  fail if the doc drifts from a fresh render
+    b-flow -m  print the mermaid view alone
 
 the flow is AUTHORED as data in brain/flow/flow.toml and stepped directly by
 brain-walk.py; both load and validate it through brainlib.Flow. this script
@@ -17,8 +17,8 @@ the diagram or table generated from flow.toml. an unsound flow is refused
 
 the flow is the EXECUTION SEQUENCE, kept strictly separate from the knowledge
 GRAPH (brain-graph.py): the flow has states/transitions, the graph has
-nodes/edges, and the coupling is one-directional (a state may CALL recall via
-its `recall` flag; the graph never calls the flow). see P30
+nodes/edges, and the coupling is one-directional (a state's `recall = true`
+makes b-walk print the b-recall call; the graph never reaches the flow). see P30
 
 Author: aav
 """
@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Flow, Layout, read_text
+from brainlib import Args, Artifact, Exit, Flag, Flow, Layout, NoVerdict, Tool, read_text
 
 # --------------------------------------------------
 # external
@@ -41,8 +41,8 @@ from dataclasses import dataclass
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 
@@ -177,41 +177,50 @@ class FlowDoc(Artifact):
         return [(self.out_dir / "DEV_FLOWCHART.md", doc)]
 
     def summary(self) -> str:
-        """a one-line build summary.
+        """the build summary, in the `done -> PATH` form every builder prints.
 
         # Returns
         the state/transition/entry counts
         """
-        return (f"brain-flow done -> {self.out_dir / 'DEV_FLOWCHART.md'}\n"
-                f"  states: {len(self.flow.states)} | transitions: {len(self.flow.transitions)} | "
-                f"entries: {len(self.flow.entries)}")
+        return (f"{TOOL} done -> {self.out_dir / 'DEV_FLOWCHART.md'}\n  {len(self.flow.states)} states, "
+                f"{len(self.flow.transitions)} transitions, {len(self.flow.entries)} entries")
 
 
-def main() -> None:
+def main(args: Args) -> Exit | None:
     """render the flowchart doc, or check/emit it.
 
     an unsound flow or a broken template fails before anything is written
+
+    # Arguments
+
+    * `args` - the parsed command line; `--mermaid` prints the diagram alone,
+      otherwise the doc is written or checked
+
+    # Returns
+
+    `None` after printing the diagram, else the exit status of writing or checking the doc
+
+    # Raises
+
+    NoVerdict when the flow or the template has any warning
     """
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.CHECK, Flag.MERMAID)
     doc = FlowDoc(out_dir=LAYOUT.docs, flow=Flow.load(LAYOUT.flow_toml), template=read_text(LAYOUT.flow_template))
     # --------------------------------------------------
     # refuse an unsound flow or template
     # --------------------------------------------------
     warnings = [*doc.flow.validate(LAYOUT), *doc.mermaid_warnings(), *doc.template_warnings()]
     if warnings:
-        print(f"{TOOL}: INVALID flow.toml or template - not writing:")
         for warning in warnings:
             print(f"  warn: {warning}")
-        sys.exit(Exit.DRIFT)
+        raise NoVerdict("INVALID flow.toml or template - not writing")
     # --------------------------------------------------
     # mermaid mode: emit the diagram alone
     # --------------------------------------------------
     if args.has(Flag.MERMAID):
         print(doc.to_mermaid())
-        return
-    doc.run(args, TOOL)
+        return None
+    return doc.run(args, TOOL)
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, modes=((Flag.CHECK,), (Flag.MERMAID,))).run(main)

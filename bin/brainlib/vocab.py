@@ -1,21 +1,24 @@
-"""brainlib.vocab: the closed vocabularies every brain tool shares.
+"""brainlib.vocab: the closed vocabularies every brain tool shares, and the two errors a tool ends on.
 
 a name spelled at its call site is a literal the reader cannot grep for and
 the type checker cannot see. every enum here exists so a rename is one edit
-and the set a tool depends on is a list rather than an archaeology exercise
+and the set a tool depends on is a list rather than an archaeology exercise.
+UsageError and NoVerdict live here, below every other module, so a library
+layer raises them without importing the command-line layer that reports them
 
 Author: aav
 """
 # --------------------------------------------------
-# local
-# --------------------------------------------------
-
-# --------------------------------------------------
 # external
 # --------------------------------------------------
 import os
+import shlex
 from enum import IntEnum, StrEnum
+from functools import cache
+from pathlib import Path
+from typing import Self
 
+# --------------------------------------------------
 # constants
 # --------------------------------------------------
 # every file this repo reads or writes is text in this encoding, so the argument
@@ -27,17 +30,31 @@ ENCODING = "utf-8"
 # mypy python_version, pyright pythonVersion) and to `uv run` by the script headers
 PYTHON_VERSION = "3.12"
 
-# how long a `git log` measurement may run before the answer is not worth waiting
-# for; the caller falls back to the conservative window rather than hanging
-GIT_TIMEOUT = 10
+# what the legend and a -h row print after a flag whose value is the token after it
+VALUE = "ARG"
 
-# a card's yaml header: scalars and lists, keyed by field name. the shape the
-# parser in brainlib.text returns and every card reader consumes
+# the seconds a git listing or lookup may run before it counts as failed
+GIT_TIMEOUT = 10
+# the seconds a git command may run that writes the tree or a ref, or reads a whole
+# range or every submodule: a commit, a merge, a recursive status, a patch log
+LONG_GIT_TIMEOUT = 120
+
+# a principle's yaml header: scalars and lists, keyed by field name. the shape the
+# parser in brainlib.text returns and every principle reader consumes
 type Frontmatter = dict[str, str | list[str]]
 
 
+class UsageError(Exception):
+    """the command line is wrong; Tool.run prints it once and exits Exit.USAGE."""
+
+
+# N818 wants an Error suffix; nothing here erred, the tool could not look, and the name says that
+class NoVerdict(Exception):  # noqa: N818
+    """the tool could not look, so it has no verdict; Tool.run prints it once and exits Exit.FAILED."""
+
+
 class Kind(StrEnum):
-    """the two kinds of card, with the ordering derived from them.
+    """the two kinds the store holds, a principle and an interest, with the ordering derived from them.
 
     the rank is the tie-break shared by the graph build and recall.
     """
@@ -69,34 +86,17 @@ class Rel(StrEnum):
     reader that traverses it
     """
 
-    # no producer since intents stopped being nodes: brain-graph emits neither,
-    # and brain-recall's reference set holds neither. kept because graph.json
-    # files built before that change still carry them, and `Rel(edge["type"])`
-    # must resolve rather than exit on an older artifact
-    SERVES = "serves"
-    SERVED_BY = "served_by"
     RELATES = "relates"
     TENSION = "tension"
 
 
 class Tier(StrEnum):
-    """how a card reaches an agent: always, by score, or by a lower bar.
+    """how a principle reaches an agent: always, by score, or by a lower bar.
 
-    measured, not asserted, and the measurement is in tiers.toml. two signals
-    define the split - how often a card was judged relevant across a labelled
-    prompt set, and how often the retriever surfaced it across the real corpus
-    before this work. the interesting cases are where they DISAGREE: a card
-    judged relevant on 28% of prompts and served on 1% of them is not a
-    conditional card, it is a constitutional one the scorer does not find
-
-    CONSTITUTION cards skip scoring entirely. that is not a shortcut - 39% of
-    true relevance shares no content token with its card, so for those cards no
-    amount of scoring reaches them and always-loading is strictly better
-
-    NARROW is the opposite end: the lowest measured breadth in the store. a
-    threshold tuned for breadth would never admit one, so they get a lower bar -
-    a bet that a rare card is specific rather than dead. tiers.toml records the
-    rule, its thresholds and the caveats behind every assignment
+    CONSTITUTION principles skip scoring and load on every recall, CONDITIONAL principles
+    are scored, NARROW principles clear a lower bar. the split is measured, not
+    asserted: tiers.toml holds the rule, its thresholds, the measurement and the
+    caveats behind every assignment
     """
 
     CONSTITUTION = "constitution"
@@ -105,7 +105,7 @@ class Tier(StrEnum):
 
 
 class Confidence(StrEnum):
-    """how strong the evidence behind a card is, per schema/principle-card.md.
+    """how strong the evidence behind a principle is, per schema/principle.md.
 
     # Example
 
@@ -119,7 +119,7 @@ class Confidence(StrEnum):
 
 
 class Env(StrEnum):
-    """every environment variable the brain reads, named once.
+    """every environment variable the brain reads or exports, named once.
 
     a variable name spelled at its call site is a literal the reader cannot
     grep for and the type checker cannot see. reading through the member means
@@ -127,12 +127,19 @@ class Env(StrEnum):
     list rather than an archaeology exercise
     """
 
+    # the brain root home-manager exports; the flake reads it at switch time
     AAV_BRAIN = "AAV_BRAIN"
+    # its short alias, for his shell and the skills' and agents' text
+    AVB = "AVB"
+    # the data root the brain's private state sits under
     XDG_DATA_HOME = "XDG_DATA_HOME"
+    # the config root his private.toml sits under
+    XDG_CONFIG_HOME = "XDG_CONFIG_HOME"
+    # the claude session a call runs in, which keys its session log
     SESSION_ID = "CLAUDE_CODE_SESSION_ID"
 
     def read(self, default: str = "") -> str:
-        """this variable's value, or a default when it is unset or empty.
+        """this variable's value, else a default.
 
         # Arguments
 
@@ -145,74 +152,182 @@ class Env(StrEnum):
         # Example
 
             >>> import os
-            >>> saved = os.environ.pop(Env.AAV_BRAIN, None)
-            >>> Env.AAV_BRAIN.read("unset")
+            >>> from unittest import mock
+            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: ""}, clear=True):
+            ...     Env.XDG_DATA_HOME.read("unset")
+            ...     os.environ[Env.XDG_DATA_HOME] = "/srv/data"
+            ...     Env.XDG_DATA_HOME.read("unset")
             'unset'
-            >>> os.environ[Env.AAV_BRAIN] = "/srv/brain"
-            >>> Env.AAV_BRAIN.read("unset")
-            '/srv/brain'
-            >>> _ = os.environ.pop(Env.AAV_BRAIN) if saved is None else os.environ.__setitem__(Env.AAV_BRAIN, saved)
+            '/srv/data'
         """
         return os.environ.get(self.value, "") or default
 
+    @staticmethod
+    def export(value: str, *names: "Env") -> str:
+        """the shell line that sets each named variable to one value.
+
+        # Arguments
+
+        * `value` - the value every name gets, shell-quoted
+        * `names` - the variables to set, in order
+
+        # Returns
+
+        `export NAME=value OTHER=value`
+
+        # Example
+
+            >>> Env.export("/srv/brain", Env.AAV_BRAIN, Env.AVB)
+            'export AAV_BRAIN=/srv/brain AVB=/srv/brain'
+            >>> Env.export("/srv/my brain", Env.AAV_BRAIN)
+            "export AAV_BRAIN='/srv/my brain'"
+        """
+        return "export " + " ".join(f"{env}={shlex.quote(value)}" for env in names)
+
+    def directory(self, fallback: Path) -> Path:
+        """this variable as a directory, `~` expanded; the fallback when it is unset or relative.
+
+        the XDG base-directory spec says a relative value is invalid and is
+        ignored, so a stray `XDG_DATA_HOME=data` never lands a file under the cwd
+
+        # Arguments
+
+        * `fallback` - the directory the variable defaults to
+
+        # Returns
+
+        the variable's value as an absolute path, or `fallback`
+
+        # Example
+
+            >>> import os
+            >>> from unittest import mock
+            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "relative/data"}):
+            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
+            PosixPath('/fallback')
+            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "/srv/data"}):
+            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
+            PosixPath('/srv/data')
+        """
+        # --------------------------------------------------
+        # an unset variable reads as empty, which resolves to the current directory and is not absolute
+        # --------------------------------------------------
+        value = Path(self.read()).expanduser()
+        # --------------------------------------------------
+        # only an absolute path is honoured, per the XDG rule that a relative one is invalid
+        # --------------------------------------------------
+        return value if value.is_absolute() else fallback
+
 
 class Flag(StrEnum):
-    """every command-line flag the brain tools accept, named once.
+    """every command-line flag the brain tools accept, named once with both its spellings.
 
-    the flags were previously bare string literals compared by hand at each
-    site, so a typo in one comparison was invisible and the set a tool accepted
-    could only be recovered by grep. as members they are enumerable, which is
-    what lets `Args.unknown` reject a misspelled flag instead of ignoring it
+    a flag spelled as a literal at each site hides a typo in one comparison, and
+    the set a tool accepts is recoverable only by grep. as members they are
+    enumerable, which is what lets `Tool.admit` reject a misspelled flag
+    instead of ignoring it. a member's value is its long spelling, `short` its
+    one-letter one; the long one is what every reader compares against, so
+    `Args` resolves a short spelling to its member before anything reads it
+
+    a letter means one flag inside any one tool, and two flags share a letter
+    only when no tool taking the one shares a flag with a tool taking the other
+    (`Tool.clashes`, a doctest over every command), so `-s` is --since wherever
+    --since is, and --state or --session only in a tool that has nothing else in
+    common. -h is every command's, so no other flag takes its letter
+
+    a member is its long spelling, its letter, then VALUE when the token after
+    it is its value; a member without the third is a bare switch
+
+    # Example
+
+        >>> Flag.CHECK.value, Flag.CHECK.short
+        ('--check', '-c')
     """
 
-    AFFECTS = "--affects"
-    AGAINST = "--against"
-    AGENTS = "--agents"
-    ALL = "--all"
-    ARCHIVE = "--archive"
-    ARCHIVE_DIR = "--archive-dir"
-    BIN = "--bin"
-    BINDS = "--binds"
-    CHECK = "--check"
-    CHOSEN = "--chosen"
-    CONFIDENCE = "--confidence"
-    CONFIG = "--config"
-    CONFIG_FILE = "--config-file"
-    DECISION = "--decision"
-    EXPORT = "--export"
-    GATE = "--gate"
-    HELP = "--help"
-    LAST = "--last"
-    LIST = "--list"
-    LOW_CONFIDENCE = "--low-confidence"
-    MERMAID = "--mermaid"
-    MODE = "--mode"
-    # the one short flag the brain accepts, kept short because recall is typed by hand
-    N = "-n"
-    NEIGHBORS = "--neighbors"
-    ON = "--on"
-    OUT = "--out"
-    PRINCIPLE = "--principle"
-    PROJECT = "--project"
-    PRUNE = "--prune"
-    PRUNED = "--pruned"
-    REJECT = "--reject"
-    RESTORE = "--restore"
-    RUN = "--run"
-    SESSION = "--session"
-    SINCE = "--since"
-    SKILL = "--skill"
-    SKILLS = "--skills"
-    STALE = "--stale"
-    STALE_CANDIDATES = "--stale-candidates"
-    STATE = "--state"
-    SUPERSEDES = "--supersedes"
-    TAG = "--tag"
-    TELLS = "--tells"
+    # the one-letter spelling: a dash, then the letter
+    short: str
+    # whether the token after the flag is its value
+    takes_value: bool
+
+    AFFECTS = "--affects", "a", VALUE
+    AGAINST = "--against", "g"
+    ALL = "--all", "a"
+    ARCHIVE = "--archive", "a"
+    ARCHIVE_DIR = "--archive-dir", "d", VALUE
+    BINDS = "--binds", "b", VALUE
+    CHECK = "--check", "c"
+    CHOSEN = "--chosen", "c", VALUE
+    COUNT = "--count", "n", VALUE
+    DECISION = "--decision", "d", VALUE
+    DOC = "--doc", "d"
+    EXPORT = "--export", "e"
+    GATE = "--gate", "g"
+    HELP = "--help", "h"
+    LAST = "--last", "l"
+    LEGEND = "--legend", "l"
+    LIST = "--list", "l"
+    MERMAID = "--mermaid", "m"
+    MODE = "--mode", "m", VALUE
+    NEIGHBORS = "--neighbors", "e", VALUE
+    ON = "--on", "o", VALUE
+    OUT = "--out", "o", VALUE
+    PRINCIPLE = "--principle", "p", VALUE
+    PRUNE = "--prune", "x", VALUE
+    PRUNED = "--pruned", "l"
+    REJECT = "--reject", "r", VALUE
+    RESTORE = "--restore", "b", VALUE
+    RUN = "--run", "r"
+    SESSION = "--session", "s", VALUE
+    SINCE = "--since", "s", VALUE
+    SKILL = "--skill", "k", VALUE
+    STALE = "--stale", "S"
+    STALE_CANDIDATES = "--stale-candidates", "S"
+    STATE = "--state", "s", VALUE
+    SUPERSEDES = "--supersedes", "u", VALUE
+    TAG = "--tag", "t", VALUE
+    TELLS = "--tells", "t"
+    TIP = "--tip", "T", VALUE
+    VERBOSE = "--verbose", "v"
+
+    def __new__(cls, long: str, letter: str, value: str = "") -> Self:
+        """a member from its two spellings, the long one its value, and whether it takes a value.
+
+        # Arguments
+
+        * `long` - the `--name` spelling
+        * `letter` - the one letter of the short spelling
+        * `value` - VALUE when the token after the flag is its value
+
+        # Returns
+
+        the new member: a `str` equal to `long`, with `short` set to `-letter`
+        and `takes_value` true exactly when `value` is VALUE
+        """
+        member = str.__new__(cls, long)
+        member._value_ = long
+        member.short = f"-{letter}"
+        member.takes_value = value == VALUE
+        return member
+
+    @property
+    def spelling(self) -> str:
+        """both spellings, short first, as the legend and every message print them.
+
+        # Returns
+
+        `-s=--since`
+
+        # Example
+
+            >>> Flag.SINCE.spelling
+            '-s=--since'
+        """
+        return f"{self.short}={self.value}"
 
     @classmethod
+    @cache
     def valued(cls) -> frozenset["Flag"]:
-        """every flag whose meaning is the token after it.
+        """every flag whose meaning is the token after it, collected once.
 
         knowing this globally is what lets `Args` tell a FLAG from a flag-shaped
         VALUE. without it `--decision "--prune vs --delete"` reads as a request
@@ -221,34 +336,50 @@ class Flag(StrEnum):
 
         # Returns
 
-        the value-taking flags; every other member is a bare switch
+        the members whose `takes_value` is set; every other member is a bare switch
 
         # Example
 
-            >>> Flag.DECISION in Flag.valued(), Flag.CHECK in Flag.valued()
+            >>> Flag.DECISION in Flag.valued(), Flag.CHECK in Flag.valued(), "--since" in Flag.valued()
+            (True, False, True)
+        """
+        return frozenset(flag for flag in cls if flag.takes_value)
+
+    @classmethod
+    @cache
+    def longs(cls) -> frozenset[str]:
+        """every long spelling, collected once.
+
+        # Returns
+
+        `--check`, `--since`, ... for every member
+
+        # Example
+
+            >>> "--since" in Flag.longs(), "-s" in Flag.longs()
             (True, False)
         """
-        return frozenset({
-            cls.AFFECTS, cls.ARCHIVE_DIR, cls.BINDS, cls.CHOSEN, cls.CONFIDENCE,
-            cls.CONFIG, cls.CONFIG_FILE, cls.DECISION, cls.MODE, cls.N, cls.NEIGHBORS, cls.ON,
-            cls.OUT, cls.PRINCIPLE, cls.PROJECT, cls.PRUNE, cls.REJECT, cls.RESTORE,
-            cls.SESSION, cls.SINCE, cls.SKILL, cls.STATE, cls.SUPERSEDES, cls.TAG, cls.TELLS,
-        })
+        return frozenset(flag.value for flag in cls)
 
 
 class Exit(IntEnum):
     """the process status codes the brain tools return.
 
-    every tool means the same thing by a code: OK is "nothing to report", DRIFT
-    is "a committed artifact no longer matches a fresh build", and USAGE is "the
-    command line was wrong". spelling them as 0/1/2 at nineteen call sites let
-    the same integer mean three different things
+    every tool means the same thing by a code. a check that reaches a verdict
+    exits OK or FINDINGS; one that cannot reach a verdict - its input missing,
+    git or a scan erroring - exits FAILED, so a caller never reads "could not
+    look" as "looked and found nothing" or as "looked and found something"
     """
 
+    # ran to a verdict, and there is nothing to report
     OK = 0
-    DRIFT = 1
+    # could not reach a verdict: the input is missing, or git or a scan could not run
+    FAILED = 1
+    # the command line was wrong
     USAGE = 2
-    # brain-sync: a merge stopped on conflicting files, left in progress to resolve
+    # b-sync: a merge stopped on conflicting files (`b-sync -h` lists every stop)
     CONFLICT = 3
-    # brain-verify: a check the repo declares for the change exited non-zero
-    FAILED = 4
+    # ran to a verdict, and listed what fails it: a row, a crossing, a hit, a stale artifact, a failed check
+    FINDINGS = 4
+    # b-sync: any other stop it puts to him (`b-sync -h` lists every stop)
+    BLOCKED = 5

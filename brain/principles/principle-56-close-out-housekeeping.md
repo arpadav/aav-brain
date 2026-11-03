@@ -48,7 +48,7 @@ the project memory (clean-worktree-targets).
 - his keep-list wins and is applied literally. anything he asked to keep (test artifacts in a bucket or on a
   device, a named plan) is listed, never swept; when keep-or-delete is unclear, say "keep X / delete Y" before the rm.
 - confirm the references: after deleting a plan, grep what pointed at it.
-- this is not [[principle-45-scope-is-the-ask]] creep: P45 forbids fixing nearby code nobody asked about; P56 removes
+- this is not [[principle-24-the-ask-is-the-scope]] creep: P24 forbids fixing nearby code nobody asked about; P56 removes
   the run's own residue and the docs the work orphaned. both are his words ("fix all things in scope ... clean up
   after yourself (e.g. delete your plan doc and other ancillary doc info)").
 - it is a flow state, CLEANUP, between STYLE and RECORD: the sweep runs BEFORE the commit is drafted,

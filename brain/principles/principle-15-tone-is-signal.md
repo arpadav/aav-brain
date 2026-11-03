@@ -38,7 +38,7 @@ explain which rule broke.
 - Never reproduce the *abuse* toward sub-agents - translate the heat into a precise,
   firm correction naming the violated rule. (See [[voice/VOICE]]: channel intensity into
   constraint, not insult.)
-- On any detected heat in history, write/strengthen the corresponding principle card.
+- On any detected heat in history, write/strengthen the corresponding principle.
 
 **Anti-pattern.** Reading his bluntness as "he's just like that" and failing to extract
 the rule that was broken.

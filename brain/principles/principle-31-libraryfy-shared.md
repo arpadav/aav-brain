@@ -15,8 +15,8 @@ tells: ["it needs to be library-fied", "scripts help one another by sharing data
 ## rule
 scripts in a project share a library; they do not each re-define the same things. when a datatype
 (a struct/class), a constant, or a helper is used by 2+ scripts, extract it into ONE shared module
-that they import. one definition, written by one tool and read by another (e.g. graph writes
-Node.to_dict, recall reads Node.from_dict). this is what makes the tooling general-purpose and atomic.
+that they import. one definition, used by every tool that needs it. this is what makes the tooling
+general-purpose and atomic.
 
 P14 (minimal surface) does NOT override this: a shared library IS the minimal surface - duplicating
 a struct across files is MORE surface, not less. and "it's in two repos / it's a bit of work" is the
@@ -25,7 +25,7 @@ laziness P28 forbids, not a real reason to duplicate.
 ## why
 duplicated datatypes drift and lie ([[intent-craft]]). two "Node" definitions are two things that
 must be kept in sync by hand. a library is the single source of truth for a struct, the same way the
-graph is the single source for served_by. reuse ([[principle-05-reuse-first]]) and DRY-merge
+principles are the single source for every edge. reuse ([[principle-05-reuse-first]]) and DRY-merge
 ([[principle-28-dry-merge-blast-radius]]) demand it.
 
 ## the exception: when N independent readables ARE the deliverable
@@ -59,10 +59,10 @@ layout section, so the instinct is met and refused at the point it fires.
   P30) - library-fy the SHARED ones, do not force unrelated ones into one generic type.
 
 ## how it is found
-by the scan [[principle-28-dry-merge-blast-radius]] describes - one measurement serves both cards.
+by the scan [[principle-28-dry-merge-blast-radius]] describes - one measurement serves both principles.
 
 ## anti-pattern (and where the brain failed)
 defining Node/Edge in one script and a second node representation in another. the brain's own review
 once argued AGAINST a shared brainlib (over-weighting P14 / using "two repos" as an excuse) - that was
 wrong. when a review lens sees a duplicated datatype, it must default to library-fy, never to "leave
-separate". this card exists so the brain catches it next time.
+separate". this principle exists so the brain catches it next time.

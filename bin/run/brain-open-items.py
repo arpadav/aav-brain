@@ -3,16 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-open-items: stamp open-item files and report which ones he edited.
+"""b-open-items: stamp open-item files and report which ones he edited.
 
 an open item is one file, `plans/open-items/<ID>-<slug>.md`, ending in a footer
 that holds the sha256 of everything above it. the brain writes the item and
 stamps it; he edits it (usually under `## Your call`); a hash that no longer
 matches is how the brain knows, without asking, which items carry his answer
 
-    python3 brain-open-items.py stamp FILE...   write or refresh the footer
-    python3 brain-open-items.py status [DIR]    list each item as edited | unchanged | unstamped
-                                                (DIR defaults to plans/open-items)
+    b-open-items stamp FILE...  write or refresh the footer
+    b-open-items status [DIR]   list each item as edited | unchanged | unstamped
+                                (DIR defaults to plans/open-items)
 
 Author: aav
 """
@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit
+from brainlib import Args, Layout, Tool, UsageError
 
 # --------------------------------------------------
 # external
@@ -36,8 +36,8 @@ import re
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 DEFAULT_DIR = Path("plans/open-items")
 # the footer line; an html comment so it does not render
 FOOTER = "<!-- sha256: {} -->"
@@ -116,11 +116,19 @@ def status(path: Path) -> str:
     return "unchanged" if stamped == digest(body) else "edited"
 
 
-def main() -> None:
-    """dispatch the subcommand."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__)
-    command, *rest = args.positional() or ["--help"]
+def main(args: Args) -> None:
+    """dispatch the subcommand: `stamp FILE...` or `status [DIR]`.
+
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the subcommand,
+      the rest are the files to stamp or the open-items directory to list
+
+    # Raises
+
+    UsageError for an unknown or incomplete subcommand, or a directory that does not exist
+    """
+    command, *rest = args.positional()
     # --------------------------------------------------
     # stamp: one footer per named file
     # --------------------------------------------------
@@ -135,15 +143,13 @@ def main() -> None:
     if command == "status":
         folder = Path(rest[0]) if rest else DEFAULT_DIR
         if not folder.is_dir():
-            print(f"{TOOL}: no open-items dir at {folder}", file=sys.stderr)
-            sys.exit(Exit.USAGE)
+            raise UsageError(f"no open-items dir at {folder}")
         rows = sorted((status(item), item.name) for item in folder.glob("*.md"))
         for state, name in rows:
             print(f"{state:<10} {name}")
         return
-    print(f"{TOOL}: unknown command; `--help` lists them", file=sys.stderr)
-    sys.exit(Exit.USAGE)
+    raise UsageError(f"unknown or incomplete command {command!r}")
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, positionals=(1, None)).run(main)

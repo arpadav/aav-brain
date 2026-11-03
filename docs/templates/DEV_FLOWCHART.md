@@ -1,18 +1,17 @@
 # my end-to-end dev flowchart (the execution flow)
 
 this is the EXECUTION FLOW - the sequence of how the brain runs a task. it is SEPARATE from the
-knowledge GRAPH (brain/graph/graph.json), which is the context fetcher ("which principles apply").
-the flow answers "what step is next"; the graph answers "which cards apply". they never conflate, and
-the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the vocabulary never
-overlaps (P30).
+knowledge GRAPH: the flow answers "what step is next"; the graph answers "which principles apply". they
+never conflate, and the flow uses STATES + TRANSITIONS while the graph uses nodes + edges, so the
+vocabulary never overlaps (P30).
 
-the source of truth is `brain/flow/flow.toml` (authored DATA, like the cards are the graph's data).
+the source of truth is `brain/flow/flow.toml` (authored DATA, like the principles are the graph's data).
 `bin/run/brain-walk.py` reads and validates it directly and steps it deterministically.
 `docs/DEV_FLOWCHART.md` is POPULATED from this template (`docs/templates/DEV_FLOWCHART.md`) plus
 flow.toml by `bin/store/brain-flow.py` - edit the template for prose, flow.toml for the machine, then
-re-run the builder. it is drift-gated: `brain-flow.py --check` fails if the doc is stale. a state may
-CALL the graph (its `recall: true` flag fires brain-recall); the graph never calls the flow - one
-direction.
+re-run the builder. it is drift-gated: `b-flow -c` fails if the doc is stale. a state may
+reach the graph (its `recall = true` makes b-walk print the b-recall call to run); the graph never reaches the
+flow - one direction.
 
 ## 1. the machine (generated)
 
@@ -21,19 +20,19 @@ direction.
 ## 2. state -> owner (generated from flow.toml)
 
 each state is owned by a brain skill or one of the two cold agents. the `entry` column names the
-skill that starts a walk there and the mode it walks in (`brain-walk.py --mode <mode>`); a guarded
+skill that starts a walk there and the mode it walks in (`b-walk -m <mode>`); a guarded
 edge is taken only in the mode its guard names. the boundary state (SANCTION) flips ask-first ->
 execute-through; BLOCKED is the only post-sanction stop (ask arpad, resume on /continue).
 
 <!-- fill: owner table -->
 
-## 3. how brain-meta-drive steps it
+## 3. how brain-meta-drive steps the flow
 
-brain-meta-drive does not invent the sequence - it queries brain-walk:
-1. `brain-walk --state <id> --mode <mode>` returns the state's owner + recall flag.
-2. if recall: run brain-recall to load the relevant cards (the one call into the graph).
+brain-meta-drive does not invent the sequence - it queries b-walk:
+1. `b-walk -s <id> -m <mode>` returns the state's owner, its recall call and its exits.
+2. if it prints a recall call: run that b-recall to load the relevant principles (the one call into the graph).
 3. run the owner; it yields an outcome event (threshold_met / below_threshold / set_grew / ...).
-4. `brain-walk --state <id> --on <event> --mode <mode>` returns the single next state - from the data, not judgement.
+4. `b-walk -s <id> -o <event> -m <mode>` returns the single next state - from the data, not judgement.
 
 cyclic refinement is REQUIRED, not optional (P03). three regions LOOP until a metric threshold holds,
 then advance exactly one phase:

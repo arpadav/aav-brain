@@ -1,6 +1,6 @@
 """brainlib.flow: the execution flow, read straight from flow.toml and validated.
 
-brain-flow renders the human-facing flowchart from it and brain-walk steps it;
+b-flow renders the human-facing flowchart from it and b-walk steps it;
 both load it through `Flow.load` and both refuse an unsound one through
 `Flow.validate`, so there is one parse and one set of checks (P31). the walk
 reads the authored toml directly - there is no built intermediate to go stale
@@ -22,10 +22,18 @@ from brainlib.text import read_text
 # --------------------------------------------------
 # external
 # --------------------------------------------------
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+# --------------------------------------------------
+# constants
+# --------------------------------------------------
+# a state id: an upper-case letter, then upper-case letters, digits or underscores
+STATE_ID = re.compile(r"[A-Z][A-Z0-9_]*")
+
 
 @dataclass(frozen=True)
 class Entry:
@@ -160,6 +168,19 @@ class Flow:
                    for e in self.entries if e.state not in self.states)
         return out
 
+    def id_warnings(self) -> list[str]:
+        """one warning per state id that is not STATE_ID's upper case.
+
+        # Returns
+        the warnings, one per offending id
+
+        # Example
+
+            >>> Flow({sid: State(sid, "work", "-", False, "") for sid in ("PLAN", "plan")}).id_warnings()
+            ['state id plan is not upper case (A-Z, 0-9, _)']
+        """
+        return [f"state id {sid} is not upper case (A-Z, 0-9, _)" for sid in self.states if not STATE_ID.fullmatch(sid)]
+
     def mode_warnings(self) -> list[str]:
         """every guard must name a mode some entry declares.
 
@@ -255,9 +276,11 @@ class Flow:
     def owner_warnings(self, layout: Layout) -> list[str]:
         """every owner must resolve to a skill, an agent, a script, or a whitelist entry.
 
-        compound owners split on `+` and a `:lens` suffix is dropped. scripts and
-        agents resolve by directory scan, not a hardcoded list, so a flow that
-        dispatches a non-existent owner (a mid-rename drift) is caught (P18, P19)
+        compound owners split on `+` and a `:lens` suffix is dropped. an owner
+        names a file: a skill by its dir, an agent by its .md stem, a script by
+        its stem. scripts and agents resolve by directory scan, not a hardcoded
+        list, so a flow that dispatches a non-existent owner (a mid-rename
+        drift) is caught (P18, P19)
 
         # Arguments
         * `layout` - the store layout the owners resolve against
@@ -269,12 +292,12 @@ class Flow:
         if layout.skills.is_dir():
             known |= {p.name for p in layout.skills.iterdir() if p.is_dir()}
         if layout.bin.is_dir():
-            known |= {p.stem for p in layout.bin.rglob("*.py") if "brainlib" not in p.parts}
+            known |= {script.stem for script in layout.scripts}
         if layout.agents.is_dir():
             known |= {p.stem for p in layout.agents.rglob("*.md")}
         return [f"state {s.id} owner '{name}' is not a known skill"
                 for s in self.states.values()
-                for name in (part.split(":")[0].strip() for part in s.owner.split("+"))
+                for name in s.owners
                 if name and name not in known]
 
     def validate(self, layout: Layout) -> list[str]:
@@ -286,7 +309,7 @@ class Flow:
         # Returns
         a sorted list of warnings (empty means valid)
         """
-        warnings = [*self.dangling_warnings(), *self.mode_warnings(), *self.boundary_warnings(),
+        warnings = [*self.id_warnings(), *self.dangling_warnings(), *self.mode_warnings(), *self.boundary_warnings(),
                     *self.determinism_warnings(), *self.exit_warnings(),
                     *self.connectivity_warnings(), *self.owner_warnings(layout)]
         return sorted(set(warnings))

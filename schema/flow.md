@@ -6,7 +6,7 @@ the graph is CONTEXT ("which principles apply"), the flow is SEQUENCE ("what ste
 
 ## what it is
 - `brain/flow/flow.toml` : the authored SOURCE - entries + states + transitions, hand-edited. the
-  flow's data, the way the markdown cards are the graph's data. there is no built copy.
+  flow's data, the way the markdown principles are the graph's data. there is no built copy.
 - `bin/run/brain-walk.py` reads flow.toml directly and steps it; `bin/store/brain-flow.py` renders the doc
   view. both load and validate it through `brainlib.Flow` - one parse, one set of checks (P31).
 
@@ -17,7 +17,7 @@ an `[[entries]]` table names one way into the flow:
 |---|---|
 | skill | the entry skill he types (never given a load directive: it is the caller) |
 | state | the state it seeds the walk at |
-| mode | the mode it walks in; `brain-walk.py --mode <mode>` must name one of these |
+| mode | the mode it walks in; `b-walk -m <mode>` must name one of these |
 
 ## states
 a `[[states]]` table in flow.toml:
@@ -27,7 +27,7 @@ a `[[states]]` table in flow.toml:
 | id | unique state name |
 | kind | entry / work / gate / boundary / halt / terminal |
 | owner | the brain skill or cold agent that runs the state |
-| recall | true => the one coupling to the graph: brain-walk fires brain-recall before the owner runs |
+| recall | true => the one coupling to the graph: b-walk prints the b-recall call, run before the owner |
 | terminal | true => an end state with no exit (DONE, BLOCKED) |
 | doc | one-line description |
 
@@ -44,7 +44,7 @@ a `[[transitions]]` table:
 
 `(src, on, mode)` resolves to at most one edge, so `step()` is a pure deterministic function.
 
-## validation (brain-walk refuses to step, brain-flow refuses to render, an unsound flow)
+## validation (b-walk refuses to step, b-flow refuses to render, an unsound flow)
 - no dangling endpoints (every src/dst/entry state is a real state).
 - every guard names a declared entry mode.
 - exactly one `boundary` transition.
@@ -55,11 +55,11 @@ a `[[transitions]]` table:
 - every owner resolves to a skill, agent or script.
 
 ## flow <-> graph (one-directional)
-a state may CALL the graph (its `recall` flag -> brain-recall loads the relevant cards). the graph
-NEVER calls the flow. which card ranks #1 cannot change a transition; transitions depend only on
+a state may CALL the graph (its `recall` flag -> b-recall loads the relevant principles). the graph
+NEVER calls the flow. which principle ranks #1 cannot change a transition; transitions depend only on
 (state, event). knowledge never steers sequence. that asymmetry is the separation.
 
 ## the doc view
-`docs/DEV_FLOWCHART.md` is POPULATED by `brain-flow.py` from the tracked template
+`docs/DEV_FLOWCHART.md` is POPULATED by `b-flow` from the tracked template
 `docs/templates/DEV_FLOWCHART.md` (prose, with `<!-- fill: ... -->` markers) and flow.toml (the diagram
-and the state table). re-run it after editing either; `brain-flow.py --check` fails while the doc is stale.
+and the state table). re-run it after editing either; `b-flow -c` fails while the doc is stale.

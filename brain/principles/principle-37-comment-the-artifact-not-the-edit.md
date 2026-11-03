@@ -43,7 +43,7 @@ agent-speak leaking into his source ([[principle-16-my-stack-my-voice]],
 - write the comment as if the previous version never existed. if a phrase only makes
   sense against the old code, delete the phrase.
 - after any edit, re-read every comment in the touched hunk against the POST-edit text,
-  not the diff. scripted: `brain-fmt.py --stale` reports comments naming tokens that
+  not the diff. scripted: `b-fmt -S` reports comments naming tokens that
   survive only in the pre-image ([[principle-19-think-in-code-ops]]).
 - this governs comment CONTENT. how verbose to be is the other knob
   ([[principle-07-trim-fat-verbose-docs]]); how to phrase it in this language is

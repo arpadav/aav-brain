@@ -8,11 +8,8 @@ description: "Produce a plan the way Arpad wants it: small in scope, verbose in 
 he lives in plan mode. a good plan for him is small in scope, verbose in detail, concrete, and
 reversible: something to "get my hands dirty with before committing".
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
-discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
-
-load: `$AAV_BRAIN/brain/principles/principle-02-plan-before-build.md` and
+## setup
+load: `$AVB/brain/principles/principle-02-plan-before-build.md` and
 `principle-01-no-assumptions.md`.
 
 ## entry - set the node, hand the walk to the engine (P30)
@@ -23,7 +20,7 @@ reimplement - that is `brain-meta-drive`'s job. you only:
   -> PLANPROBE -> PLANGATE -> SANCTION, recalling per state and dispatching each owner. brain-plan does
   NOT cross into IMPL - planning ends at SANCTION; execution is brain-execute's job once he blesses it.
 
-handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode build` (paste the output) - the handoff contract lives in brain-meta-drive.
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `b-walk -s "$STATE" -m build` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 at the plan-region states the engine dispatches, brain-plan IS the owner - the rest of this file is that
 state-work: **at PLAN** produce the artifact below; **at PLANPROBE** trace it; **at PLANGATE/SANCTION**
@@ -35,9 +32,9 @@ to existing code. for a NEW project the IDEATION -> INTENT -> ASK front-end does
 interrogation: decompose his ask into INTERESTS (what does he want this to BE?), mirror his own move
 ("1. what else am i missing? 2. talk to me and iterate"), and never assume implementation detail under
 ambiguity. ASK MORE than feels necessary, and ask it verbosely - he interrogates, he does not just
-command ([[principle-24-socratic-mode]]), and a question is cheaper than a wrong plan
+command ([[principle-24-the-ask-is-the-scope]]), and a question is cheaper than a wrong plan
 ([[principle-01-no-assumptions]]). do NOT recite a fixed checklist: GENERATE the questions from the
-brain each time ([[principle-29-interrogate-the-work]]) - recall the cards the ask touches and ask
+brain each time ([[principle-29-interrogate-the-work]]) - recall the principles the ask touches and ask
 "what would arpad ask here?", then surface them. cover, at minimum, verbosely: what is this FOR and
 what is it NOT; what does done look like; what is in scope vs explicitly out; which existing
 primitive/crate/file should this reuse or extend rather than reinvent (P05); where should each piece
@@ -66,19 +63,22 @@ dialogue at the start, not a delivery.
    review: a doc fix is one phase, a full doc rewrite may be six.
 4. review-gate schedule, baked in. phases and gates are NOT 1-to-1. list where the gates are
    expected from the tags (an L phase gates alone; S phases batch until about one M's worth; the
-   last phase always gates). the real call is `brain-gate.py phase` after each phase, on the
+   last phase always gates). the real call is `b-gate phase` after each phase, on the
    measured diff, which overrides the tags when a phase is bigger than tagged. each gate: one
    brain-review-gate dispatch, 2-6 reviewers sized to the batch, two rounds at most.
-5. proportion, then reuse + minimal surface. state the problem in HIS steps, quoted ("pull, send, run
-   trt, copy back. thats it"). estimate the dumbest version that works - often a shell script - and
-   its size, beside the plan's expected size. if the plan is several times that, each layer above the
-   baseline gets a one-line reason it earns its place, or the plan shrinks. then existing primitives
-   to reuse, smallest viable surface, no speculative deps.
+5. proportion and generality, then reuse + minimal surface. state the problem in HIS steps, quoted
+   ("pull, send, run trt, copy back. thats it"). estimate the dumbest version that works - often a
+   shell script - and its size, beside the plan's expected size. if the plan is several times that,
+   each layer above the baseline gets a one-line reason it earns its place, or the plan shrinks. both
+   halves bind: simple but hard-coded (not generic) fails, and so does generic in a heavier language
+   than the bottleneck needs - C++ where a bash script does it, rust where python does it, and python
+   where speed IS the bottleneck. a generic bash script beats an over-engineered python script. then
+   existing primitives to reuse, smallest viable surface, no speculative deps.
 6. open decisions. anything ambiguous, as a question with options + a rec - and err toward MORE
    questions, stated verbosely, not fewer (P24, P01). a decision that outlives this session (he
    wants to think, or it waits on someone) becomes an open-item file instead, per P66:
-   `plans/open-items/<ID>-<slug>.md`, stamped with `brain-open-items.py stamp`. at RECON, recall with
-   `--binds plans` and run `brain-open-items.py status`: an `edited` item carries his answer and is input to this plan. include the would-arpad fidelity questions for
+   `plans/open-items/<ID>-<slug>.md`, stamped with `b-open-items stamp`. at RECON, recall with
+   `-b plans` and run `b-open-items status`: an `edited` item carries his answer and is input to this plan. include the would-arpad fidelity questions for
    the artifacts the plan introduces: "would arpad write this file / folder / function like this?"
    (P29), each with the alternative and your lean, for him to settle.
 
@@ -95,8 +95,7 @@ the brain-plan-specific work at each:
   when one exists). converge both; below_threshold loops to PLAN.
 - SANCTION: cross ONLY when open-question-free AND the worked example traces end-to-end. LOG each
   decided-against fork per the SANCTION state doc:
-  `python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-plan --decision "<fork>" --chosen "<won>"
-  --reject "<opt>=<why>" --affects "<plan path>" --principle <P>`. then STOP - planning ends here;
+  `b-trace -k brain-plan -d '<fork>' -c '<won>' -r '<opt>=<why>' -a '<plan path>' -p '<P>'`. then STOP - planning ends here;
   execution is brain-execute's job once he blesses it.
 
 ## register

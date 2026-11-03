@@ -7,7 +7,7 @@ interest: [intent-efficiency, intent-trust]
 confidence: very-high
 evidence_count: 17
 tells: ["continue i never said to stop", "phases should run back to back", "without a summary", "dont pause again", "continue where left off", "still stuff to fix? if so, why arent you doing brain walk to fix until done", "if its fixed, simply say its done", "why is this taking a long time? like everything is timing out. just move on and fix later", "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context", "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete", "you should not have stopped, since under brain-execute skill youd still be walking the brain and you havent reached a blocker or your DONE state yet", "can you please not be as hardstuck as previous agents about \"two users one bank account\" or whatever? its trying to think of every edge case possible but i just want this damn thing finished already", "the plan could be out of date, so investigate", "walk the brain until DONE, dont be blocked. this isnt difficult", "you need to finish this by morning"]
-tension: [principle-24-socratic-mode]
+tension: [principle-24-the-ask-is-the-scope]
 ---
 
 # P10 - Autonomy after sanction (no needless pauses)

@@ -3,13 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-extract: distill my interaction fingerprint into the brain store.
+"""b-extract: distill my interaction fingerprint into the brain store.
 
 distilled from raw agent transcripts, stdlib only, safe to run any time
 
-    uv run brain-extract.py              (or: python3 brain-extract.py)
-    uv run brain-extract.py --out DIR    (default: the XDG data dir, $XDG_DATA_HOME/aav-brain/evidence)
-    uv run brain-extract.py --archive    (also cold-store the raw transcripts first)
+    b-extract         mine the transcripts into the evidence
+    b-extract -o DIR  the evidence dir; default: the evidence dir of the
+                      brain's private data dir
+    b-extract -a      also cold-store the raw transcripts first
+    b-extract -d D    the cold-storage root; default: XdgLayout.archive,
+                      OUTSIDE git
 
 every human turn is captured into prompts.jsonl with a primary bucket and
 a multi-label class set - nothing is dropped. sources are both my codex
@@ -25,14 +28,6 @@ the words i actually wrote, never an accepted diff
 
 Author: aav
 """
-# this file, alone in bin/, walks raw transcript json whose shape no schema
-# describes - a content block is whatever the harness wrote that day. the
-# Unknown-type family is suppressed HERE and nowhere else, so the rest of the
-# tools keep it (P34: the records are untrusted input, hence the isinstance
-# guards below rather than a trusted shape)
-# pyright: reportUnknownVariableType=false, reportUnknownMemberType=false
-# pyright: reportUnknownArgumentType=false
-
 # brainlib lives in bin/, one folder up
 import sys
 from pathlib import Path
@@ -43,14 +38,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # local
 # --------------------------------------------------
 from brainlib import (
-    ENCODING,
+    Args,
+    Claude,
     DataLayout,
-    Env,
+    Denied,
+    Driven,
+    Event,
+    EvidenceLayout,
     Flag,
+    Harnesses,
+    Interrupted,
+    Layout,
     Ledger,
     MergeCount,
+    Replied,
+    Spoke,
+    Tool,
+    Transcript,
+    TranscriptError,
+    XdgLayout,
     clip,
-    find_archive,
     iso_now,
     write_text,
 )
@@ -58,7 +65,6 @@ from brainlib import (
 # --------------------------------------------------
 # external
 # --------------------------------------------------
-import argparse
 import gzip
 import json
 import re
@@ -72,16 +78,8 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# home directory root, used to locate every transcript source. portable -
-# resolves to whatever machine this runs on, not a hardcoded path
-HOME = Path.home()
-# transcript sources as (root, tool-label). the label is a fact about
-# which tool produced the turn, not a coupling to that tool
-SOURCES = [
-    (HOME / ".claude/projects", "claude"),
-    (HOME / ".codex/sessions", "codex"),
-    (HOME / ".codex/archived_sessions", "codex"),
-]
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # negation / disagreement, tuned to my lowercase no-apostrophe register
 RE_REJECT = re.compile(
     r"\b(nope|nah|dont|don't|do not|stop|undo|revert|isnt|isn't|wasnt|incorrect|disagree|"
@@ -94,10 +92,6 @@ RE_NO_START = re.compile(r"^\s*(no\b|nope|nah|wrong|stop|pause|wait|actually|hol
 RE_APPROVE = re.compile(
     r"^\s*(yes\b|yep|yeah|yup|correct\b|perfect|exactly|lgtm|looks good|sounds good|do it|"
     r"go ahead|proceed|ship it|approved|great\b|nice\b|ok\b|okay|love it|👍|💯)", re.IGNORECASE)
-# permission-denial marker emitted by the claude harness in a tool_result
-RE_DENY = re.compile(
-    r"(doesn't want to (proceed|take this action)|user (rejected|doesn't want|has interrupted)|"
-    r"rejected the|user chose not)", re.IGNORECASE)
 # planning intent: the affirmative blueprint, not a rejection
 RE_PLAN = re.compile(
     r"\b(make|create|write|draft).{0,24}\bplan\b|jumping off|plan mode|multi-phase plan", re.IGNORECASE)
@@ -134,7 +128,7 @@ RE_MACHINE = re.compile(
     r"^\s*(<(task-notification|subagent_notification|turn_aborted|local-command-stdout|post-tool|"
     r"system-reminder|bash-|environment_context|user_instructions|user_shell_command|"
     r"codex_internal_context|skill)\b|# AGENTS\.md instructions for |"
-    r"This session is being continued from a previous conversation)",
+    + re.escape(Claude.COMPACT_OPENING) + ")",
     re.IGNORECASE)
 # a slash-command turn: the wrapper is boilerplate, the typed args are his
 RE_SLASH = re.compile(r"^\s*<command-(name|message)>")
@@ -143,23 +137,12 @@ RE_SLASH = re.compile(r"^\s*<command-(name|message)>")
 PROMPT_ID = ("text", "ts")
 # emphasis tokens i reserve for hard constraints
 RE_CAPS = re.compile(r"\b(NOT|DO NOT|DONT|NEVER|ALWAYS|MUST|ONLY|EXACTLY|IMPORTANT|JUST|STOP)\b")
-
-def short_proj(name: str) -> str:
-    """shorten an encoded project-dir name to a readable label.
-
-    # Arguments
-    * `name` - the path-encoded project directory name
-
-    # Returns
-    a short label with the common home/repo prefixes stripped
-    """
-    # discover the home prefix instead of hardcoding a username (P32): claude/codex
-    # encode an abs path as `/`->`-`, so $HOME (e.g. the user home dir) maps the same way
-    home = str(Path.home()).replace("/", "-")
-    return (name.replace(f"{home}-repos-personal-", "")
-                .replace(f"{home}-repos-", "")
-                .replace(f"{home}-", "")[:28]) or name
-
+# an approval is a SHORT turn; past this length it is a directive that happens to agree
+SHORT_APPROVAL = 70
+# a turn this long is a directive even when it carries no other signal
+LONG_TURN = 900
+# a turn under this length counts as terse in the tone histogram
+TERSE_TURN = 40
 
 class Signal(StrEnum):
     """every label the extractor can put on a human turn, named once.
@@ -167,8 +150,8 @@ class Signal(StrEnum):
     a turn carries several of these at once (the classes) and exactly one as its
     primary bucket. the vocabulary was spelled as bare strings at each of the
     four sites that use it - the pattern table, the priority order, the
-    classifier's extra tests and the view writer - so a new label read as a
-    typo at three of them and the set could only be recovered by grep
+    classifier's extra tests and the view writer - are all keyed by these
+    members, so a new label is one edit and the set is read off one class
 
     # Example
 
@@ -245,12 +228,6 @@ CLASS_PATTERNS = (
     (RE_CAPS, Signal.EMPHASIS),
     (RE_HEAT, Signal.HEAT),
 )
-# an approval is a SHORT turn; past this length it is a directive that happens to agree
-SHORT_APPROVAL = 70
-# a turn this long is a directive even when it carries no other signal
-LONG_TURN = 900
-# a turn under this length counts as terse in the tone histogram
-TERSE_TURN = 40
 
 @dataclass
 class Turn:
@@ -267,15 +244,16 @@ class Turn:
 
 @dataclass
 class Reader:
-    """reads one transcript file, yielding human turns and collecting denials.
+    """reads one transcript, yielding his turns and collecting the prompts he refused.
 
-    `at` / `session` track the record currently being read; `machine` is true
-    once the file is known to be a script- or agent-driven session
+    what each line says is the harness's to tell (its events); which of his
+    words count is this reader's: harness text RE_MACHINE refuses, a slash
+    command's typed arguments, the interruption flag carried to his next turn.
+    `at` / `session` describe the line being read; `machine` is true once the
+    file is known to be a script- or agent-driven session
     """
 
-    path: Path
-    proj: str
-    src: str
+    transcript: Transcript
     last_asst: str = ""
     pend: bool = False
     denials: list[dict[str, str]] = field(default_factory=list)
@@ -283,166 +261,84 @@ class Reader:
     session: str = ""
     machine: bool = False
 
-    def records(self) -> "Iterator[dict[str, Any]]":
-        """yield every parsed record in the file, live or gzipped, stamping each.
+    def events(self) -> "Iterator[Event]":
+        """every event of the transcript, in order, stamping the line each came from.
 
         # Returns
-        an iterator of json objects; `at` and `session` describe the one just yielded
-
-        # Example
-
-            >>> next(Reader(Path("/nonexistent"), "", "").records(), None) is None
-            True
+        an iterator of events; `at` and `session` describe the line of the one
+        just yielded. raises TranscriptError when the file cannot be read
         """
-        opener = gzip.open if self.path.suffix == ".gz" else open
-        try:
-            with opener(self.path, "rt", encoding=ENCODING, errors="replace") as handle:
-                raw = handle.read()
-        except OSError:
-            return
-        for line in raw.split("\n"):
-            if not line.strip():
-                continue
-            try:
-                obj = json.loads(line)
-            except ValueError:
-                continue
-            # --------------------------------------------------
-            # stamp the record being read: both tools write a top-level iso-8601
-            # `timestamp`. the session id is per-record on claude and encoded in
-            # the rollout filename on codex, so the file name is the fallback
-            # --------------------------------------------------
-            self.at = str(obj.get("timestamp") or "")
-            self.session = (str(obj.get("sessionId") or obj.get("session_id") or "")
-                            or self.path.name.split(".jsonl")[0])
-            yield obj
-
-    @staticmethod
-    def driver(obj: dict[str, Any]) -> bool | None:
-        """whether the session this record belongs to was driven by a script or an agent.
-
-        codex says so once, in `session_meta`: `exec` is the non-interactive
-        runner and a `subagent` source a spawned worker. claude stamps an
-        `entrypoint` on every user record, `sdk-*` when a program drove it.
-        every user turn in such a session is a dispatch prompt, not his words
-
-        # Arguments
-        * `obj` - one parsed record
-
-        # Returns
-        true or false when the record settles it, None when it says nothing
-
-        # Example
-
-            >>> Reader.driver({"type": "user", "entrypoint": "sdk-py"})
-            True
-            >>> Reader.driver({"type": "session_meta", "payload": {"source": "cli"}})
-            False
-            >>> Reader.driver({"type": "assistant"}) is None
-            True
-        """
-        # --------------------------------------------------
-        # codex: the session_meta source
-        # --------------------------------------------------
-        if obj.get("type") == "session_meta":
-            source = obj.get("payload", {}).get("source")
-            return source == "exec" or (isinstance(source, dict) and "subagent" in source)
-        # --------------------------------------------------
-        # claude: the entrypoint of a user record
-        # --------------------------------------------------
-        if obj.get("type") == "user" and obj.get("entrypoint"):
-            return str(obj["entrypoint"]).startswith("sdk")
-        return None
+        for record in self.transcript.records():
+            self.at, self.session = record.stamp, record.session
+            yield from self.transcript.harness.events(record.data)
 
     def driven(self) -> bool:
-        """whether the file's first record that can say so marks it machine-driven.
+        """whether the file's first line that can say so marks it machine-driven.
 
         # Returns
-        true when the first record that settles it marks a scripted or
-        agent-driven session; also stored on `machine`
+        true when that line marks a scripted or agent-driven session; also
+        stored on `machine`, with `session` left at that line's
         """
-        verdict = next((v for obj in self.records() if (v := self.driver(obj)) is not None), False)
-        self.machine = verdict
-        return verdict
+        self.machine = next((event.machine for event in self.events() if isinstance(event, Driven)), False)
+        return self.machine
 
     def turns(self) -> "Iterator[Turn]":
         """yield every human Turn in the file, in order; none from a driven session.
 
         # Returns
         an iterator of Turn objects; the interrupt flag is consumed by the
-        next real turn after an interruption marker
+        next real turn after an interruption. raises TranscriptError when the
+        file cannot be read
         """
         # --------------------------------------------------
-        # the first record that says who drove the session settles it; a driven session yields no turns
+        # resolve the harness that wrote this transcript
+        # --------------------------------------------------
+        harness = self.transcript.harness
+        proj, src = harness.project(self.transcript.path), harness.NAME
+        # --------------------------------------------------
+        # walk the events, settling machine-driven sessions and yielding human turns
         # --------------------------------------------------
         settled = False
-        for obj in self.records():
-            if not settled and (verdict := self.driver(obj)) is not None:
-                settled, self.machine = True, verdict
-                if verdict:
-                    return
-            result = self._read_claude(obj) if self.src == "claude" else self._read_codex(obj)
-            if result is None:
-                continue
-            text, from_plan = result
-            interrupted = self.pend
-            self.pend = False
-            yield Turn(self.proj, self.src, text, interrupted, from_plan, self.at, self.session)
+        for event in self.events():
+            match event:
+                # the first line that says who drove the session settles it
+                case Driven(machine) if not settled:
+                    settled, self.machine = True, machine
+                    if machine:
+                        return
+                case Replied(text):
+                    self.last_asst = text
+                case Denied(note):
+                    self.denials.append({"ts": self.at, "session": self.session, "proj": proj, "src": src,
+                                         "was": clip(self.last_asst, 140), "note": clip(note, 180)})
+                case Interrupted():
+                    self.pend = True
+                case Spoke(text) if (said := self.said(text)) is not None:
+                    interrupted, self.pend = self.pend, False
+                    yield Turn(proj, src, said[0], interrupted, said[1], self.at, self.session)
+                case _:
+                    pass
 
-    def _remember_assistant(self, obj: dict[str, Any]) -> bool:
-        """keep the last assistant turn, which gives an interruption its context.
+    @classmethod
+    def said(cls, text: str) -> tuple[str, bool] | None:
+        """what of the text in his slot is his.
 
         # Arguments
-        * `obj` - the parsed jsonl object
+        * `text` - the slot's text, as the harness wrote it
 
         # Returns
-        true when the record was an assistant turn and is now consumed
+        a (text, from_plan) tuple, or None for harness text or an empty slash command
+
+        # Example
+
+            >>> Reader.said("  make it shorter "), Reader.said("<system-reminder>x")
+            (('make it shorter', False), None)
         """
-        if obj.get("type") != "assistant" or not isinstance(obj.get("message"), dict):
-            return False
-        content = obj["message"].get("content")
-        if isinstance(content, list):
-            blocks: list[Any] = content
-            spoken = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-            if spoken.strip():
-                self.last_asst = spoken
-        return True
-
-    def _collect_denials(self, content: Any) -> None:  # noqa: ANN401 - a transcript content field has no schema
-        """record every permission denial carried by a tool_result block.
-
-        # Arguments
-        * `content` - the user message's content field, straight off json
-        """
-        if not isinstance(content, list):
-            return
-        blocks: list[Any] = content
-        for block in blocks:
-            if block.get("type") != "tool_result":
-                continue
-            note: Any = block.get("content", "")
-            if isinstance(note, list):
-                note = " ".join(x.get("text", "") for x in note)
-            if isinstance(note, str) and RE_DENY.search(note):
-                self.denials.append({"ts": self.at, "session": self.session, "proj": self.proj, "src": self.src,
-                                     "was": clip(self.last_asst, 140), "note": clip(note, 180)})
-
-    @staticmethod
-    def _human_text(content: Any) -> str:  # noqa: ANN401 - a transcript content field has no schema
-        """the spoken text of a user record, whether string or block list.
-
-        # Arguments
-        * `content` - the user message's content field, straight off json
-
-        # Returns
-        the text, empty when the record carries none
-        """
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            blocks: list[Any] = content
-            return "\n".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-        return ""
+        if RE_MACHINE.search(text):
+            return None
+        if RE_SLASH.match(text):
+            return cls.slash_command(text)
+        return text.strip(), False
 
     @staticmethod
     def slash_command(text: str) -> tuple[str, bool] | None:
@@ -462,73 +358,6 @@ class Reader:
         if not args or not args.group(1).strip():
             return None
         return args.group(1).strip(), bool(name and "plan" in name.group(1))
-
-    def _read_claude(self, obj: dict[str, Any]) -> tuple[str, bool] | None:
-        """extract a human turn from one claude jsonl record.
-
-        # Arguments
-        * `obj` - the parsed jsonl object
-
-        # Returns
-        a (text, from_plan) tuple, or None for a non-human record
-        """
-        if self._remember_assistant(obj):
-            return None
-        if obj.get("type") != "user" or not isinstance(obj.get("message"), dict):
-            return None
-        content = obj["message"].get("content")
-        self._collect_denials(content)
-        text = self._human_text(content)
-        if not text.strip():
-            return None
-        # --------------------------------------------------
-        # interruption marker: arm the flag for the next real turn
-        # --------------------------------------------------
-        if re.search(r"\[Request interrupted by user", text):
-            self.pend = True
-            self.last_asst = clip(self.last_asst, 170)
-            return None
-        if obj.get("isMeta") or obj.get("isCompactSummary") or RE_MACHINE.search(text):
-            return None
-        if RE_SLASH.match(text):
-            return self.slash_command(text)
-        return text.strip(), False
-
-    def _read_codex(self, obj: dict[str, Any]) -> tuple[str, bool] | None:
-        """extract a human turn from one codex rollout record.
-
-        # Arguments
-        * `obj` - the parsed rollout object
-
-        # Returns
-        a (text, from_plan) tuple, or None for a non-human record
-        """
-        payload = obj.get("payload", {})
-        # --------------------------------------------------
-        # aborted turn: the next user turn is an interruption
-        # --------------------------------------------------
-        if payload.get("type") in ("turn_aborted", "task_aborted"):
-            self.pend = True
-            return None
-        # --------------------------------------------------
-        # assistant text: remember it for interruption context
-        # --------------------------------------------------
-        if (payload.get("type") == "message" and payload.get("role") == "assistant"
-                and isinstance(payload.get("content"), list)):
-            spoken = " ".join(c.get("text", "") for c in payload["content"])
-            if spoken.strip():
-                self.last_asst = spoken
-            return None
-        # --------------------------------------------------
-        # human text, minus environment scaffolding
-        # --------------------------------------------------
-        if (payload.get("type") == "message" and payload.get("role") == "user"
-                and isinstance(payload.get("content"), list)):
-            text = "\n".join(c.get("text", "") for c in payload["content"]).strip()
-            if not text or RE_MACHINE.match(text):
-                return None
-            return text, False
-        return None
 
 
 @dataclass
@@ -637,20 +466,34 @@ class Corpus:
         if first:
             self.opening_verbs[first.group(1)] += 1
 
-    def stats(self) -> dict[str, Any]:
+    def stats(self, harnesses: Harnesses) -> dict[str, Any]:
         """assemble the corpus-stats dict.
+
+        # Arguments
+        * `harnesses` - the harnesses whose transcripts were scanned
 
         # Returns
         the full statistics dict
         """
+        # --------------------------------------------------
+        # count the prompts and name the scanned sources, codex first: the order
+        # every stored corpus-stats.json spells
+        # --------------------------------------------------
         total = len(self.prompts)
+        sources = "+".join(harness.NAME for harness in reversed(harnesses.all))
+        # --------------------------------------------------
+        # sort the prompt lengths and timestamps for the percentiles and the date range
+        # --------------------------------------------------
         lens = sorted(p.get("len", 0) for p in self.prompts)
         stamps = sorted(p["ts"] for p in self.prompts if p.get("ts"))
+        # --------------------------------------------------
+        # assemble the stats dict
+        # --------------------------------------------------
         return {
             "generated_at": iso_now(),
             "covers": {"first_turn": stamps[0] if stamps else "", "last_turn": stamps[-1] if stamps else "",
                         "dated": len(stamps), "undated": total - len(stamps)},
-            "totals": {"human_turns": total, "sources_scanned": "codex+claude"},
+            "totals": {"human_turns": total, "sources_scanned": sources},
             "length_chars": {"p10": self._pct(lens, .1), "p50": self._pct(lens, .5), "p90": self._pct(lens, .9),
                               "p99": self._pct(lens, .99), "max": lens[-1] if lens else 0},
             "tone": {k: round(100 * self.tone[k] / total) if total else 0
@@ -662,47 +505,7 @@ class Corpus:
             "top_projects": self.by_proj.most_common(18),
         }
 
-    def fingerprint_md(self) -> str:
-        """render the quantitative fingerprint tables from the stats.
-
-        these tables are the one source of truth for the numbers; the
-        fingerprint doc references this generated file instead of hardcoding
-        figures that drift (the served_by-is-derived move, applied - P20)
-
-        # Returns
-        a markdown string with the totals, tone, and class-count tables
-        """
-        stats = self.stats()
-        total = stats["totals"]["human_turns"]
-        src = stats["by_source"]
-        # --------------------------------------------------
-        # header and totals
-        # --------------------------------------------------
-        lines = ["# fingerprint stats (generated by brain-extract.py - do not hand-edit)", "",
-                 f"turns: {total}  (codex {src.get('codex', 0)} / claude {src.get('claude', 0)})", ""]
-        # --------------------------------------------------
-        # tone table
-        # --------------------------------------------------
-        lines += ["## tone", "", "| signal | value |", "|---|---|"]
-        for key, val in stats["tone"].items():
-            lines.append(f"| {key} | {val}% |")
-        # --------------------------------------------------
-        # class counts (multi-label), excluding the bucket tally keys
-        # --------------------------------------------------
-        lines += ["", "## classes (multi-label, % of turns)", "", "| class | count | pct |", "|---|---|---|"]
-        for key, val in stats["class_counts"].items():
-            if key.endswith(":bucket"):
-                continue
-            lines.append(f"| {key} | {val} | {round(100 * val / total)}% |")
-        # --------------------------------------------------
-        # sequencing connectives and opening verbs
-        # --------------------------------------------------
-        seq = ", ".join(f"{k} {v}" for k, v in stats["sequencing_hist"].items())
-        verbs = ", ".join(f"{k} {v}" for k, v in list(stats["opening_verbs"].items())[:10])
-        lines += ["", f"sequencing: {seq}", "", f"opening verbs: {verbs}", ""]
-        return "\n".join(lines)
-
-    def write(self, out: Path) -> dict[str, MergeCount]:
+    def write(self, evidence: EvidenceLayout, harnesses: Harnesses) -> dict[Path, MergeCount]:
         """merge this run's records into the evidence store and rebuild the aggregates.
 
         the two canonical corpora (prompts, denials) are MERGED - they are the
@@ -711,13 +514,14 @@ class Corpus:
         corpus it claims to project
 
         # Arguments
-        * `out` - the resolved output directory
+        * `evidence` - the evidence files, in the resolved output directory
+        * `harnesses` - the harnesses whose transcripts were scanned, for the stats
 
         # Returns
-        a dict of file-name -> MergeCount for the merged corpora
+        a dict of file -> MergeCount for the merged corpora
         """
-        out.mkdir(parents=True, exist_ok=True)
-        prompts = Ledger(out / "prompts.jsonl", identity=PROMPT_ID)
+        evidence.root.mkdir(parents=True, exist_ok=True)
+        prompts = Ledger(evidence.prompts, identity=PROMPT_ID)
         # --------------------------------------------------
         # the canonical corpora: merged, never dropped. a stored row today's
         # reader would refuse is MARKED stale rather than deleted - the ledger
@@ -733,8 +537,8 @@ class Corpus:
                 bucket, classes = self.classify(slash[0], interrupted=False, from_plan=slash[1])
                 refused.append({**row, "text": clip(slash[0], 500), "len": len(slash[0]),
                                 "bucket": bucket, "classes": classes})
-        counts = {"prompts.jsonl": prompts.merge([*self.prompts, *refused]),
-                  "denials.jsonl": Ledger(out / "denials.jsonl").merge(self.denials)}
+        counts = {evidence.prompts: prompts.merge([*self.prompts, *refused]),
+                  evidence.denials: Ledger(evidence.denials).merge(self.denials)}
         # --------------------------------------------------
         # re-read the merged corpus: everything below projects the DURABLE set,
         # which is a superset of what this run happened to see
@@ -743,16 +547,15 @@ class Corpus:
         # --------------------------------------------------
         # back-compat views, derived; heat joins the rejection corpus too
         # --------------------------------------------------
-        views = {"rejections.jsonl": (Signal.REJECTION, Signal.HEAT), "heat.jsonl": (Signal.HEAT,),
-                 "interruptions.jsonl": (Signal.INTERRUPTION,), "approvals.jsonl": (Signal.APPROVAL,),
-                 "directives.jsonl": (Signal.DIRECTIVE,)}
-        for name, buckets in views.items():
-            Ledger(out / name).write(self._view(p) for p in durable.prompts if p.get("bucket") in buckets)
+        views = {evidence.rejections: (Signal.REJECTION, Signal.HEAT), evidence.heat: (Signal.HEAT,),
+                 evidence.interruptions: (Signal.INTERRUPTION,), evidence.approvals: (Signal.APPROVAL,),
+                 evidence.directives: (Signal.DIRECTIVE,)}
+        for path, buckets in views.items():
+            Ledger(path).write(self._view(p) for p in durable.prompts if p.get("bucket") in buckets)
         # --------------------------------------------------
-        # stats json + the generated fingerprint tables, over the durable corpus
+        # stats json, over the durable corpus
         # --------------------------------------------------
-        write_text(out / "corpus-stats.json", json.dumps(durable.stats(), indent=2))
-        write_text(out / "fingerprint-stats.md", durable.fingerprint_md())
+        write_text(evidence.corpus_stats, json.dumps(durable.stats(harnesses), indent=2))
         return counts
 
     @classmethod
@@ -832,64 +635,6 @@ class Corpus:
         return values[min(len(values) - 1, int(quantile * len(values)))]
 
 
-@dataclass
-class Transcript:
-    """one located transcript file: where it is, and whose session it was.
-
-    `rel` is the path relative to its source root, so the archiver can mirror
-    the source layout instead of flattening it - the project directory IS the
-    `proj` label, and a flat archive would throw it away
-    """
-
-    path: Path
-    rel: Path
-    proj: str
-    src: str
-
-
-@dataclass(frozen=True)
-class Transcripts:
-    """the authoritative source set - the ONE definition of a session transcript.
-
-    both the extractor and the archiver walk this, so they cannot disagree about
-    what exists. SUBAGENT transcripts (`<session>/subagents/*.jsonl`) are
-    deliberately excluded: their human turns are agent dispatch prompts, not his
-    words, and mining them would break the prime rule
-    """
-
-    roots: Sequence[tuple[Path, str]]
-
-    def files(self) -> "Iterator[Transcript]":
-        """yield every session transcript across all sources, in stable order.
-
-        dispatch is by tool LABEL, not list position, so the source order is
-        not a magic contract: claude lays out one project dir per repo with
-        flat jsonl inside; codex nests date-rollout trees under each root
-
-        # Returns
-        an iterator of Transcript
-        """
-        for root, label in self.roots:
-            if not root.exists():
-                continue
-            # --------------------------------------------------
-            # claude: one project dir per repo, sessions flat inside it. the
-            # non-recursive glob is what excludes the subagents/ subtree
-            # --------------------------------------------------
-            if label == "claude":
-                for project in sorted(root.iterdir()):
-                    if not project.is_dir():
-                        continue
-                    for path in sorted(project.glob("*.jsonl")):
-                        yield Transcript(path, path.relative_to(root), short_proj(project.name), "claude")
-            # --------------------------------------------------
-            # codex: date-nested rollout trees under each session root
-            # --------------------------------------------------
-            else:
-                for path in sorted(root.rglob("*.jsonl")):
-                    yield Transcript(path, path.relative_to(root), "codex", label)
-
-
 @dataclass(frozen=True)
 class Archiver:
     """gzips each session transcript into cold storage, mirroring the source layout.
@@ -899,8 +644,7 @@ class Archiver:
     could never be re-run over old material
     """
 
-    transcripts: Transcripts
-    root: Path
+    harnesses: Harnesses
 
     def run(self) -> tuple[int, int, int]:
         """archive every unseen or grown transcript.
@@ -912,17 +656,17 @@ class Archiver:
         an (archived, skipped, bytes_written) tuple
         """
         archived, skipped, written = 0, 0, 0
-        for item in self.transcripts.files():
-            target = self.root / item.src / item.rel.with_suffix(".jsonl.gz")
+        for transcript in self.harnesses.sessions():
+            target = transcript.harness.cold_copy(transcript.path)
             # --------------------------------------------------
             # skip only when the archived copy already covers the live file
             # --------------------------------------------------
-            if target.exists() and target.stat().st_mtime >= item.path.stat().st_mtime:
+            if target.exists() and target.stat().st_mtime >= transcript.path.stat().st_mtime:
                 skipped += 1
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             try:
-                with item.path.open("rb") as src, gzip.open(target, "wb") as dst:
+                with transcript.path.open("rb") as src, gzip.open(target, "wb") as dst:
                     shutil.copyfileobj(src, dst)
             except OSError:
                 continue
@@ -935,23 +679,27 @@ class Archiver:
 class Extractor:
     """walks the transcript sources and feeds every human turn to a Corpus."""
 
-    transcripts: Transcripts
-    archive: Path
+    harnesses: Harnesses
 
     def run(self) -> "Corpus":
-        """read every file into a fresh Corpus.
+        """read every live transcript into a fresh Corpus.
 
-        the cold archive is consulted only for WHO drove each session: a row
-        stored while its transcript was live outlives that transcript, and the
+        a transcript that cannot be read to its end contributes nothing. the
+        cold archive is consulted only for WHO drove each session: a row stored
+        while its transcript was live outlives that transcript, and the
         archived copy is then the one place that can say it was a script
 
         # Returns
         the populated Corpus
         """
         corpus = Corpus()
-        for item in self.transcripts.files():
-            reader = Reader(item.path, item.proj, item.src)
-            for turn in reader.turns():
+        for transcript in self.harnesses.sessions():
+            reader = Reader(transcript)
+            try:
+                turns = list(reader.turns())
+            except TranscriptError:
+                continue
+            for turn in turns:
                 corpus.add(turn)
             corpus.denials.extend(reader.denials)
             if reader.machine:
@@ -959,55 +707,55 @@ class Extractor:
         # --------------------------------------------------
         # the archive, only for which sessions were driven
         # --------------------------------------------------
-        for path in sorted(self.archive.rglob("*.jsonl.gz")) if self.archive.exists() else []:
-            reader = Reader(path, "", "")
-            if reader.driven():
-                corpus.machine_sessions.add(reader.session)
+        for transcript in self.harnesses.archived():
+            reader = Reader(transcript)
+            try:
+                if reader.driven():
+                    corpus.machine_sessions.add(reader.session)
+            except TranscriptError:
+                continue
         return corpus
 
 
-def main() -> None:
-    """extract every transcript into the evidence store and print a summary."""
-    # --------------------------------------------------
-    # argparse, so an unrecognised flag errors instead of silently extracting
-    # --------------------------------------------------
-    parser = argparse.ArgumentParser(prog="brain-extract", description=(__doc__ or "").split("\n\n")[0],
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(Flag.OUT, type=Path, default=None,
-                        help=f"evidence dir (default: ${Env.XDG_DATA_HOME}/aav-brain/evidence)")
-    parser.add_argument(Flag.ARCHIVE, action="store_true",
-                        help="cold-store the raw transcripts before extracting")
-    parser.add_argument(Flag.ARCHIVE_DIR, type=Path, default=None,
-                        help=f"cold-storage root (default: ${Env.XDG_DATA_HOME}/aav-brain-archive, OUTSIDE git)")
-    args = parser.parse_args()
-    data = DataLayout.discover()
-    out = (args.out or data.evidence).resolve()
-    transcripts = Transcripts(SOURCES)
-    root = (args.archive_dir or find_archive()).resolve()
+def main(args: Args) -> None:
+    """extract every transcript into the evidence store and print a summary.
+
+    with `--archive`, the live transcripts are copied to the cold archive first,
+    so the source is preserved before anything reads it
+
+    # Arguments
+
+    * `args` - the parsed command line; `--out` overrides the evidence directory
+      and `--archive-dir` the cold archive
+    """
+    out, cold = args.value(Flag.OUT), args.value(Flag.ARCHIVE_DIR)
+    evidence = EvidenceLayout((Path(out) if out else DataLayout.discover().evidence.root).resolve())
+    archive = (Path(cold) if cold else XdgLayout.discover().archive).resolve()
+    harnesses = Harnesses.discover(archive)
     # --------------------------------------------------
     # archive first: the source must be preserved BEFORE anything reads it
     # --------------------------------------------------
-    if args.archive:
-        archived, skipped, size = Archiver(transcripts, root).run()
-        print(f"brain-extract archive -> {root}\n"
+    if args.has(Flag.ARCHIVE):
+        archived, skipped, size = Archiver(harnesses).run()
+        print(f"{TOOL} archive -> {archive}\n"
               f"  archived: {archived} | unchanged: {skipped} | {size / 1e6:.1f} MB written")
     # --------------------------------------------------
     # extract + merge
     # --------------------------------------------------
-    corpus = Extractor(transcripts, root).run()
-    counts = corpus.write(out)
+    corpus = Extractor(harnesses).run()
+    counts = corpus.write(evidence, harnesses)
     buckets = Counter(p["bucket"] for p in corpus.prompts)
-    print("brain-extract done ->", out)
+    print(f"{TOOL} done ->", evidence.root)
     print(f"  scanned: {len(corpus.prompts)} turns | " + " ".join(f"{k}:{v}" for k, v in buckets.most_common()))
     print(f"  machine-driven sessions excluded: {len(corpus.machine_sessions)}")
-    for name, count in sorted(counts.items()):
-        print(f"  {name:<22} +{count.added:<5} -> {count.total}")
+    for path, count in sorted(counts.items()):
+        print(f"  {path.name:<22} +{count.added:<5} -> {count.total}")
     # a second machine appending to the same corpus is the normal case, and a
     # line-based merge over a set conflicts where no conflict exists
-    for warning in sorted({Ledger(out / name).unprotected() for name in counts}):
+    for warning in sorted({Ledger(path).unprotected() for path in counts}):
         if warning:
             print(f"  warn: {warning}")
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__).run(main)

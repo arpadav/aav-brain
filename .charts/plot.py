@@ -1,145 +1,301 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["matplotlib"]
+# ///
 """plot expected vs actual recall score, one chart per labelled prompt.
 
-expected is the rubric relevance a Sonnet rater assigned each card for that
+expected is the rubric relevance a Sonnet rater assigned each principle for that
 prompt (ten weighted binary criteria, raw sum out of 10, rescaled to 0-1).
-actual is what brain-recall.py scores the same card - its SHARE of the task,
-already 0-1. both axes therefore mean "how much does this card bear on this
+actual is what brain-recall.py scores the same principle - its SHARE of the task,
+already 0-1. both axes therefore mean "how much does this principle bear on this
 prompt", one judged and one computed, which is the comparison worth looking at.
 
-three horizontal lines. a card joins on EITHER route - it explains at least its
-tier's absolute share of the task, or it explains at least BEST_SHARE of what
-the best available card explains - so the line that actually decides is the
-LOWER of the two, drawn solid black. green bands are constitution cards, which
-load whatever they score; orange bands are the conditional cards this prompt
-actually admits.
+a principle joins on EITHER route - it explains at least its tier's absolute share
+of the task, or it explains at least BEST_SHARE of what the best candidate
+explains - so the bar that decides is the LOWER of the two, drawn as a solid
+black tick per principle (a narrow principle's tier floor is lower), and at most MAX_N of
+the principles above it are taken. three lines give the bars it is the lower of,
+plus the lower one a principle cited by an admitted principle clears. green bands are
+constitution principles, which load whatever they score; orange bands are the principles
+the score admits for this prompt.
 
-    .charts-venv/bin/python .charts/plot.py
+    uv run .charts/plot.py EVAL_DIR [OUT_DIR]
+
+EVAL_DIR holds the labelled set: `prompts2.json` (a list of {n, bucket, prompt})
+and `relevance3.json` (principle id to {prompt n: {raw}}). OUT_DIR defaults to this
+script's own folder
+
+Author: aav
 """
-# --------------------------------------------------
-# external
-# --------------------------------------------------
-import collections
-import importlib.util
-import json
+# brainlib lives in bin/, a sibling of this folder
 import sys
 from pathlib import Path
 
-import matplotlib
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 
-matplotlib.use("Agg")
+# --------------------------------------------------
+# local
+# --------------------------------------------------
+from brainlib import (
+    BEST_SHARE,
+    EXPLAIN_FLOOR,
+    MAX_N,
+    MAX_REFERENCES,
+    REFERENCE_FLOOR,
+    Args,
+    Layout,
+    NoVerdict,
+    RecallIndex,
+    Tier,
+    Tool,
+    read_text,
+)
+
+# --------------------------------------------------
+# external
+# --------------------------------------------------
+import json
+from collections import Counter
+from dataclasses import dataclass, field
+from typing import Any
+
+import matplotlib as mpl
+
+mpl.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-BRAIN = Path(__file__).resolve().parent.parent
-OUT = BRAIN / ".charts"
-EVAL = Path("/tmp/claude-1000/-home-arpad-repos--sandbox-budget/"
-            "534596cc-9045-47f5-a3ab-e1b4d11c089e/scratchpad/eval")
+# this tool's own name, for its messages; derived so a rename cannot desync them
+TOOL = Path(__file__).stem
+# where the charts land when no OUT_DIR is given
+HERE = Path(__file__).resolve().parent
 # the rubric's raw weighted sum tops out here, so dividing puts it on the
 # same 0-1 axis as a share of the task
 RUBRIC_MAX = 10.0
-
-sys.path.insert(0, str(BRAIN / "bin"))
-spec = importlib.util.spec_from_file_location("recall", BRAIN / "bin" / "brain-recall.py")
-R = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(R)
+# the expected-minus-actual gap past which the summary counts a disagreement
+DISAGREE = 0.30
 
 
-def main() -> None:
-    """render one chart per prompt plus a summary, into .charts/."""
-    index = R.RecallIndex.load(R.LAYOUT.graph_json)
-    judged = {c: {int(k): v for k, v in s.items()}
-              for c, s in json.loads((EVAL / "relevance3.json").read_text()).items()
-              if c in index.nodes}
-    prompts = json.loads((EVAL / "prompts2.json").read_text())
-    # one fixed card order for every chart, so the x axis means the same thing
-    # on all 50 and the distributions can be read against each other
-    cards = sorted(index.nodes)
-    const = set(index.constitution())
-    narrow = {c for c in cards if index.nodes[c].tier == R.Tier.NARROW}
-    xs = list(range(len(cards)))
+@dataclass
+class Charts:
+    """the recall index and the one principle order every chart is drawn over.
 
-    gaps: list[tuple[float, int, str]] = []
-    for prompt in prompts:
-        n = prompt["n"]
-        seeds = index.seed(R.tokenize(prompt["prompt"]))
-        final, _why = index.traverse(seeds) if seeds else ({}, {})
-        actual = [index.explains(final, c) if seeds else 0.0 for c in cards]
-        expect = [max(0.0, judged.get(c, {}).get(n, {}).get("raw", 0.0)) / RUBRIC_MAX for c in cards]
-        for i, c in enumerate(cards):
-            gaps.append((expect[i] - actual[i], n, c))
+    the order is fixed so the x axis means the same thing on every chart and
+    the distributions can be read against each other
+    """
 
+    index: RecallIndex
+    out: Path
+    # principle id to {prompt n: {"raw": weighted rubric sum}}
+    judged: dict[str, dict[int, dict[str, float]]]
+    principles: list[str] = field(init=False)
+    const: set[str] = field(init=False)
+
+    def __post_init__(self) -> None:
+        """fix the principle order and the constitution every chart marks.
+
+        sets `principles` to the index's node ids in sorted order, so every
+        chart lists them identically, and `const` to the ids the constitution
+        holds, which charts highlight
+        """
+        self.principles = sorted(self.index.nodes)
+        self.const = set(self.index.constitution())
+
+    def axes(self) -> tuple[Figure, Axes]:
+        """a blank chart with one tick per principle, labelled by its short id.
+
+        # Returns
+
+        the figure and its axes
+        """
+        # --------------------------------------------------
+        # one wide principle axis, shared by every chart
+        # --------------------------------------------------
         fig, ax = plt.subplots(figsize=(15, 5.2))
-        ax.plot(xs, expect, color="#c44", lw=1.4, marker="o", ms=3.2,
-                label="expected (rubric, judged by Sonnet)")
-        ax.plot(xs, actual, color="#268", lw=1.4, marker="s", ms=3.2,
-                label="actual (brain-recall share of task)")
-        # a card joins on EITHER route, so the line that actually decides is the
-        # lower of its tier floor and BEST_SHARE of the best card available.
-        # drawing only the absolute floor made admitted cards look rejected
-        best = max((v for c, v in zip(cards, actual) if c not in const), default=0.0)
-        relative = R.BEST_SHARE * best
-        effective = min(R.EXPLAIN_FLOOR, relative)
-        ax.axhline(R.EXPLAIN_FLOOR, color="#999", ls="--", lw=1.0,
-                   label=f"absolute floor {R.EXPLAIN_FLOOR} (share of the task)")
-        ax.axhline(relative, color="#e80", ls="-.", lw=1.1,
-                   label=f"relative floor {R.BEST_SHARE}x best available = {relative:.2f}")
-        ax.axhline(effective, color="#111", ls="-", lw=1.6,
-                   label=f"EFFECTIVE admission = {effective:.2f} - above this the agent reads it")
-        for i, c in enumerate(cards):
-            if c in const:
+        ax.set_xticks(range(len(self.principles)))
+        # --------------------------------------------------
+        # label each principle by its short id, rotated to fit
+        # --------------------------------------------------
+        ax.set_xticklabels([self.index.nodes[c].short_id or c for c in self.principles], rotation=90, fontsize=5.4)
+        return fig, ax
+
+    def save(self, fig: Figure, name: str) -> None:
+        """write one chart into the output directory and release it.
+
+        # Arguments
+
+        * `fig` - the finished figure
+        * `name` - its file name
+        """
+        # --------------------------------------------------
+        # fit, write, and release the figure
+        # --------------------------------------------------
+        fig.tight_layout()
+        fig.savefig(self.out / name, dpi=115)
+        plt.close(fig)
+
+    def draw(self, prompt: dict[str, Any]) -> list[tuple[float, str]]:
+        """draw one prompt's expected-vs-actual chart.
+
+        # Arguments
+
+        * `prompt` - one labelled prompt, {n, bucket, prompt}
+
+        # Returns
+
+        the expected-minus-actual gap per principle, for the summary
+        """
+        # --------------------------------------------------
+        # what recall scores for this prompt, against what the rubric judged
+        # --------------------------------------------------
+        n = prompt["n"]
+        found = self.index.recall(prompt["prompt"])
+        actual = [found.scores.explains(c) for c in self.principles]
+        expect = [max(0.0, self.judged.get(c, {}).get(n, {}).get("raw", 0.0)) / RUBRIC_MAX for c in self.principles]
+        fig, ax = self.axes()
+        xs = range(len(self.principles))
+        # --------------------------------------------------
+        # the two curves: judged relevance and recall's share of the task
+        # --------------------------------------------------
+        ax.plot(xs, expect, color="#c44", lw=1.4, marker="o", ms=3.2, label="expected (rubric, judged by Sonnet)")
+        ax.plot(xs, actual, color="#268", lw=1.4, marker="s", ms=3.2, label="actual (brain-recall share of task)")
+        # --------------------------------------------------
+        # the admission bars, each on the same 0-1 axis
+        # --------------------------------------------------
+        # a principle joins on EITHER route, so the bar that decides is the lower of
+        # its tier floor and the relative bar the recall used
+        ax.axhline(EXPLAIN_FLOOR, color="#999", ls="--", lw=1.0,
+                   label=f"absolute floor {EXPLAIN_FLOOR} (share of the task)")
+        ax.axhline(found.bar, color="#e80", ls="-.", lw=1.1,
+                   label=f"relative floor {BEST_SHARE}x best candidate = {found.bar:.2f}")
+        ax.axhline(REFERENCE_FLOOR, color="#999", ls=":", lw=1.0,
+                   label=f"reference floor {REFERENCE_FLOOR} - a principle an admitted one cites, "
+                         f"{MAX_REFERENCES} at most")
+        # --------------------------------------------------
+        # the bar each principle must clear, which differs by tier
+        # --------------------------------------------------
+        ax.hlines([self.index.bar_for(c, found.bar) for c in self.principles], [x - 0.4 for x in xs],
+                  [x + 0.4 for x in xs], color="#111", lw=1.6,
+                  label=f"EFFECTIVE admission per principle - the best {MAX_N} above it are read")
+        # --------------------------------------------------
+        # shade the constitution principles green and the score-admitted ones orange
+        # --------------------------------------------------
+        admitted = set(found.scored)
+        for i, c in enumerate(self.principles):
+            if c in self.const:
                 ax.axvspan(i - 0.4, i + 0.4, color="#2a8", alpha=0.13, lw=0)
-            elif actual[i] >= (R.NARROW_FLOOR if c in narrow else R.EXPLAIN_FLOOR) or actual[i] >= relative:
+            elif c in admitted:
                 ax.axvspan(i - 0.4, i + 0.4, color="#e80", alpha=0.13, lw=0)
-        ax.set_xticks(xs)
-        ax.set_xticklabels([c.replace("principle-", "P").replace("intent-", "i:")[:26]
-                            for c in cards], rotation=90, fontsize=5.4)
+        # --------------------------------------------------
+        # axes, title and legend
+        # --------------------------------------------------
         ax.set_ylim(-0.03, 1.05)
         ax.set_ylabel("relevance  (0-1)")
-        ax.set_xlabel("card   (green = constitution, always loaded | orange = admitted for this prompt)")
+        ax.set_xlabel("principle   (green = constitution, always loaded | orange = admitted by score for this prompt)")
         title = prompt["prompt"].replace("\n", " ")[:118]
         ax.set_title(f'{n:02d}. [{prompt["bucket"]}]  "{title}"', fontsize=9, loc="left")
         ax.legend(fontsize=7, loc="upper right", framealpha=0.9)
         ax.grid(alpha=0.16, lw=0.5)
-        fig.tight_layout()
-        fig.savefig(OUT / f"prompt-{n:02d}.png", dpi=115)
-        plt.close(fig)
+        # --------------------------------------------------
+        # write the chart, and hand back each principle's expected-minus-actual gap
+        # --------------------------------------------------
+        self.save(fig, f"prompt-{n:02d}.png")
+        return [(e - a, c) for e, a, c in zip(expect, actual, self.principles, strict=True)]
 
-    # --------------------------------------------------
-    # the summary: where the two disagree, over all 50
-    # --------------------------------------------------
-    missed = collections.Counter()
-    spurious = collections.Counter()
-    for gap, _n, c in gaps:
-        if gap >= 0.30:
-            missed[c] += 1
-        elif gap <= -0.30:
-            spurious[c] += 1
-    fig, ax = plt.subplots(figsize=(15, 5.2))
-    ax.bar([x - 0.2 for x in xs], [missed[c] for c in cards], width=0.4,
-           color="#c44", label="judged relevant, scored too low to be read")
-    ax.bar([x + 0.2 for x in xs], [-spurious[c] for c in cards], width=0.4,
-           color="#268", label="scored high, judged irrelevant")
-    ax.axhline(0, color="#333", lw=0.8)
-    ax.set_xticks(xs)
-    ax.set_xticklabels([c.replace("principle-", "P").replace("intent-", "i:")[:26]
-                        for c in cards], rotation=90, fontsize=5.4)
-    ax.set_ylabel("prompts (of 50)")
-    ax.set_title("where expected and actual disagree by more than 0.30, across all 50 prompts",
-                 fontsize=10, loc="left")
-    ax.legend(fontsize=8)
-    ax.grid(alpha=0.16, axis="y", lw=0.5)
-    fig.tight_layout()
-    fig.savefig(OUT / "summary-disagreement.png", dpi=115)
-    plt.close(fig)
+    def summary(self, gaps: list[tuple[float, str]], prompts: int) -> tuple[Counter[str], Counter[str]]:
+        """draw where expected and actual disagree, over every prompt.
 
-    print(f"wrote {len(prompts)} prompt charts + summary-disagreement.png -> {OUT}")
-    print(f"cards: {len(cards)} | constitution {len(const)} | narrow {len(narrow)}")
+        # Arguments
+
+        * `gaps` - every prompt's per-principle gaps
+        * `prompts` - how many prompts they span
+
+        # Returns
+
+        the (under-scored, over-scored) count per principle
+        """
+        # --------------------------------------------------
+        # count the prompts where a principle was judged relevant but scored too low, and the reverse
+        # --------------------------------------------------
+        missed = Counter(c for gap, c in gaps if gap >= DISAGREE)
+        spurious = Counter(c for gap, c in gaps if gap <= -DISAGREE)
+        fig, ax = self.axes()
+        xs = range(len(self.principles))
+        # --------------------------------------------------
+        # missed principles above the axis, spurious ones below
+        # --------------------------------------------------
+        ax.bar([x - 0.2 for x in xs], [missed[c] for c in self.principles], width=0.4,
+               color="#c44", label="judged relevant, scored too low to be read")
+        ax.bar([x + 0.2 for x in xs], [-spurious[c] for c in self.principles], width=0.4,
+               color="#268", label="scored high, judged irrelevant")
+        # --------------------------------------------------
+        # axis, title and legend
+        # --------------------------------------------------
+        ax.axhline(0, color="#333", lw=0.8)
+        ax.set_ylabel(f"prompts (of {prompts})")
+        ax.set_title(f"where expected and actual disagree by more than {DISAGREE:.2f}, across all {prompts} prompts",
+                     fontsize=10, loc="left")
+        ax.legend(fontsize=8)
+        ax.grid(alpha=0.16, axis="y", lw=0.5)
+        self.save(fig, "summary-disagreement.png")
+        return missed, spurious
+
+
+def main(args: Args) -> None:
+    """render one chart per prompt plus a summary, into OUT_DIR.
+
+    prints how many charts were written and the principles the score most under- and
+    over-rates against the rubric
+
+    # Arguments
+
+    * `args` - the parsed command line; the first positional is the labelled-set
+      directory, the optional second is the output directory (this script's own
+      folder by default)
+
+    # Raises
+
+    NoVerdict when the labelled set's two files cannot be read or parsed
+    """
+    # --------------------------------------------------
+    # the labelled set, and where the charts go
+    # --------------------------------------------------
+    paths = [Path(path) for path in args.positional()]
+    labelled, out = paths[0], paths[1] if len(paths) > 1 else HERE
+    try:
+        # --------------------------------------------------
+        # both judged files must read and parse
+        # --------------------------------------------------
+        relevance = json.loads(read_text(labelled / "relevance3.json"))
+        prompts = json.loads(read_text(labelled / "prompts2.json"))
+    except (OSError, ValueError) as broken:
+        raise NoVerdict(f"cannot read the labelled set: {broken}") from broken
+    # --------------------------------------------------
+    # the output folder, then the recall index and the judged scores for the principles it knows
+    # --------------------------------------------------
+    out.mkdir(parents=True, exist_ok=True)
+    index = RecallIndex.build(Layout.discover())
+    judged = {c: {int(k): v for k, v in s.items()} for c, s in relevance.items() if c in index.nodes}
+    # --------------------------------------------------
+    # one chart per labelled prompt, then the summary across all of them
+    # --------------------------------------------------
+    charts = Charts(index, out, judged)
+    gaps = [gap for prompt in prompts for gap in charts.draw(prompt)]
+    missed, spurious = charts.summary(gaps, len(prompts))
+    # --------------------------------------------------
+    # report what was written and where recall and the rubric disagree most
+    # --------------------------------------------------
+    narrow = sum(1 for node in index.nodes.values() if node.tier == Tier.NARROW)
+    print(f"wrote {len(prompts)} prompt charts + summary-disagreement.png -> {out}")
+    print(f"principles: {len(charts.principles)} | constitution {len(charts.const)} | narrow {narrow}")
     print(f"biggest under-scored: {missed.most_common(5)}")
     print(f"biggest over-scored : {spurious.most_common(5)}")
 
 
 if __name__ == "__main__":
-    main()
+    Tool(TOOL, __doc__, positionals=(1, 2)).run(main)

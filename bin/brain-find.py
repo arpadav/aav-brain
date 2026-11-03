@@ -3,66 +3,49 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-find: print the discovered brain repo root, no hardcoded path.
+"""b-find: print the discovered brain repo root, no hardcoded path.
 
-the discovery idiom (P01-ish: never guess a path): a skill does not assume
-`$AAV_BRAIN` is exported. it runs this, which locates the brain via find_brain
-(this file's own location -> the ~/.agents skill symlink -> ~/.claude) and prints
-the root, so every skill resolves the store the same way on any machine. there is
-deliberately NO hardcoded-path fallback - a guess at a conventional checkout would
-resolve a STALE sibling, so discovery fails loud instead (P32). the brain is ONE
-repo: `AAV_BRAIN` is the single anchor and the agents / skills / bin dirs all
-derive from it
+every command finds the root from its own location (P32). home-manager
+exports it as `$AAV_BRAIN` and its short alias `$AVB`, which the skills and
+agents read brain files off; this prints the root `find_brain` discovers, or
+the line that exports both, for a shell that has neither
 
-    python3 brain-find.py             print the aav-brain root
-    python3 brain-find.py --export    print the shell `export AAV_BRAIN=...` line to eval
-    python3 brain-find.py --agents    print the agents dir (<root>/agentic-files/agents)
-    python3 brain-find.py --skills    print the skills dir (<root>/agentic-files/skills)
-    python3 brain-find.py --bin       print the bin/ dir (where the scripts live)
+    b-find       print the aav-brain root
+    b-find -e    print the shell `export AAV_BRAIN=... AVB=...` line to eval
 
 Author: aav
 """
+# brainlib lives in bin/, beside this script; `python -I` leaves the script's dir off sys.path
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Env, Flag, Layout
-
-# --------------------------------------------------
-# external
-# --------------------------------------------------
-from pathlib import Path
+from brainlib import Args, Env, Flag, Layout, Tool
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 
-def main() -> None:
-    """resolve the brain root and print it in the requested form."""
-    layout = Layout.discover()
-    args = Args.from_argv()
+
+def main(args: Args) -> None:
+    """print the brain root, or under `-e` the line that exports it.
+
+    # Arguments
+
+    * `args` - the parsed command line; `-e` picks the export line
+    """
     # --------------------------------------------------
-    # selectors: one derived path, for direct substitution. the root itself has no
-    # flag - it is the default, and a second spelling for it would be two ways to
-    # ask one question
+    # discover the root, then print it bare or as the export line
     # --------------------------------------------------
-    selectors = {Flag.AGENTS: layout.agents, Flag.SKILLS: layout.skills, Flag.BIN: layout.bin}
-    args.gate(TOOL, __doc__, Flag.EXPORT, *selectors)
-    for flag, path in selectors.items():
-        if args.has(flag):
-            print(path)
-            return
-    # --------------------------------------------------
-    # export: shell-evalable. the brain is one repo, so `AAV_BRAIN` is the single
-    # irreducible anchor - bin, agents, and skills all derive from it
-    # (`$AAV_BRAIN/bin`, `brain-find --agents`/`--skills`), none is its own var (P32)
-    # --------------------------------------------------
-    if args.has(Flag.EXPORT):
-        print(f"export {Env.AAV_BRAIN}={layout.root}")
-    else:
-        print(layout.root)
+    root = str(Layout.discover().root)
+    print(Env.export(root, Env.AAV_BRAIN, Env.AVB) if args.has(Flag.EXPORT) else root)
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__).run(main)

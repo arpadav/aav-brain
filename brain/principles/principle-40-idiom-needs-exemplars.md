@@ -57,7 +57,7 @@ Env.XDG_DATA_HOME.read()               # after
 **4. a status code carries its meaning**
 ```python
 sys.exit(1)                            # before
-sys.exit(Exit.DRIFT)                   # after
+return Exit.FINDINGS                   # after: from a main that `Tool.run` ends
 ```
 
 **5. a constant argument repeated at every call belongs to the module**
@@ -68,8 +68,8 @@ read_text(path)                        # after
 
 **6. logic lives on a type, not loose in a module ([[principle-26-struct-based]])**
 ```python
-def card_dirs(store): return [store / "principles", store / "intents"]   # before
-layout.card_dirs                                                        # after
+def principle_dirs(store): return [store / "principles", store / "intents"]   # before
+layout.principle_dirs                                                        # after
 ```
 
 **7. modern generics, no deprecated typing aliases**
@@ -86,9 +86,11 @@ def load() -> Aperture:                # after
 
 **9. an unrecognised flag is rejected, not ignored**
 ```python
-# before: a typo in --check silently ran the default path
+# before: each script rejected by hand, and only `--` typos; `-h` ran the default path
 if unknown := args.unknown(Flag.CHECK):
     sys.exit(f"{TOOL}: unknown flag {unknown[0]}")
+# after: declared once; any other flag, one dash or two, is a USAGE refusal
+Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)
 ```
 
 **10. a value declared in N places is declared once**
@@ -105,7 +107,7 @@ PYTHON_VERSION = "3.12"   # after: named once, referenced
   find any more" is part of the ask, not a caveat on it.
 - learning a new rule from him -> capture the pair, not just the sentence. a rule that arrives
   without an example is not yet finished.
-- the catalogue GROWS. every correction he gives adds a row; that is what keeps this card from
+- the catalogue GROWS. every correction he gives adds a row; that is what keeps this principle from
   going abstract again.
 
 ## orthogonality

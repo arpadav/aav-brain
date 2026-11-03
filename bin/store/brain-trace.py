@@ -3,37 +3,36 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-trace: append to and read the brain's decision-trace log.
+r"""b-trace: append to and read the brain's decision-trace log.
 
 the trace (the private data dir's trace/decisions.jsonl, OUTSIDE the repo - see
-brainlib.find_data) is append-only reasoning history. the
+brainlib.XdgLayout.data) is append-only reasoning history. the
 point is the decided-AGAINST entries: when a later session disagrees with a
 past call, the trace shows WHERE it was made (the `affects` pointer) so it can
 be reversed precisely. brain-meta-curate and brain-self-refine read it
 
 an entry about an architecture the brain has since left is noise in every one
 of those reads, so the trace can FORGET - but only by marking, never by
-deleting. `--prune` sets `stale` and the readers skip it; `--restore` clears
+deleting. `-x` sets `stale` and the readers skip it; `-b` clears
 the mark and sets `pinned`, which prunes refuse to touch. that is what makes
 forgetting reversible: reintroducing an entry is clearing a flag, not
 recovering a line from a backup that was never taken
 
-    # append a decision (each --reject is option=why it was rejected). SINGLE-quote
+    # append a decision (each -r is option=why it was rejected). SINGLE-quote
     # every value: a decision text is data, not something for the shell to expand
-    python3 brain-trace.py --skill brain-plan --decision '...' --chosen '...' \
-        --reject 'three scripts=violates P19' --affects bin/check/brain-fmt.py --principle P19
-    #   optional: --confidence high|medium|low   --supersedes TS   --session ID
+    b-trace -k brain-plan -d '...' -c '...' \
+        -r 'three scripts=violates P19' -a bin/check/brain-fmt.py -p P19
+    #   optional: -u TS (supersedes)   -s ID (session)
 
-    # read decisions worth revisiting (--against and --reject are kept distinct:
-    # --reject WRITES a rejected option, --against READS entries that have one)
-    python3 brain-trace.py --against            entries that rejected an option
-    python3 brain-trace.py --low-confidence     entries marked low confidence
+    # read decisions worth revisiting (-g and -r are kept distinct:
+    # -r WRITES a rejected option, -g READS entries that have one)
+    b-trace -g             entries that rejected an option
 
     # pruning: a mark, never a delete. only brain-self-refine prunes
-    python3 brain-trace.py --stale-candidates      entries whose affects resolves to nothing
-    python3 brain-trace.py --prune TS [--prune TS] mark stale; readers skip it
-    python3 brain-trace.py --restore TS           unmark AND pin, so it cannot be pruned again
-    python3 brain-trace.py --pruned               what is currently marked stale
+    b-trace -S             entries whose affects resolves to nothing
+    b-trace -x TS [-x TS]  mark stale; readers skip it
+    b-trace -b TS          bring back: unmark AND pin, so it cannot be pruned again
+    b-trace -l             list what is currently marked stale
 
 Author: aav
 """
@@ -46,7 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, DataLayout, Decision, Env, Exit, Flag, Layout, Ledger, PrunePolicy, find_repo
+from brainlib import Args, DataLayout, Decision, Env, Flag, Layout, Ledger, PrunePolicy, Tool, UsageError, find_repo
 
 # --------------------------------------------------
 # external
@@ -58,8 +57,16 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
+# each mode is selected by its own flags; a token that merely SPELLS another
+# mode's flag must not silently re-route the run, so Tool refuses mixing them
+MODES: tuple[tuple[str, tuple[Flag, ...]], ...] = (
+    ("mark", (Flag.PRUNE, Flag.RESTORE)),
+    ("candidates", (Flag.STALE_CANDIDATES,)),
+    ("read", (Flag.AGAINST, Flag.PRUNED)),
+    ("append", (Flag.SKILL, Flag.DECISION, Flag.CHOSEN)),
+)
 
 class Locality(StrEnum):
     """where an entry's `affects` pointer stands relative to this repo.
@@ -168,18 +175,7 @@ class Trace:
 
         * `args` - the parsed command line, carrying --prune / --restore timestamps
         """
-        # --------------------------------------------------
-        # refuse a malformed request BEFORE writing anything: a flag that lost
-        # its value is a typo, and half-applying it is worse than refusing
-        # --------------------------------------------------
         asked, restoring = args.values(Flag.PRUNE), args.values(Flag.RESTORE)
-        if starved := args.starved(Flag.PRUNE, Flag.RESTORE):
-            print(f"{TOOL}: {', '.join(starved)} given no timestamp", file=sys.stderr)
-            sys.exit(Exit.USAGE)
-        if not asked and not restoring:
-            print(f"{TOOL}: no timestamp given; `--prune TS` and `--restore TS` each need one",
-                  file=sys.stderr)
-            sys.exit(Exit.USAGE)
         # --------------------------------------------------
         # a pin outranks a prune, so collect the pinned set first
         # --------------------------------------------------
@@ -307,9 +303,7 @@ class Trace:
             # what makes the mark equivalent to a delete without being one
             if bool(row.get("stale")) != only_pruned:
                 continue
-            keep = only_pruned or (args.has(Flag.AGAINST) and row.get("against")) or (
-                args.has(Flag.LOW_CONFIDENCE) and row.get("confidence") == "low")
-            if keep:
+            if only_pruned or (args.has(Flag.AGAINST) and row.get("against")):
                 self.show(row, overturned)
     def append(self, args: Args) -> None:
         """log one decision to the trace.
@@ -317,15 +311,17 @@ class Trace:
         # Arguments
 
         * `args` - the parsed command line, carrying the decision's fields
+
+        # Raises
+
+        UsageError when --skill, --decision or --chosen is missing
         """
         # --------------------------------------------------
         # the three fields without which a record is unreadable later (P38)
         # --------------------------------------------------
         required = {flag: args.value(flag) for flag in (Flag.SKILL, Flag.DECISION, Flag.CHOSEN)}
         if missing := [flag for flag, value in required.items() if not value]:
-            print(f"{TOOL}: no value for {', '.join(missing)}; `--help` lists what it accepts",
-                  file=sys.stderr)
-            sys.exit(Exit.USAGE)
+            raise UsageError(f"no value for {', '.join(flag.spelling for flag in missing)}")
         # --------------------------------------------------
         # each --reject is one option=why pair
         # --------------------------------------------------
@@ -339,7 +335,6 @@ class Trace:
             affects=args.value(Flag.AFFECTS),
             repo=find_repo(),
             principle=args.values(Flag.PRINCIPLE),
-            confidence=args.value(Flag.CONFIDENCE, "medium"),
             supersedes=args.value(Flag.SUPERSEDES),
         )
         # --------------------------------------------------
@@ -350,34 +345,16 @@ class Trace:
         print(f"{TOOL}: appended -> {written}")
 
 
-# each mode is selected by its own flags; a token that merely SPELLS another
-# mode's flag must not silently re-route the run, so mixing them is refused
-MODES: tuple[tuple[str, tuple[Flag, ...]], ...] = (
-    ("mark", (Flag.PRUNE, Flag.RESTORE)),
-    ("candidates", (Flag.STALE_CANDIDATES,)),
-    ("read", (Flag.AGAINST, Flag.LOW_CONFIDENCE, Flag.PRUNED)),
-    ("append", (Flag.SKILL, Flag.DECISION, Flag.CHOSEN)),
-)
+def main(args: Args) -> None:
+    """dispatch the requested trace mode; none named is an append attempt.
 
+    # Arguments
 
-def main() -> None:
-    """dispatch the requested trace mode."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.SKILL, Flag.DECISION, Flag.CHOSEN, Flag.REJECT, Flag.AFFECTS,
-              Flag.PRINCIPLE, Flag.CONFIDENCE, Flag.SUPERSEDES, Flag.SESSION, Flag.AGAINST,
-              Flag.LOW_CONFIDENCE, Flag.STALE_CANDIDATES, Flag.PRUNE, Flag.RESTORE, Flag.PRUNED)
-    # --------------------------------------------------
-    # exactly one mode, or none (which is an append attempt)
-    # --------------------------------------------------
-    picked = [name for name, flags in MODES if any(args.has(flag) for flag in flags)]
-    if len(picked) > 1:
-        print(f"{TOOL}: {' and '.join(picked)} flags cannot be combined", file=sys.stderr)
-        sys.exit(Exit.USAGE)
-    # --------------------------------------------------
-    # one trace, four modes
-    # --------------------------------------------------
+    * `args` - the parsed command line; its flags pick `mark`, `candidates` or
+      `read`, and an append reads the decision's own fields (`--skill`, `--decision`, `--chosen`...)
+    """
     trace = Trace.discover()
-    mode = picked[0] if picked else "append"
+    mode = next((name for name, flags in MODES if any(args.has(flag) for flag in flags)), "append")
     if mode == "mark":
         trace.mark(args)
     elif mode == "candidates":
@@ -389,4 +366,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    Tool.of(TOOL, __doc__, modes=tuple(flags for _, flags in MODES)).run(main)

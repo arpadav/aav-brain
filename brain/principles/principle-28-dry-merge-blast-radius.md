@@ -5,9 +5,9 @@ tier: narrow
 rule: merge DRY-violating structs/files even when it touches many files and peripherals. do NOT be dissuaded by a large amount of work. keep things separate ONLY for a real reason beyond programming laziness; otherwise ALWAYS change it.
 interest: [intent-craft]
 confidence: very-high
-evidence_count: 4
+evidence_count: 5
 binds: [code]
-tells: ["2 structs ... identical purposes ... i want to merge", "touches many more files and peripherals", "do NOT be dissuaded by a large amount of work", "real reason BESIDES programming laziness", "it should ALWAYS be changed"]
+tells: ["2 structs ... identical purposes ... i want to merge", "touches many more files and peripherals", "do NOT be dissuaded by a large amount of work", "real reason BESIDES programming laziness", "it should ALWAYS be changed", "dont be so hard-stuck, i said merge it, that means rename it and all. i just dont want 2 cards, use DRY man"]
 ---
 
 # P28 - DRY-merge despite blast radius
@@ -25,6 +25,9 @@ once is cheaper than two diverging copies maintained forever. large refactors ar
 improve structure ([[principle-20-refactors-welcome]]). the work is the point, not the deterrent.
 
 ## how to apply
+- principles are code too: "merge" two principles means ONE principle - renamed to fit the merged rule, the other
+  file deleted, every link repointed. keeping both with a pointer, or asking which name to keep, is the
+  hesitation he called hard-stuck (2026-11-02).
 - find a duplicate purpose -> trace the full blast radius (every file/peripheral that touches either
   side) and merge across all of them. the relevant set EXPANDS as you find dependents
   ([[principle-29-interrogate-the-work]]) - follow it.
@@ -41,8 +44,8 @@ despite the blast radius); [[principle-31-libraryfy-shared]] is the standing PAT
 a datatype/helper live in one shared library. pre-write vs remediate vs standing-rule.
 
 ## how it is found
-`brain-shape.py <repo>` reports every nominal type declared in two or more files, which is the
-mechanical half of this card. it is a FINDING list, never a merge order - a `Config` in two
+`b-shape <repo>` reports every nominal type declared in two or more files, which is the
+mechanical half of this principle. it is a FINDING list, never a merge order - a `Config` in two
 unrelated crates is not a violation, and the judgement of which duplicates are real stays yours
 ([[principle-19-think-in-code-ops]], [[principle-27-organization-reorg]]). the important property
 is that it reads the WHOLE TREE: duplication is invisible in a diff by construction, because the

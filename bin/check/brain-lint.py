@@ -3,11 +3,12 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-lint: run every python checker that is installed, against its pinned config.
+"""b-lint: run every python checker that is installed, against its pinned config.
 
-    python3 brain-lint.py                 check the configured paths
-    python3 brain-lint.py bin/foo.py      check specific paths instead
-    python3 brain-lint.py --list          show which checkers are reachable, run none
+    b-lint             check the configured paths
+    b-lint bin/foo.py  check specific paths instead, relative to the brain root
+    b-lint -l          show which checkers are reachable, run none
+    b-lint -v          echo every checker's full command line
 
 four checkers, four configs, one command. they do not overlap: ruff is a linter
 and cannot see types at all - a bare `dict` annotation is invisible to every one
@@ -18,9 +19,17 @@ as skipped, never silently dropped, because a green run that quietly checked two
 of four tools is the kind of false confidence this exists to prevent
 
 each checker resolves the same way: use it directly if it is on PATH, else run
-it through `uvx` if uv is there, else skip it and say so. every checker's own
-output is printed verbatim, and the totals in the summary are the ones the tool
-itself reported - this script never counts findings on a tool's behalf
+it through `uvx` if uv is there, else skip it and say so. a checker that exited
+non-zero, findings or a crash, has its own output printed verbatim, in full; a
+clean one's prints only under `--verbose`. the totals in the summary are the
+ones the tool itself reported - this script never counts findings on a tool's
+behalf
+
+the summary names each checker, its verdict and its config. a checker's full
+command line - the repo root it runs in, mypy's MYPYPATH, then the argv, which
+for doctest names every file it checks - prints only for one that exited
+non-zero, findings or a crash, so it can be pasted to rerun it; or for every
+checker under `--verbose`
 
 Author: aav
 """
@@ -33,13 +42,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import PYTHON_VERSION, Args, Flag, Layout, read_text
+from brainlib import ENCODING, PYTHON_VERSION, Args, Exit, Flag, Layout, Tool, read_text
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from collections.abc import Sequence
@@ -48,8 +58,8 @@ from dataclasses import dataclass
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 # what gets checked when no path is given on the command line
@@ -64,6 +74,7 @@ SCRIPT_BLOCK = re.compile(r"^# /// script\n(?P<body>(?:^#.*\n)+?)^# ///$", re.MU
 # extras ("pydantic[email]") holds a `]` of its own, and a lazy match ends the
 # list there and reports zero dependencies for a script that declared several
 DECLARED = re.compile(r"dependencies\s*=\s*\[(?P<items>.*)\]", re.DOTALL)
+# one quoted requirement inside the declared list, in either quote style
 REQUIREMENT = re.compile(r"[\"\']([^\"\']+)[\"\']")
 
 
@@ -79,7 +90,7 @@ class Target:
     # Example
 
         target = Target(paths=("bin",), root=find_brain())
-        target.search_paths      # the one directory bin/ scripts import from
+        target.search_paths      # bin/ and each script folder under it; brainlib, a package, is not one
     """
 
     paths: Sequence[str]
@@ -103,10 +114,16 @@ class Target:
     def search_paths(self) -> tuple[str, ...]:
         """the directories a checked file imports its siblings from.
 
-        a script is not a package: it reaches the modules beside it through its
-        own directory on `sys.path`, so a checker has to be told the same thing -
-        per run, from the paths given, never from a relative entry in a config
-        that a foreign script re-resolves against itself
+        a script is not a package: it reaches the modules beside it through a
+        directory on `sys.path` - its own dir by default, and under
+        `python -I`, which leaves that off, the dir it inserts itself - so a
+        checker has to be told the same thing: per run, from the paths given,
+        never from a relative entry in a config that a foreign script
+        re-resolves against itself
+
+        a script under the brain's bin/ inserts bin/ itself, however deep it
+        sits (`bin/run/brain-walk.py` reaches brainlib that way), so bin/ is a
+        search root whenever a checked file lies under it
 
         a directory holding an `__init__.py` IS a package and is deliberately
         excluded: its modules are reached through their parent as `pkg.module`,
@@ -116,9 +133,17 @@ class Target:
 
         # Returns
 
-        one absolute directory per distinct parent, sorted, packages excluded
+        one absolute directory per distinct parent, plus bin/ for a file under
+        it, sorted, packages excluded
+
+        # Example
+
+            >>> Target(paths=("bin/run/brain-walk.py",), root=Path("/r")).search_paths
+            ('/r/bin', '/r/bin/run')
         """
+        brain_bin = Layout(self.root).bin
         parents = {path.parent for path in self.files}
+        parents |= {brain_bin} if any(path.is_relative_to(brain_bin) for path in self.files) else set()
         return tuple(sorted(str(parent) for parent in parents
                             if not (parent / "__init__.py").is_file()))
 
@@ -197,6 +222,25 @@ class Checker:
             return dict(os.environ)
         return {**os.environ, self.search_env: os.pathsep.join(target.search_paths)}
 
+    def rerun(self, argv: Sequence[str], target: Target) -> str:
+        """one shell line that reruns this checker as brain-lint ran it, from any cwd.
+
+        # Arguments
+        * `argv` - the full argv brain-lint ran
+        * `target` - the paths checked, whose root is the cwd and whose search paths fill `search_env`
+
+        # Returns
+        `cd <root> && [VAR=<paths>] <argv>`, every part shell-quoted
+
+        # Example
+
+            >>> mypy = Checker(name="mypy", config="mypy.ini", args=(), total_re="", search_env="MYPYPATH")
+            >>> mypy.rerun(["mypy", "bin/x y.py"], Target(paths=("bin/x y.py",), root=Path("/r")))
+            "cd /r && MYPYPATH=/r/bin mypy 'bin/x y.py'"
+        """
+        variable = f"{self.search_env}={shlex.quote(os.pathsep.join(target.search_paths))} " if self.search_env else ""
+        return f"cd {shlex.quote(str(target.root))} && {variable}{shlex.join(argv)}"
+
     def command(self, dependencies: Sequence[str] = ()) -> list[str] | None:
         """the argv prefix that runs this checker on this machine.
 
@@ -237,7 +281,8 @@ class Outcome:
     """what one checker did on one run."""
 
     checker: Checker
-    command: list[str] | None = None
+    # the shell line that reruns it (`Checker.rerun`); None when it never ran
+    command: str | None = None
     code: int | None = None
     total: int | None = None
 
@@ -250,19 +295,45 @@ class Outcome:
         """
         return self.command is None
 
-    def line(self) -> str:
-        """the one-line summary for this checker.
+    def summary(self, *, verbose: bool = False) -> str:
+        """this checker's summary: its name, verdict and config, and its command when wanted.
+
+        the command follows on a second line for a checker that exited
+        non-zero (findings, or a crash), so it can be pasted to rerun it, and
+        for every checker under `verbose`
+
+        # Arguments
+
+        * `verbose` - add the command under a clean checker too
 
         # Returns
-        the summary line: skipped, clean, or the finding count
+
+        one line - skipped, clean, or the finding count - then the command's
+        line when it is wanted
+
+        # Example
+
+            >>> ruff = Checker(name="ruff", config="ruff.toml", args=(), total_re="")
+            >>> print(Outcome(ruff, "cd /r && ruff check bin", 0).summary())
+              ruff           clean      config ruff.toml
+            >>> print(Outcome(ruff, "cd /r && ruff check bin", 1, 3).summary())
+              ruff              3 FOUND config ruff.toml
+                via `cd /r && ruff check bin`
+            >>> print(Outcome(ruff).summary(verbose=True))
+              ruff           SKIPPED    not installed, and uv is not available to fetch it
         """
+        # --------------------------------------------------
+        # a checker that never ran has no verdict and no command
+        # --------------------------------------------------
         if self.command is None:
-            return f"  {self.checker.name:14} SKIPPED   not installed, and uv is not available to fetch it"
-        how = " ".join(self.command)
-        if self.code == 0:
-            return f"  {self.checker.name:14} clean     via `{how}`, config {self.checker.config}"
+            return f"  {self.checker.name:14} {'SKIPPED':10} not installed, and uv is not available to fetch it"
+        # --------------------------------------------------
+        # the verdict and config, then the command when it failed or is asked for
+        # --------------------------------------------------
         count = "?" if self.total is None else str(self.total)
-        return f"  {self.checker.name:14} {count:>4} FOUND via `{how}`, config {self.checker.config}"
+        verdict = "clean" if self.code == 0 else f"{count:>4} FOUND"
+        line = f"  {self.checker.name:14} {verdict:10} config {self.checker.config}"
+        return f"{line}\n    via `{self.command}`" if verbose or self.code != 0 else line
 
 
 @dataclass
@@ -270,10 +341,11 @@ class Suite:
     """every checker, run against one set of paths."""
 
     checkers: Sequence[Checker]
-    root: Path
+    # echo every checker's full command, not only a failed one's
+    verbose: bool = False
 
     def run_one(self, checker: Checker, target: Target) -> Outcome:
-        """run a single checker, streaming its own output.
+        """run a single checker, printing its own output when it exited non-zero or under verbose.
 
         # Arguments
         * `checker` - the checker to run
@@ -289,31 +361,34 @@ class Suite:
         if command is None:
             return Outcome(checker=checker)
         # --------------------------------------------------
-        # build the argv and echo it, so a run is reproducible from the log
+        # build the argv; it heads the output under verbose, and the summary repeats a failed one's
         # --------------------------------------------------
         argv = command + list(checker.args) + checker.resolve(target)
-        print(f"\n$ {' '.join(argv)}")
+        rerun = checker.rerun(argv, target)
         # stderr is merged rather than suppressed: a checker that dies on a bad
-        # config must be visible as a failure, not as a clean run (P36)
+        # config must be visible as a failure, not as a clean run (P36). a byte
+        # that is not utf-8 prints as a replacement character, never a crash
         # argv is built from this file's own CHECKERS table plus paths he typed;
         # nothing here is remote input, and shell=False keeps it an exec not a shell (S603)
-        result = subprocess.run(argv, cwd=self.root, env=checker.environment(target),  # noqa: S603
-                                capture_output=True, text=True, check=False)
+        result = subprocess.run(argv, cwd=target.root, env=checker.environment(target),  # noqa: S603
+                                capture_output=True, encoding=ENCODING, errors="replace", check=False)
         # --------------------------------------------------
-        # surface the tool's own output, then carry its verdict back
+        # a failed checker's own output in full, a clean one's only under verbose; then its verdict
         # --------------------------------------------------
         output = result.stdout + result.stderr
-        print(output.rstrip() or "(no output)")
-        return Outcome(checker=checker, command=argv, code=result.returncode, total=checker.total(output))
+        if self.verbose or result.returncode != 0:
+            print(f"$ {rerun}" if self.verbose else f"== {checker.name}")
+            print(f"{output.rstrip() or '(no output)'}\n")
+        return Outcome(checker=checker, command=rerun, code=result.returncode, total=checker.total(output))
 
-    def run(self, target: Target) -> int:
+    def run(self, target: Target) -> Exit:
         """run every checker and summarise.
 
         # Arguments
         * `target` - the paths to check and what they import from
 
         # Returns
-        the exit code: 1 if any reachable checker reported findings
+        FINDINGS if any reachable checker reported findings, else OK
         """
         # --------------------------------------------------
         # run every checker
@@ -322,9 +397,9 @@ class Suite:
         # --------------------------------------------------
         # report one line per checker
         # --------------------------------------------------
-        print("\nbrain-lint summary")
+        print(f"{TOOL}:")
         for outcome in outcomes:
-            print(outcome.line())
+            print(outcome.summary(verbose=self.verbose))
         # --------------------------------------------------
         # partition into ran / dirty / skipped, and rule on the suite
         # --------------------------------------------------
@@ -335,9 +410,9 @@ class Suite:
             print(f"  {len(skipped)} checker(s) skipped - this run does NOT cover what they would catch")
         if dirty:
             print(f"  {len(dirty)} of {len(ran)} reachable checker(s) reported findings")
-            return 1
+            return Exit.FINDINGS
         print(f"  all {len(ran)} reachable checker(s) clean")
-        return 0
+        return Exit.OK
 
 # --------------------------------------------------
 # constants
@@ -360,19 +435,30 @@ CHECKERS = (
 )
 
 
-def main() -> None:
-    """run the suite, or list what is reachable."""
-    args = Args.from_argv()
-    args.gate(TOOL, __doc__, Flag.LIST)
+def main(args: Args) -> Exit:
+    """run the suite, or list what is reachable.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--list` prints each checker and how it
+      is invoked instead of running, `--verbose` echoes every checker's full
+      command, positionals are the paths to check
+
+    # Returns
+
+    `Exit.OK` after a listing, else the suite's own status over the target
+    """
     if args.has(Flag.LIST):
+        width = max(len(str(checker.config)) for checker in CHECKERS)
         for checker in CHECKERS:
             command = checker.command()
             how = " ".join(command) if command else "unreachable"
-            print(f"  {checker.name:14} {how:24} config {checker.config}")
-        return
+            print(f"  {checker.name:14} config {checker.config!s:{width}} {how}")
+        return Exit.OK
     target = Target(paths=args.positional() or list(DEFAULT_PATHS), root=LAYOUT.root)
-    sys.exit(Suite(checkers=CHECKERS, root=LAYOUT.root).run(target))
+    return Suite(checkers=CHECKERS, verbose=args.has(Flag.VERBOSE)).run(target)
 
 
 if __name__ == "__main__":
-    main()
+    # a listing starts no checker, so it has none to echo
+    Tool.of(TOOL, __doc__, positionals=(0, None), modes=((Flag.LIST,), (Flag.VERBOSE,))).run(main)
