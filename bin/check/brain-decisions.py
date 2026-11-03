@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-decisions: question the brain's PAST decisions instead of confirming them.
+"""b-decisions: question the brain's PAST decisions instead of confirming them.
 
 every other scan check measures conformance to a decision already made - drift
 against a build, lint against a config, shape against shape.toml. none of them
@@ -14,13 +14,13 @@ from a hand-kept list:
 
 - generated: which TRACKED files a builder in bin/ writes, or that .gitignore
   already disowns - and whether shape.toml states why each is committed
-- reach: how many files outside a unit (skill, agent, flow state, principle
-  card) name it - the cost of every past decision to extend it in place
+- reach: how many files outside a unit (skill, agent, flow state,
+  principle) name it - the cost of every past decision to extend it in place
 - untraced: decision-making skills (the entries plus every flow-state owner)
   that never logged a fork to the decision trace (CONSTITUTION)
 
-    python3 brain-decisions.py                       all three questions
-    python3 brain-decisions.py generated|reach|untraced [...]   only those
+    b-decisions                                 all three questions
+    b-decisions generated|reach|untraced [...]  only those
 
 exits non-zero when any question has a finding
 
@@ -50,8 +50,8 @@ from types import SimpleNamespace
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 
 # every path inside the brain, spelled once (brainlib.Layout)
 LAYOUT = Layout.discover()
@@ -153,7 +153,7 @@ class Builders:
 
     @classmethod
     def derive(cls, layout: Layout) -> "Builders":
-        """parse every bin/ tool and collect its builders' outputs.
+        """parse every brain script and collect its builders' outputs.
 
         # Arguments
 
@@ -164,12 +164,10 @@ class Builders:
         the derived outputs
         """
         # --------------------------------------------------
-        # every script under bin/ except the library may declare a builder
+        # every brain script may declare a builder
         # --------------------------------------------------
         builders = cls(layout.root)
-        for script in sorted(layout.bin.rglob("*.py")):
-            if "brainlib" in script.parts:
-                continue
+        for script in layout.scripts:
             # --------------------------------------------------
             # read its module-level paths and its Artifact subclasses
             # --------------------------------------------------
@@ -420,7 +418,7 @@ class Questions:
         home is excluded from its own count
         """
         # --------------------------------------------------
-        # every unit of the brain that something else might name: skills, agents, flow states and cards
+        # every unit of the brain that something else might name: skills, agents, flow states and principles
         # --------------------------------------------------
         root = self.layout.root
         for skill in sorted(p for p in self.layout.skills.iterdir() if p.is_dir()):
@@ -429,9 +427,9 @@ class Questions:
             yield "agent", agent.stem, (agent.stem,), agent.relative_to(root).as_posix()
         for state in self.flow.states:
             yield "state", state, (state,), f"{self.layout.flow_dir.relative_to(root).as_posix()}/"
-        for card in Graph.build(self.layout).nodes.values():
-            names = tuple(name for name in (card.id, card.short_id) if name)
-            yield "card", card.id, names, Path(card.path).as_posix()
+        for principle in Graph.build(self.layout).nodes.values():
+            names = tuple(name for name in (principle.id, principle.short_id) if name)
+            yield "principle", principle.id, names, Path(principle.path).as_posix()
 
     def reach(self) -> None:
         """report each unit named from more files outside it than the threshold allows.
@@ -464,7 +462,7 @@ class Questions:
         # report widest reach first
         # --------------------------------------------------
         for count, kind, unit in sorted(rows, reverse=True):
-            print(f"  reach  {kind:<5}  {unit}  named in {count} file(s) outside it (limit {self.policy.reach_files})")
+            print(f"  reach  {kind:<9}  {unit}  named in {count} file(s) outside it (limit {self.policy.reach_files})")
         self.findings += len(rows)
 
     def untraced(self) -> None:
@@ -533,4 +531,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, positionals=(0, None)).run(main)
+    Tool.of(TOOL, __doc__, positionals=(0, None)).run(main)

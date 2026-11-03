@@ -5,14 +5,11 @@ description: "Translate a request from POSITION (the literal demand) to INTEREST
 
 # brain-meta-intent: positions to interests, ask before assuming
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
-discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
-
+## setup
 load the method:
-- `$AAV_BRAIN/docs/INTENT_MAP.md` (the positions->interests table; Fisher & Ury: focus on interests not positions; BATNA)
-- `$AAV_BRAIN/brain/intents/*.md` (the six interest cards)
-- `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the request on the next line, then `EOF`, for task-specific cards
+- `$AVB/docs/INTENT_MAP.md` (the positions->interests table; Fisher & Ury: focus on interests not positions; BATNA)
+- `$AVB/brain/intents/*.md` (the six interests)
+- `b-recall <<'EOF'`, the request on the next line, then `EOF`, for task-specific principles
 
 ## what to produce
 0. PURPOSE, asked at the beginning. what is this artifact FOR - a scratch/learning workspace, a
@@ -27,7 +24,7 @@ load the method:
 1. position. restate what he asked, verbatim where useful.
 2. atomic identity. the literal action(s) the demand names.
 3. interest(s). map to CONTROL / TRUST / EFFICIENCY / CRAFT / COMPREHENSION / SOVEREIGNTY. cite the
-   card. say why this is the real need.
+   principle. say why this is the real need.
 4. best way to serve it. usually the literal position, but say so. if a different action serves the
    interest better here, propose it. serving the interest is the goal; the position is a means.
 5. ambiguities. the real decisions hiding in the request, 2-3 max, each with options + a rec. if any
@@ -89,8 +86,8 @@ a `blocked` transition is for when NOTHING can proceed without it, which is rare
 choosing WHICH reading of an ambiguous request wins is a fork that rejected a real option, so
 it is logged at the moment it is decided - never deferred:
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-meta-intent --decision "<the ambiguity>" \
-    --chosen "<the reading taken>" --reject "<other reading>=<why not>" --principle P01
+b-trace -k brain-meta-intent -d '<the ambiguity>' \
+    -c '<the reading taken>' -r '<other reading>=<why not>' -p P01
 ```
 this skill had ZERO trace entries across 531 recorded decisions - an unlogged fork gets
 re-litigated on the next run, which is the entire reason the trace exists.

@@ -32,5 +32,5 @@ heat after the same rule (code inside prose) was broken a second time.
   please" (2026-10-15)
 
 ## orthogonality
-[[principle-40-idiom-needs-exemplars]] says a rule needs a before/after pair; this card says when he
+[[principle-40-idiom-needs-exemplars]] says a rule needs a before/after pair; this principle says when he
 gives you one instance, the rule covers the whole class.

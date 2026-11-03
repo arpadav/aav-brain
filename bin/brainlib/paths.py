@@ -1,28 +1,38 @@
-"""brainlib.paths: every path inside the brain, spelled exactly once.
+"""brainlib.paths: every path the brain reads or writes, spelled exactly once.
 
 a directory name re-spelled at each call site is a rename that has to be
 found by grep and is silently wrong wherever the grep missed. here each name
-appears once, as a property, so a move is one edit and every tool follows
+appears once, as a property, so a move is one edit and every tool follows.
+Layout holds the paths inside the brain repo, XdgLayout and DataLayout those
+under his XDG dirs, outside every public repo's history
 
 Author: aav
 """
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.repos import git
+from brainlib.repo.tree import git
 from brainlib.vocab import Env
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
+import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
+from typing import ClassVar
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
 # the name the brain's `.gitmodules` gives its private-data submodule
 DATA_SUBMODULE = "logs"
+# the file his declared private values live in, under his config folder
+PRIVATE_TOML = "private.toml"
+# the folders under bin/ that hold no script: the shared library, and python's bytecode cache
+NOT_SCRIPT_DIRS = ("brainlib", "__pycache__")
 
 
 @dataclass(frozen=True)
@@ -32,10 +42,15 @@ class Layout:
     # Example
 
         layout = Layout.discover()
-        cards = layout.principles.glob("*.md")
+        principles = layout.principles.glob("*.md")
     """
 
     root: Path
+
+    # the scripts other code names, relative to `bin`
+    RECALL: ClassVar[Path] = Path("run", "brain-recall.py")
+    WALK: ClassVar[Path] = Path("run", "brain-walk.py")
+    PRIVATE: ClassVar[Path] = Path("check", "brain-private.py")
 
     @classmethod
     def discover(cls) -> "Layout":
@@ -114,7 +129,7 @@ class Layout:
 
     @property
     def store(self) -> Path:
-        """the card store: the knowledge itself.
+        """the store: the knowledge itself, its principles and interests.
 
         # Returns
 
@@ -124,7 +139,7 @@ class Layout:
 
     @property
     def principles(self) -> Path:
-        """the principle cards.
+        """the principles.
 
         # Returns
 
@@ -134,7 +149,7 @@ class Layout:
 
     @property
     def intents(self) -> Path:
-        """the intent cards.
+        """the interests: the why behind the principles.
 
         # Returns
 
@@ -143,18 +158,18 @@ class Layout:
         return self.store / "intents"
 
     @property
-    def card_dirs(self) -> tuple[Path, Path]:
-        """the two directories a card may live in.
+    def store_dirs(self) -> tuple[Path, Path]:
+        """the two directories of the store's documents: the principles, then the interests.
 
         # Returns
 
-        `(principles, intents)`, the order the graph and the linter walk them
+        `(principles, intents)`, the order b-principles lints them in
         """
         return (self.principles, self.intents)
 
     @property
     def index(self) -> Path:
-        """the card index loaded at session start.
+        """the principle index loaded at session start.
 
         # Returns
 
@@ -212,15 +227,60 @@ class Layout:
         """
         return self.store / "graph"
 
+    @staticmethod
+    def command(script: Path) -> str:
+        """the command a brain script runs as: `b-`, then its stem past `brain-`.
+
+        module.nix writes each script's command under this name, so a tool's
+        messages name it as he would type it
+
+        # Arguments
+
+        * `script` - the script, by any path
+
+        # Returns
+
+        the command name
+
+        # Example
+
+            >>> Layout.command(Path("bin/run/brain-walk.py")), Layout.command(Path("bin/run/brain-open-items.py"))
+            ('b-walk', 'b-open-items')
+        """
+        return f"b-{script.stem.removeprefix('brain-')}"
+
+    @property
+    def scripts(self) -> list[Path]:
+        """every brain script: a `brain-?*.py` file in bin/ or a folder directly under it, NOT_SCRIPT_DIRS aside.
+
+        module.nix makes each one a command by this rule, spelled again in
+        nix, which cannot call this. nix's `readDir` types a symlink as
+        neither a directory nor a file, so a symlinked folder or script is
+        none here either. a bare `brain-.py` is none, since it would run as `b-`
+
+        # Returns
+
+        the scripts, sorted
+
+        # Example
+
+            >>> Layout.discover().recall_script in Layout.discover().scripts
+            True
+        """
+        dirs = [self.bin, *(d for d in self.bin.iterdir()
+                            if d.is_dir() and not d.is_symlink() and d.name not in NOT_SCRIPT_DIRS)]
+        return sorted(script for d in dirs for script in d.glob("brain-?*.py")
+                      if script.is_file() and not script.is_symlink())
+
     @property
     def recall_script(self) -> Path:
-        """the script that serves cards for a task.
+        """the script that serves principles for a task.
 
         # Returns
 
         `<root>/bin/run/brain-recall.py`
         """
-        return self.bin / "run" / "brain-recall.py"
+        return self.bin / self.RECALL
 
     @property
     def private_script(self) -> Path:
@@ -230,7 +290,23 @@ class Layout:
 
         `<root>/bin/check/brain-private.py`
         """
-        return self.bin / "check" / "brain-private.py"
+        return self.bin / self.PRIVATE
+
+    @property
+    def private_command(self) -> tuple[str, ...]:
+        """how a brain tool runs b-private as a process of its own (b-verify): this interpreter, isolated.
+
+        `-I` drops every PYTHON* variable, the user site with its `.pth`
+        files, and the script's own dir from `sys.path`. module.nix, which
+        cannot call this, spells the flag again twice: in the wrapper every
+        command runs through, and in the activation that compiles the codex
+        agents
+
+        # Returns
+
+        the argv prefix; the scan's own flags and paths follow it
+        """
+        return (sys.executable, "-I", str(self.private_script))
 
     @property
     def data_submodule(self) -> Path | None:
@@ -319,6 +395,119 @@ class Layout:
 
 
 @dataclass(frozen=True)
+class XdgLayout:
+    """every path the brain keeps under his XDG dirs: per machine, outside every public repo's history.
+
+    the root is the data root, `$XDG_DATA_HOME`, else `~/.local/share`; his
+    config sits under the config root instead. a relative XDG variable is
+    ignored, per the XDG spec. no dir is created here, each one by its writer
+    on demand
+
+    # Example
+
+        >>> xdg = XdgLayout(Path("/d"))
+        >>> xdg.data, xdg.session_log("b-walk"), xdg.session_log("b-recall")
+        (PosixPath('/d/aav-brain'), PosixPath('/d/aav-brain-walked'), PosixPath('/d/aav-brain-served'))
+        >>> xdg.session_log("b-x")
+        PosixPath('/d/aav-b-x-log')
+    """
+
+    root: Path
+
+    # the tools whose session-log dir is named apart from `aav-<tool>-log`
+    SESSION_LOG_ALIASES: ClassVar[Mapping[str, str]] = MappingProxyType({
+        Layout.command(Layout.RECALL): "aav-brain-served",
+        Layout.command(Layout.WALK): "aav-brain-walked",
+    })
+
+    @classmethod
+    def discover(cls) -> "XdgLayout":
+        """the layout rooted at this machine's XDG data root.
+
+        # Returns
+
+        an XdgLayout over `$XDG_DATA_HOME`, else `~/.local/share`
+        """
+        return cls(Env.XDG_DATA_HOME.directory(Path.home() / ".local" / "share"))
+
+    @property
+    def data(self) -> Path:
+        """the brain's PRIVATE memory dir: the decision trace and the evidence corpus (DataLayout).
+
+        private data never lives in the public brain's git objects. home-manager
+        symlinks this dir to the `aav-brain-logs` submodule (gitlinked at `logs/`;
+        its content lives in a SEPARATE private repo)
+
+        # Returns
+
+        `<root>/aav-brain`
+        """
+        return self.root / "aav-brain"
+
+    @property
+    def archive(self) -> Path:
+        """the cold store for RAW transcripts, a sibling of `data`, never inside it.
+
+        curated evidence is versioned knowledge and belongs in `data`; raw
+        transcripts are bulk cache (hundreds of MB, growing forever) and must
+        stay out of that git history
+
+        # Returns
+
+        `<root>/aav-brain-archive`
+        """
+        return self.root / "aav-brain-archive"
+
+    @property
+    def gate_state(self) -> Path:
+        """the per-checkout review-gate state.
+
+        private run state, never versioned and never in the repo under review,
+        so a finished run leaves nothing in the tree (CLEANUP deletes its file)
+
+        # Returns
+
+        `<root>/aav-brain-gate`
+        """
+        return self.root / "aav-brain-gate"
+
+    def session_log(self, tool: str) -> Path:
+        """the dir of one tool's session logs (brainlib.session): durable, unversioned, per machine; nothing prunes it.
+
+        one dir per tool, so one tool's call is never read as another's
+
+        # Arguments
+
+        * `tool` - the tool's command (`Layout.command`)
+
+        # Returns
+
+        `<root>/aav-<tool>-log`, or the tool's dir in SESSION_LOG_ALIASES
+        """
+        return self.root / self.SESSION_LOG_ALIASES.get(tool, f"aav-{tool}-log")
+
+    @staticmethod
+    def config() -> Path:
+        """his per-machine config folder, never in a repo.
+
+        # Returns
+
+        `$XDG_CONFIG_HOME/aav`, else `~/.config/aav`
+        """
+        return Env.XDG_CONFIG_HOME.directory(Path.home() / ".config") / "aav"
+
+    @classmethod
+    def private_toml(cls) -> Path:
+        """the file his declared private values live in; the private scan reads it, b-sync warns when it is absent.
+
+        # Returns
+
+        PRIVATE_TOML under `config()`
+        """
+        return cls.config() / PRIVATE_TOML
+
+
+@dataclass(frozen=True)
 class DataLayout:
     """every path inside the brain's private data dir.
 
@@ -339,9 +528,9 @@ class DataLayout:
 
         # Returns
 
-        a DataLayout over `find_data()`
+        a DataLayout over `XdgLayout.data`
         """
-        return cls(find_data())
+        return cls(XdgLayout.discover().data)
 
     @property
     def trace(self) -> Path:
@@ -378,9 +567,9 @@ class DataLayout:
 class EvidenceLayout:
     """every file of the extracted evidence corpus, in whichever directory holds it.
 
-    brain-extract writes all of them and the other tools read them, so each
+    b-extract writes all of them and the other tools read them, so each
     name is spelled here once. the root is the data dir's `evidence/`, or the
-    directory `brain-extract --out` names
+    directory `b-extract --out` names
 
     # Example
 
@@ -496,7 +685,7 @@ def plain_name(name: str) -> bool:
 def find_brain() -> Path:
     """locate the aav-brain repo root, no env var, no hardcode.
 
-    the brain is ONE repo: cards, scripts (`bin/`), and the agentic files
+    the brain is ONE repo: principles, scripts (`bin/`), and the agentic files
     (`agentic-files/{agents,skills}`) all live under a single root. discovery
     returns that root; everything else derives from it (`<root>/bin`,
     `<root>/agentic-files/agents`, `<root>/agentic-files/skills`)
@@ -528,23 +717,6 @@ def find_brain() -> Path:
         if link.exists() and (root := Layout.root_of(link.resolve())):
             return root
     raise FileNotFoundError("cannot locate aav-brain via __file__ or the ~/.agents / ~/.claude skill symlink")
-
-
-def find_data() -> Path:
-    """the brain's PRIVATE memory dir (trace + evidence).
-
-    private data - the decision trace and the extracted evidence corpus - never
-    lives in the public brain's git objects. it lands in the XDG data dir
-    (`$XDG_DATA_HOME/aav-brain`, else `~/.local/share/aav-brain`), which home-manager
-    symlinks to the `aav-brain-logs` submodule (gitlinked at `logs/`; its content
-    lives in a SEPARATE private repo, never in the public brain's history). resolved
-    with no brain-specific env var (XDG is the standard, not a bespoke anchor); a
-    relative `$XDG_DATA_HOME` is ignored, per the XDG spec
-
-    # Returns
-    the aav-brain private-data root Path (created on demand by its writers)
-    """
-    return _xdg_data() / "aav-brain"
 
 
 def find_repo(start: Path | None = None) -> str:
@@ -591,59 +763,3 @@ def find_repo_root(start: Path | None = None) -> Path | None:
     """
     here = (start or Path.cwd()).resolve()
     return next((d for d in (here, *here.parents) if (d / ".git").exists()), None)
-
-
-def find_archive() -> Path:
-    """the cold store for RAW transcripts, a SIBLING of find_data(), never inside it.
-
-    find_data() resolves into the `aav-brain-logs` submodule. curated evidence is
-    versioned knowledge and belongs there; raw transcripts are bulk cache
-    (hundreds of MB, growing forever) and must stay out of that git history
-
-    # Returns
-    the archive root Path (created on demand by its writer)
-    """
-    return _xdg_data() / "aav-brain-archive"
-
-
-def find_gate_state() -> Path:
-    """the per-checkout review-gate state dir, a sibling of find_data().
-
-    private run state, never versioned and never in the repo under review, so a
-    finished run leaves nothing in the tree (CLEANUP deletes its file)
-
-    # Returns
-    the gate-state root Path (created on demand by its writer)
-    """
-    return _xdg_data() / "aav-brain-gate"
-
-
-def find_config() -> Path:
-    """his per-machine config folder, never in a repo.
-
-    # Returns
-    `$XDG_CONFIG_HOME/aav`, else `~/.config/aav`
-    """
-    return Env.XDG_CONFIG_HOME.directory(Path.home() / ".config") / "aav"
-
-
-def find_served() -> Path:
-    """where recall logs what it served each session (brainlib.served), a sibling of find_data().
-
-    durable, so the misses report can read it, and unversioned and per
-    machine, so a recall never dirties a repo; nothing prunes it
-
-    # Returns
-    the served-log root Path (created on demand by its writer)
-    """
-    return _xdg_data() / "aav-brain-served"
-
-
-def _xdg_data() -> Path:
-    """the XDG data root: `$XDG_DATA_HOME`, else `~/.local/share`.
-
-    # Returns
-
-    an absolute directory path; it is not created
-    """
-    return Env.XDG_DATA_HOME.directory(Path.home() / ".local" / "share")

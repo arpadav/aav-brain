@@ -25,7 +25,7 @@ once is cheaper than two diverging copies maintained forever. large refactors ar
 improve structure ([[principle-20-refactors-welcome]]). the work is the point, not the deterrent.
 
 ## how to apply
-- cards are code too: "merge" two cards means ONE card - renamed to fit the merged rule, the other
+- principles are code too: "merge" two principles means ONE principle - renamed to fit the merged rule, the other
   file deleted, every link repointed. keeping both with a pointer, or asking which name to keep, is the
   hesitation he called hard-stuck (2026-11-02).
 - find a duplicate purpose -> trace the full blast radius (every file/peripheral that touches either
@@ -44,8 +44,8 @@ despite the blast radius); [[principle-31-libraryfy-shared]] is the standing PAT
 a datatype/helper live in one shared library. pre-write vs remediate vs standing-rule.
 
 ## how it is found
-`brain-shape.py <repo>` reports every nominal type declared in two or more files, which is the
-mechanical half of this card. it is a FINDING list, never a merge order - a `Config` in two
+`b-shape <repo>` reports every nominal type declared in two or more files, which is the
+mechanical half of this principle. it is a FINDING list, never a merge order - a `Config` in two
 unrelated crates is not a violation, and the judgement of which duplicates are real stays yours
 ([[principle-19-think-in-code-ops]], [[principle-27-organization-reorg]]). the important property
 is that it reads the WHOLE TREE: duplication is invisible in a diff by construction, because the

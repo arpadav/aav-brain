@@ -57,3 +57,4 @@ toward sub-agents** - convert to a named constraint (see [[VOICE]]).
 | avoid | say instead | his words |
 |---|---|---|
 | "land" / "landed" / "landing" for writing an output, in PR text, docs, `--help`, code and error messages | "write" / "written" / "copy back" | "dont use the term "land" i dont like it" (2026-10-01; he says "landed" himself in chat about git, so this binds what the brain writes into deliverables) |
+| "card" / "cards" for the store's unit, in skills, agents, docs, code and printed output | "principle" / "principles" | "stop calling this 'card' they are principles. sick of you calling this card. rename all instances to just principles." (2026-11-03) |

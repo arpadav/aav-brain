@@ -3,36 +3,36 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-trace: append to and read the brain's decision-trace log.
+r"""b-trace: append to and read the brain's decision-trace log.
 
 the trace (the private data dir's trace/decisions.jsonl, OUTSIDE the repo - see
-brainlib.find_data) is append-only reasoning history. the
+brainlib.XdgLayout.data) is append-only reasoning history. the
 point is the decided-AGAINST entries: when a later session disagrees with a
 past call, the trace shows WHERE it was made (the `affects` pointer) so it can
 be reversed precisely. brain-meta-curate and brain-self-refine read it
 
 an entry about an architecture the brain has since left is noise in every one
 of those reads, so the trace can FORGET - but only by marking, never by
-deleting. `--prune` sets `stale` and the readers skip it; `--restore` clears
+deleting. `-x` sets `stale` and the readers skip it; `-b` clears
 the mark and sets `pinned`, which prunes refuse to touch. that is what makes
 forgetting reversible: reintroducing an entry is clearing a flag, not
 recovering a line from a backup that was never taken
 
-    # append a decision (each --reject is option=why it was rejected). SINGLE-quote
+    # append a decision (each -r is option=why it was rejected). SINGLE-quote
     # every value: a decision text is data, not something for the shell to expand
-    python3 brain-trace.py --skill brain-plan --decision '...' --chosen '...' \
-        --reject 'three scripts=violates P19' --affects bin/check/brain-fmt.py --principle P19
-    #   optional: --supersedes TS   --session ID
+    b-trace -k brain-plan -d '...' -c '...' \
+        -r 'three scripts=violates P19' -a bin/check/brain-fmt.py -p P19
+    #   optional: -u TS (supersedes)   -s ID (session)
 
-    # read decisions worth revisiting (--against and --reject are kept distinct:
-    # --reject WRITES a rejected option, --against READS entries that have one)
-    python3 brain-trace.py --against            entries that rejected an option
+    # read decisions worth revisiting (-g and -r are kept distinct:
+    # -r WRITES a rejected option, -g READS entries that have one)
+    b-trace -g             entries that rejected an option
 
     # pruning: a mark, never a delete. only brain-self-refine prunes
-    python3 brain-trace.py --stale-candidates      entries whose affects resolves to nothing
-    python3 brain-trace.py --prune TS [--prune TS] mark stale; readers skip it
-    python3 brain-trace.py --restore TS           unmark AND pin, so it cannot be pruned again
-    python3 brain-trace.py --pruned               what is currently marked stale
+    b-trace -S             entries whose affects resolves to nothing
+    b-trace -x TS [-x TS]  mark stale; readers skip it
+    b-trace -b TS          bring back: unmark AND pin, so it cannot be pruned again
+    b-trace -l             list what is currently marked stale
 
 Author: aav
 """
@@ -57,8 +57,8 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # each mode is selected by its own flags; a token that merely SPELLS another
 # mode's flag must not silently re-route the run, so Tool refuses mixing them
 MODES: tuple[tuple[str, tuple[Flag, ...]], ...] = (
@@ -321,7 +321,7 @@ class Trace:
         # --------------------------------------------------
         required = {flag: args.value(flag) for flag in (Flag.SKILL, Flag.DECISION, Flag.CHOSEN)}
         if missing := [flag for flag, value in required.items() if not value]:
-            raise UsageError(f"no value for {', '.join(missing)}")
+            raise UsageError(f"no value for {', '.join(flag.spelling for flag in missing)}")
         # --------------------------------------------------
         # each --reject is one option=why pair
         # --------------------------------------------------
@@ -366,7 +366,4 @@ def main(args: Args) -> None:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.SKILL, Flag.DECISION, Flag.CHOSEN, Flag.REJECT, Flag.AFFECTS, Flag.PRINCIPLE,
-                               Flag.SUPERSEDES, Flag.SESSION, Flag.AGAINST, Flag.STALE_CANDIDATES, Flag.PRUNE,
-                               Flag.RESTORE, Flag.PRUNED),
-         modes=tuple(flags for _, flags in MODES)).run(main)
+    Tool.of(TOOL, __doc__, modes=tuple(flags for _, flags in MODES)).run(main)

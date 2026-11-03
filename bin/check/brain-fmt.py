@@ -3,15 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-fmt: deterministic comment hygiene over source files.
+"""b-fmt: deterministic comment hygiene over source files.
 
 a recurring style sweep, committed because it runs on every style pass and its
-ruleset is worth versioning (P19). two independent modes:
+ruleset is worth versioning (P19). three independent modes:
 
-    python3 brain-fmt.py path [path ...]           rewrite in place
-    python3 brain-fmt.py --check path [...]        FINDINGS when any file would change
-    python3 brain-fmt.py --stale path [...]        audit comment CONTENT, never rewrites
-    python3 brain-fmt.py --stale --since HEAD p    audit only the lines that ref changed
+    b-fmt path [path ...]  rewrite in place
+    b-fmt -c path [...]    FINDINGS when any file would change
+    b-fmt -g path [...]    the style gate: FINDINGS on any countable style breach
+    b-fmt -S path [...]    audit comment CONTENT, never rewrites
+    b-fmt -S -s HEAD p     audit only the lines that ref changed
 
 FORMAT (the rewriting mode) applies two idempotent rules:
 - strip a single trailing period from a plain `# ` line comment (not doc lines,
@@ -21,6 +22,9 @@ FORMAT (the rewriting mode) applies two idempotent rules:
 casing is deliberately NOT touched: a separator label can legitimately carry an
 identifier or proper noun (a state name, `$AAV_BRAIN`, `P29`), so force-lowering
 it would corrupt meaning. label casing stays the author's call
+
+GATE (the style gate) counts the violations of the style contract a script
+can see (`StyleGate`) and rewrites nothing
 
 STALE (the audit mode) reports two things and rewrites nothing (P37):
 - a comment naming an identifier the file does not contain - a leftover from a
@@ -46,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, Flag, Tool, UsageError, git, read_text, write_text
+from brainlib import Args, Exit, Flag, Layout, Patch, Tool, UsageError, git, read_text, write_text
 
 # --------------------------------------------------
 # external
@@ -58,8 +62,8 @@ from dataclasses import dataclass, field
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # a full-width comment separator is exactly fifty hyphens
 SEP = "-" * 50
 # a run of three-or-more hyphens after a comment marker is a separator to fix
@@ -109,8 +113,6 @@ WEAK_NARRATION = [re.compile(p, re.IGNORECASE) for p in (
     r"\bis used here\b",
     r"\bnow (?:uses|takes|returns|accepts|holds|expects)\b",
 )]
-# a hunk header, for mapping a diff back to post-image line numbers
-HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
 @dataclass(frozen=True)
@@ -275,12 +277,12 @@ class StaleAudit:
         FINDINGS when anything was found, else OK
         """
         if not self.findings:
-            print("brain-fmt --stale: no findings")
+            print(f"{TOOL} {Flag.STALE.short}: no findings")
             return Exit.OK
         for finding in self.findings:
             print(finding)
         files = len({f.path for f in self.findings})
-        print(f"brain-fmt --stale: {len(self.findings)} finding(s) in {files} file(s)")
+        print(f"{TOOL} {Flag.STALE.short}: {len(self.findings)} finding(s) in {files} file(s)")
         print("cut the named component from the comment; the rest of the comment stands (P37)")
         return Exit.FINDINGS
 
@@ -404,7 +406,7 @@ class StyleGate:
         for finding in findings:
             counts[finding.kind] = counts.get(finding.kind, 0) + 1
         summary = ", ".join(f"{kind} {count}" for kind, count in sorted(counts.items())) or "clean"
-        print(f"{TOOL}: style gate {'FAIL' if findings else 'PASS'} - {summary}")
+        print(f"{TOOL} {Flag.GATE.short}: {'FAIL' if findings else 'PASS'} - {summary}")
         return Exit.FINDINGS if findings else Exit.OK
 
 
@@ -495,22 +497,29 @@ def changed_lines(path: Path, ref: str) -> set[int] | None:
     * `ref` - the git ref to diff against
 
     # Returns
-    the set of 1-indexed line numbers, or None when git cannot answer - in
-    which case the caller audits the whole file rather than silently auditing
-    nothing (P36)
+    the set of 1-indexed line numbers, or None when git does not track the
+    file or cannot answer - in which case the caller audits the whole file
+    rather than silently auditing nothing (P36)
     """
-    diff = git(Path.cwd(), "diff", "--unified=0", ref, "--", str(path))
+    # --------------------------------------------------
+    # an untracked file has no diff, and every line of it is new; a git that
+    # could not list it is said as that, never as "not tracked"
+    # --------------------------------------------------
+    listed = git(Path.cwd(), "ls-files", "--", str(path))
+    if listed is None:
+        print(f"{TOOL}: git ls-files failed for {path}, auditing the whole file", file=sys.stderr)
+        return None
+    if not listed:
+        print(f"{TOOL}: {path} is not tracked, auditing the whole file", file=sys.stderr)
+        return None
+    # --------------------------------------------------
+    # under --unified=0 every new-side line of a hunk is a `+` row, and a pure deletion adds none
+    # --------------------------------------------------
+    diff = git(Path.cwd(), *Patch.CONFIG, "diff", *Patch.ARGS, "--unified=0", "--end-of-options", ref, "--", str(path))
     if diff is None:
         print(f"{TOOL}: git diff {ref} failed for {path}, auditing the whole file", file=sys.stderr)
         return None
-    lines: set[int] = set()
-    for line in diff.split("\n"):
-        match = HUNK_RE.match(line)
-        if match:
-            start = int(match.group(1))
-            count = int(match.group(2) or 1)
-            lines.update(range(start, start + count))
-    return lines
+    return {line for _, line, _ in Patch.added(diff)}
 
 
 def main(args: Args) -> Exit:
@@ -532,7 +541,7 @@ def main(args: Args) -> Exit:
     ref = args.value(Flag.SINCE) or None
     paths = args.positional()
     if ref and not args.has(Flag.STALE):
-        raise UsageError("--since applies to --stale")
+        raise UsageError(f"{Flag.SINCE.spelling} applies to {Flag.STALE.spelling}")
     # --------------------------------------------------
     # dispatch
     # --------------------------------------------------
@@ -548,5 +557,5 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.SINCE, Flag.STALE, Flag.CHECK, Flag.GATE), positionals=(1, None),
-         modes=((Flag.CHECK,), (Flag.GATE,), (Flag.STALE, Flag.SINCE))).run(main)
+    Tool.of(TOOL, __doc__, positionals=(1, None),
+            modes=((Flag.CHECK,), (Flag.GATE,), (Flag.STALE, Flag.SINCE))).run(main)

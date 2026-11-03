@@ -65,7 +65,7 @@ DECISION, not by context, and the split is total:**
 | | before the work | after the work |
 |---|---|---|
 | the question | should i take this on? | should i revert what was delivered? |
-| the card | **P24.** could the ASK be satisfied without this edit? if yes, do not start it | **P50.** did it move the MISSION? if yes, keep it |
+| the principle | **P24.** could the ASK be satisfied without this edit? if yes, do not start it | **P50.** did it move the MISSION? if yes, keep it |
 | the case | do not rename his constants while moving `main()` | do not revert an idiomatic pass on a run whose mission is idiom |
 
 so on a run with a stated mission, a worker is scoped tightly by P24 going in AND its

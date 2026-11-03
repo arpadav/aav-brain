@@ -19,7 +19,7 @@ tiers: in-context core (always loaded: rules + read/write blocks) and out-of-con
 (retrieved on demand). agents get memory-editing tools to update their own memory over time.
 taken: the store is tiered. brain/CONSTITUTION.md is tier-1 core (always loaded); principles/ +
 intents/ + voice/ are tier-2 retrieved corpus; evidence/ is tier-3 derived. the brain-meta-curate skill is
-the memory-editing tool: it self-edits cards from new feedback. consent-is-explicit is our addition:
+the memory-editing tool: it self-edits principles from new feedback. consent-is-explicit is our addition:
 edit memory only from spoken signal, never from accepted diffs.
 - https://www.letta.com/blog/agent-memory/
 - https://docs.letta.com/guides/legacy/memgpt_agents_legacy
@@ -28,8 +28,8 @@ edit memory only from spoken signal, never from accepted diffs.
 zep, powered by graphiti: a bi-temporal knowledge graph for agent memory with hybrid retrieval
 (semantic + bm25 + graph traversal, fused). reported context savings ~115k -> ~1.6k tokens on a
 memory benchmark, p95 retrieval ~300ms.
-taken: the retrieval model. brain-recall.py + brain-recall are a lightweight hybrid: keyword scoring +
-weighted frontmatter (tells/interest) + the [[wikilink]] graph between cards. file-first (grep +
+taken: the retrieval model. `b-recall` is a lightweight hybrid: keyword scoring +
+weighted frontmatter (tells/headline) + the [[wikilink]] graph between principles. file-first (grep +
 markdown, zero infra) so it runs today; a neo4j/graphiti upgrade is in ../schema/optional-graph.md
 for when the corpus outgrows grep.
 - https://arxiv.org/abs/2501.13956 (zep: a temporal knowledge graph architecture for agent memory)
@@ -51,7 +51,7 @@ because i distrust a single pass.
 basic-memory / obsidian-as-knowledge-graph + mcp servers. pattern: atomic markdown notes, one idea
 per file, cross-linked with [[wikilinks]], traversable as a graph, local-first (data never leaves the
 machine), readable/writable by the agent directly.
-taken: the card format. each principle/interest is one atomic markdown file with frontmatter +
+taken: the principle format. each principle/interest is one atomic markdown file with frontmatter +
 [[links]] (zettelkasten). the brain reads/writes them directly; nothing leaves my disk. the store is
 diff-able and git-versioned, itself a record i control ([[../brain/principles/principle-09-git-sovereignty]]).
 

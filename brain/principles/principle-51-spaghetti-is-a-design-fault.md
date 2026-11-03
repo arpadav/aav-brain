@@ -29,7 +29,7 @@ the tell is mechanical, and it is not "this feels messy":
 
 any one of those means: stop patching. the machine has a state for this - ADJUDICATE emits
 `design_fault` and the walk goes to DESIGN, whose whole scope is ONE atomic part. a review count
-that does not drop across rounds (`brain-gate.py round` -> `not_converging`) reaches the same state.
+that does not drop across rounds (`b-gate round` -> `not_converging`) reaches the same state.
 
 his step list is the yardstick. `hml deploy` was four steps (find the onnx, find a device, trtexec, write the
 artifacts) and became 13.5k lines plus 10.9k of tests, then drew 22, 36, 40, 22 findings across five gates on a
@@ -51,17 +51,17 @@ round's findings were about the patch. he stopped it by hand:
 
 [[principle-20-refactors-welcome]] already NAMED this anti-pattern - "timidly patching around
 a design flaw instead of fixing the design" - and had nowhere to route it, which is how a
-correct card watched it happen. the file sizes that ended that build are recorded once, under
+correct principle watched it happen. the file sizes that ended that build are recorded once, under
 [[principle-27-organization-reorg]]'s `## the measurement`. they are evidence that the tree
-was never looked at; they are NOT independent evidence for this card's cause, and citing them
-twice for two different causes would be exactly the failure both cards are about.
+was never looked at; they are NOT independent evidence for this principle's cause, and citing them
+twice for two different causes would be exactly the failure both principles are about.
 
 [[intent-craft]]: many bugs = bad design, in his words - a design that keeps producing issues is wrong at the root,
 and each patch round buys the next one. [[intent-efficiency]]: weeks of remediation cost more than a rewrite
 bounded by the steps he named. [[intent-comprehension]]: he must be able to read the result; 16 modules for 4
 stages cannot be read. he also noticed the brain only agreed it was over-engineered when HE asked - the proportion
 check is the agent's job to run first (see [[principle-14-minimal-surface]], which bounds the artifact, where this
-card says what to do once it is already over-built).
+principle says what to do once it is already over-built).
 
 ## how to apply
 - a review count that RISES after a redesign is still the tell, not a stop: group the new findings by
@@ -80,7 +80,7 @@ card says what to do once it is already over-built).
   ([[principle-02-plan-before-build]]).
 - **then return to REMEDIATE** and fix the remaining findings against the new shape. the
   subdesign replaces the patch; it does not excuse the rest of the round.
-- measure before you claim it: `brain-shape.py <repo>` puts numbers on the file lengths,
+- measure before you claim it: `b-shape <repo>` puts numbers on the file lengths,
   folder fan-out and duplicated datatypes that usually accompany this
   ([[principle-27-organization-reorg]], [[principle-28-dry-merge-blast-radius]]).
 
@@ -109,7 +109,7 @@ card says what to do once it is already over-built).
 - **when a gate's findings concentrate in one artifact round after round, cut that artifact.** a changelog install
   recipe drew findings two gates running while the ci job doing the same install was tested; replacing the prose
   with a pointer to the job ended it.
-- **at gate scale it is the DESIGN state.** `brain-gate.py round` sends a non-dropping count there,
+- **at gate scale it is the DESIGN state.** `b-gate round` sends a non-dropping count there,
   and ADJUDICATE sends a design-fault verdict there: map the flow and dependency graph, split hard
   from soft requirements, regroup (merge, split, reorder, cut), and accept only on a net decrease at
   the re-review. within one part it proceeds; a regroup that reaches past one part is a re-plan and

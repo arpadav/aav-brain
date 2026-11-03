@@ -14,7 +14,7 @@ tells: ["would arpad write this function that way", "would arpad write this file
 ## rule
 the brain's self-critique lens. before AND after it produces an artifact - a file, a function, a
 plan, a generated json - it stops and asks the questions i would ask, then answers them honestly. the
-question set is NOT hardcoded: the brain recalls the cards the artifact touches and asks itself "what
+question set is NOT hardcoded: the brain recalls the principles the artifact touches and asks itself "what
 would arpad ask about this?", reviews the generated questions, then answers them. "would i write this
 file/function this way?" is one question. others, especially PRE-generation:
 - why am i generating this artifact at all? is it actually consumed downstream, or dead output?
@@ -43,7 +43,7 @@ exist?) and after (would i keep it?). asking is cheaper than rewriting.
 - POST: after generating, ask the fidelity questions at EVERY granularity - "would arpad write this
   file like this? this folder structure like this? this individual function like this?" - then
   line-by-line, then semantic placement -> relocate -> reorg the tree ([[principle-27-organization-reorg]]).
-- generate the questions, dont recite them: pull the cards the artifact touches and ask "what would
+- generate the questions, dont recite them: pull the principles the artifact touches and ask "what would
   arpad ask here?" - the list is situational, not a fixed checklist.
 - this IS the execution flow the brain runs ([[principle-30-deterministic-flow]], the RECON..REORG
   region; PLANPROBE traces a plan through its own example). any move re-expands the set.
@@ -58,7 +58,7 @@ exist?) and after (would i keep it?). asking is cheaper than rewriting.
 - ON A REVIEW, this is a SUPERPOSITION, not a replacement: the cold review-gate
   ([[principle-03-review-gate]]) runs first with ABSOLUTELY no guidance (cold means cold - fresh eyes
   that never saw the author's framing). THEN, independently, this brain-guided "would arpad write
-  this?" pass runs - it recalls the cards the artifact touches and interrogates the file / folder /
+  this?" pass runs - it recalls the principles the artifact touches and interrogates the file / folder /
   function against my fingerprint. two independent layers on the same diff; the cold pass is never
   warmed by the guided one. distinct from the programming-STYLE pass (brain-meta-style: how it's
   written/formatted/documented) - this asks whether i'd have written it this way AT ALL, not how to

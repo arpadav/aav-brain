@@ -25,7 +25,7 @@ laziness P28 forbids, not a real reason to duplicate.
 ## why
 duplicated datatypes drift and lie ([[intent-craft]]). two "Node" definitions are two things that
 must be kept in sync by hand. a library is the single source of truth for a struct, the same way the
-cards are the single source for every edge. reuse ([[principle-05-reuse-first]]) and DRY-merge
+principles are the single source for every edge. reuse ([[principle-05-reuse-first]]) and DRY-merge
 ([[principle-28-dry-merge-blast-radius]]) demand it.
 
 ## the exception: when N independent readables ARE the deliverable
@@ -59,10 +59,10 @@ layout section, so the instinct is met and refused at the point it fires.
   P30) - library-fy the SHARED ones, do not force unrelated ones into one generic type.
 
 ## how it is found
-by the scan [[principle-28-dry-merge-blast-radius]] describes - one measurement serves both cards.
+by the scan [[principle-28-dry-merge-blast-radius]] describes - one measurement serves both principles.
 
 ## anti-pattern (and where the brain failed)
 defining Node/Edge in one script and a second node representation in another. the brain's own review
 once argued AGAINST a shared brainlib (over-weighting P14 / using "two repos" as an excuse) - that was
 wrong. when a review lens sees a duplicated datatype, it must default to library-fy, never to "leave
-separate". this card exists so the brain catches it next time.
+separate". this principle exists so the brain catches it next time.

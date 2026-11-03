@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-verify: the checks a repo declares for the files that changed, and the private scan every run gets.
+"""b-verify: the checks a repo declares for the files that changed, and the private scan every run gets.
 
 a repo states part of its own bar in a `verify.toml` at its root: each
 `[[check]]` names the paths it covers and the command that proves them. the
@@ -16,7 +16,7 @@ repo and every submodule under it, so an edit inside a submodule still fires a
 check its superproject declares. paths in a `verify.toml` are relative to the
 repo that holds it and matched with fnmatch, where `*` crosses directories.
 
-the private scan (brain-private.py) runs on every run; its --help says what it
+the private scan (b-private) runs on every run; its -h says what it
 covers. every check, that one included, is a process judged by its exit code:
 OK passes, FINDINGS is a finding, and anything else - a crash, a command that
 cannot start, a code outside that vocabulary - is FAILED. a `verify.toml` or a
@@ -24,8 +24,8 @@ row this cannot use is a check that fires on every run and FAILS without
 running. whatever one check does, the next one still runs, and the tally ends
 FAILED if any check failed, else FINDINGS if any had findings, else OK.
 
-    python3 brain-verify.py         # print the checks the change fires
-    python3 brain-verify.py --run   # run them in turn, then the tally
+    b-verify     # print the checks the change fires
+    b-verify -r  # run them in turn, then the tally
 
     # verify.toml
     [[check]]
@@ -60,7 +60,8 @@ from dataclasses import dataclass
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # the file a repo declares its checks in, at its root
 DECLARATION = "verify.toml"
 # how many covered paths a listing names before eliding the rest
@@ -83,7 +84,7 @@ class Check:
 
     @classmethod
     def private(cls, top: Path) -> "Check":
-        """the built-in check: brain-private's scan of the tree around `top` (P61).
+        """the built-in check: b-private's scan of the tree around `top` (P61).
 
         # Arguments
 
@@ -93,7 +94,7 @@ class Check:
 
         a check that fires on every run
         """
-        return cls(top, "private values", (), (sys.executable, str(LAYOUT.private_script)))
+        return cls(top, "private values", (), LAYOUT.private_command)
 
     @classmethod
     def declared(cls, repos: Iterable[Path]) -> list["Check"]:
@@ -196,10 +197,10 @@ class Check:
             <Exit.FINDINGS: 4>
             >>> Check(Path("."), "gone", (), ("no-such-command-x",)).execute()  # doctest: +ELLIPSIS
             + (cd . && no-such-command-x)
-            brain-verify: gone cannot start: ...
+            b-verify: gone cannot start: ...
             <Exit.FAILED: 1>
             >>> Check(Path("."), "s", (), (), "`when` is not a list of strings").execute()
-            brain-verify: s: `when` is not a list of strings
+            b-verify: s: `when` is not a list of strings
             <Exit.FAILED: 1>
         """
         if self.fault:
@@ -274,4 +275,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.RUN,)).run(main)
+    Tool.of(TOOL, __doc__).run(main)

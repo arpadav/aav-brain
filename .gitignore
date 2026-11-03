@@ -7,11 +7,11 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# compiled agent output, rebuilt by compile.py
+# compiled agent output, rebuilt by bin/store/brain-compile.py
 .generated/
 
 # rendered recall-quality charts and the venv that draws them (expected vs
-# actual score per card, one per labelled prompt) - images are bulk, not
+# actual score per principle, one per labelled prompt) - images are bulk, not
 # versioned knowledge, and they are rebuilt by .charts/plot.py
 .charts/*.png
 .charts-venv/
@@ -24,7 +24,7 @@ eval/results/
 brain/graph/graph.json
 
 # his plan drafts: scratch that may name private infrastructure (P61), which
-# brain-private exempts and brain-sync's `git add -A` would otherwise push.
+# b-private exempts and b-sync's `git add -A` would otherwise push.
 # the open items are tracked by design
 plans/*
 !plans/open-items/

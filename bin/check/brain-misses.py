@@ -3,19 +3,19 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-misses: the turns the brain should have caught since its last review.
+"""b-misses: the turns the brain should have caught since its last review.
 
-    python3 brain-misses.py                               since the newest brain-self-refine trace entry
-    python3 brain-misses.py --since 2026-10-31T00:00:00Z  since that instant
+    b-misses                          since the newest brain-self-refine trace entry
+    b-misses -s 2026-10-31T00:00:00Z  since that instant
 
 reads his heated, interrupting and rejecting turns out of the evidence corpus,
-one row per distinct text said in the window, and prints beside each the cards
+one row per distinct text said in the window, and prints beside each the principles
 recall ranks highest for it (brainlib.recall), and whether recall's own log
-(brainlib.served) holds a recall in that session that no compaction had erased
-by the turn, so its cards could still have been in the turn's context. a turn
+(brainlib.session) holds a recall in that session that no compaction had erased
+by the turn, so its principles could still have been in the turn's context. a turn
 the log cannot speak for - said before recording began on this machine, in a
 session whose transcript is not on this machine, or in a harness that exports
-no session id - is `not recorded`. a card that fits a row
+no session id - is `not recorded`. a principle that fits a row
 is a finding: the rule existed and was not served, or was served and not applied
 
 FINDINGS when any row is listed
@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # local
 # --------------------------------------------------
 from brainlib import (
-    INLINE_CARDS,
+    INLINE_PRINCIPLES,
     Args,
     DataLayout,
     Exit,
@@ -44,12 +44,12 @@ from brainlib import (
     NoVerdict,
     RecallIndex,
     Record,
-    ServedLog,
+    SessionLog,
     Tool,
     TranscriptError,
     UsageError,
+    XdgLayout,
     clip,
-    find_served,
     parse_iso,
 )
 
@@ -64,8 +64,8 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # every path inside the brain, spelled once (brainlib.Layout)
 LAYOUT = Layout.discover()
 # the skill whose trace entries mark a review of the brain: the window opens at the newest
@@ -83,7 +83,7 @@ class EvidenceError(NoVerdict):
 
 
 class Served(StrEnum):
-    """whether recall's log holds a recall a row's turn could still see the cards of."""
+    """whether recall's log holds a recall a row's turn could still see the principles of."""
 
     YES = "yes"
     NO = "no"
@@ -182,14 +182,14 @@ class Miss:
 
 @dataclass
 class MissReport:
-    r"""the turns since a review, each beside the cards recall serves for it.
+    r"""the turns since a review, each beside the principles recall serves for it.
 
     # Example
 
         >>> from brainlib import Node
         >>> at = dt.datetime(2026, 10, 31, 17, 22, tzinfo=dt.UTC)
-        >>> card = Node("p61", "principle", "tailnet url stays out", [], "", [], [], [], "")
-        >>> index = RecallIndex(Path("."), {"p61": card}, {"p61": []}, {"p61": 1})
+        >>> principle = Node("p61", "principle", "tailnet url stays out", [], "", [], [], [], "")
+        >>> index = RecallIndex(Path("."), {"p61": principle}, {"p61": []}, {"p61": 1})
         >>> claude = Harnesses.discover(Path("/nonexistent")).all[0]
         >>> misses = [Miss(at, claude, "-home", "fbffe8d9-cd2b", "the tailnet url")]
         >>> report = MissReport(misses, 0, index, Path("/nonexistent"), None)
@@ -204,9 +204,9 @@ class MissReport:
     # the distinct texts in the whole corpus no row places: no readable ts or no known harness
     skipped: int
     index: RecallIndex
-    # recall's logs, find_served()
+    # recall's session logs, `XdgLayout.session_log`
     served: Path
-    # when recording began on this machine, ServedLog.since; None when nothing is recorded yet
+    # when recording began on this machine, SessionLog.since; None when nothing is recorded yet
     recorded: dt.datetime | None
     # each session's compacting lines, read once however many of its turns are listed; None when unreadable
     compacted: dict[str, list[Record] | None] = field(default_factory=dict)
@@ -256,7 +256,7 @@ class MissReport:
         * `data` - the private data dir holding the evidence corpus
         * `index` - the recall index to rank each turn with
         * `harnesses` - the harnesses a row's `src` may name
-        * `served` - recall's logs, find_served()
+        * `served` - recall's session logs, `XdgLayout.session_log`
 
         # Returns
 
@@ -287,7 +287,7 @@ class MissReport:
             ...                            Harnesses.discover(Path("/nonexistent")), Path("/nonexistent"))
             ... except EvidenceError as absent:
             ...     print(absent)
-            no evidence at /nonexistent/evidence/heat.jsonl; run brain-extract
+            no evidence at /nonexistent/evidence/heat.jsonl; run b-extract
         """
         # --------------------------------------------------
         # the three evidence ledgers; a missing one means extraction has not run, so there is no verdict
@@ -295,7 +295,7 @@ class MissReport:
         evidence = data.evidence
         sources = (evidence.heat, evidence.interruptions, evidence.rejections)
         if (absent := next((path for path in sources if not path.exists()), None)) is not None:
-            raise EvidenceError(f"no evidence at {absent}; run brain-extract")
+            raise EvidenceError(f"no evidence at {absent}; run b-extract")
         # --------------------------------------------------
         # every row of every ledger
         # --------------------------------------------------
@@ -322,7 +322,7 @@ class MissReport:
         # --------------------------------------------------
         skipped = unplaced - placed - {""}
         return cls(sorted(earliest.values(), key=lambda miss: miss.at), len(skipped), index, served,
-                   ServedLog.since(served))
+                   SessionLog.since(served))
 
     def served_state(self, miss: Miss) -> Served:
         r"""whether recall's log holds a recall in the turn's session that no compaction erased by the turn.
@@ -335,7 +335,7 @@ class MissReport:
 
         UNRECORDED when the log cannot speak for the turn - the logs are this
         machine's, so a session with no transcript here is one of them - NO
-        when no recall preceded it, else YES or NO by `ServedLog.held`;
+        when no recall preceded it, else YES or NO by `Mark.held`;
         UNREADABLE when the log or, past a recall, the transcript cannot be read
 
         # Example
@@ -349,7 +349,7 @@ class MissReport:
             ...         transcript = Path(tmp) / ".claude" / "projects" / "p" / f"{session}.jsonl"
             ...         transcript.parent.mkdir(parents=True, exist_ok=True)
             ...         _ = transcript.write_text('{"type": "user"}\n')
-            ...     ServedLog.of("s1", Path(tmp)).append(Mark(16, day(2), frozenset({"p1"})))
+            ...     SessionLog.of("s1", Path(tmp)).append(Mark(16, day(2), frozenset({"p1"})))
             ...     report = MissReport([], 0, RecallIndex(Path(".")), Path(tmp), day(2))
             ...     [str(report.served_state(Miss(day(n), harness, "p", session, "stop")))
             ...      for n, harness, session in ((3, claude, "s1"), (3, claude, "s2"), (1, claude, "s1"),
@@ -359,7 +359,7 @@ class MissReport:
         # --------------------------------------------------
         # a turn with no log, session id, recording or transcript to compare against cannot be answered
         # --------------------------------------------------
-        log = ServedLog.of(miss.session, self.served)
+        log = SessionLog.of(miss.session, self.served)
         if (log is None or miss.harness.SESSION_ENV is None or self.recorded is None or miss.at < self.recorded
                 or (transcript := miss.harness.find(miss.session)) is None):
             return Served.UNRECORDED
@@ -367,9 +367,9 @@ class MissReport:
             # --------------------------------------------------
             # the recalls made before the turn
             # --------------------------------------------------
-            earlier = ServedLog.held(log.marks(), (), miss.at)
+            earlier = [mark for mark in log.read() if mark.held((), miss.at)]
         except OSError as broken:
-            print(f"{TOOL}: served log unreadable ({broken})", file=sys.stderr)
+            print(f"{TOOL}: session log unreadable ({broken})", file=sys.stderr)
             return Served.UNREADABLE
         # --------------------------------------------------
         # nothing was recalled before the turn
@@ -391,7 +391,7 @@ class MissReport:
         compactions = self.compacted[miss.session]
         if compactions is None:
             return Served.UNREADABLE
-        return Served.YES if ServedLog.held(earlier, compactions, miss.at) else Served.NO
+        return Served.YES if any(mark.held(compactions, miss.at) for mark in earlier) else Served.NO
 
     def describe(self, miss: Miss) -> list[str]:
         """one turn's rows: where it was said, what was said, what recall serves.
@@ -402,21 +402,21 @@ class MissReport:
 
         # Returns
 
-        a header line, the text, then each of recall's INLINE_CARDS
-        highest-ranked cards outside the constitution, with the share of the
+        a header line, the text, then each of recall's INLINE_PRINCIPLES
+        highest-ranked principles outside the constitution, with the share of the
         turn it explains
         """
         # --------------------------------------------------
-        # the cards recall would have ranked for this text
+        # the principles recall would have ranked for this text
         # --------------------------------------------------
         found = self.index.recall(miss.text)
-        cards = [f"  {found.scores.explains(nid):4.0%}  {nid}" for nid in found.featured[:INLINE_CARDS]]
+        principles = [f"  {found.scores.explains(nid):4.0%}  {nid}" for nid in found.featured[:INLINE_PRINCIPLES]]
         # --------------------------------------------------
         # the row: when, where, and whether recall served it
         # --------------------------------------------------
         header = (f"{miss.at.strftime(ROW_STAMP)}  {miss.project}  {miss.harness.short(miss.session)}  "
                   f"recall: {self.served_state(miss)}")
-        return [header, f"  {miss.excerpt()}", *(cards or ["  no card scored"])]
+        return [header, f"  {miss.excerpt()}", *(principles or ["  no principle scored"])]
 
     def show(self, since: dt.datetime | None) -> None:
         """print every turn, then one summary line.
@@ -462,14 +462,15 @@ def main(args: Args) -> Exit:
     given = args.value(Flag.SINCE)
     since = parse_iso(given) if given else MissReport.last_review(data.decisions)
     if given and since is None:
-        raise UsageError(f"--since takes an iso-8601 instant, not {given!r}")
+        raise UsageError(f"{Flag.SINCE.spelling} takes an iso-8601 instant, not {given!r}")
     # --------------------------------------------------
     # collect, list, and fail when any turn is listed
     # --------------------------------------------------
-    report = MissReport.collect(since, data, RecallIndex.build(LAYOUT), Harnesses.discover(), find_served())
+    report = MissReport.collect(since, data, RecallIndex.build(LAYOUT), Harnesses.discover(),
+                               XdgLayout.discover().session_log(Layout.command(Layout.RECALL)))
     report.show(since)
     return Exit.FINDINGS if report.misses else Exit.OK
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.SINCE,)).run(main)
+    Tool.of(TOOL, __doc__).run(main)

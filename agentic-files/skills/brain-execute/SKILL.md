@@ -15,11 +15,8 @@ the flow by hand - the walk is `brain-meta-drive`'s job. this skill owns two thi
 we are AFTER the sanction boundary: a plan exists in plans/ and he approved it. if no plan is sanctioned,
 do NOT execute - switch to brain-plan.
 
-## setup (run first - discover the brain, no hardcoded path)
-```bash
-eval "$(brain-find --export)"   # sets $AAV_BRAIN
-```
-read `$AAV_BRAIN/brain/CONSTITUTION.md`.
+## setup
+read `$AVB/brain/CONSTITUTION.md`.
 
 ## 1. reconstruct state (this is the entry's job, NOT the engine's)
 find the active plan in plans/; derive done-vs-remaining from the plan + git log/diff + the transcript.
@@ -38,7 +35,7 @@ recalls per state, dispatches each owner (a meta-skill or a cold agent), and loo
 (IMPL -> PHASEGATE -> VERIFY, looping through REMEDIATE) until each threshold holds - to DONE. you do not
 re-implement that loop here.
 
-handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode build` (paste the output) - the handoff contract lives in brain-meta-drive.
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `b-walk -s "$STATE" -m build` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## how IMPL dispatches: fan out, then measure (P52)
 you are the OVERSEER. you dispatch, you run the tree-wide command, you adjudicate, you commit -
@@ -73,7 +70,7 @@ would-arpad SUPERPOSITION is applied at the gate (PHASEGATE/VERIFY), per brain-r
 and a worker resolves an adjective against its own priors ([[principle-40-idiom-needs-exemplars]]).
 DOCTRINE runs BEFORE this state for exactly that reason: it resolves the purpose register
 ([[principle-41-rigor-scales-with-purpose]]) and the language row, loads the bound doctrine set
-(`brain-recall.py --binds code <<'EOF'`, the task on the next line, then `EOF`), and writes the before/after pairs into the worker's prompt
+(`b-recall -b code <<'EOF'`, the task on the next line, then `EOF`), and writes the before/after pairs into the worker's prompt
 along with the find-exhaustively ask. rust additionally has `aav-rust-implementer`, which carries the
 same doctrine natively ([[principle-23-standing-decisions]]); every other language gets it because
 DOCTRINE injected it, not because the worker happened to know it.
@@ -83,7 +80,7 @@ PHASEGATE is no longer bought by finishing a phase - it is bought by the SIZE of
 changed. at each phase boundary run:
 
 ```bash
-python3 $AAV_BRAIN/bin/run/brain-gate.py phase --tag <the plan's S|M|L for this phase>   # --last on the final phase
+b-gate phase -t SIZE   # SIZE: the plan's S, M or L for this phase; -l on the final phase
 ```
 
 and emit what it prints: `gate N` -> `implemented`, PHASEGATE with N reviewers (2-6); `defer` ->
@@ -93,14 +90,13 @@ never buys the cold review - it gets STYLE. the tag is the plan's expected size 
 diff, which is how a two-line change to an authorization door still buys the gate.
 
 **small phases accumulate, and the script remembers them.** it keeps the pending score per checkout
-from the last gate that actually ran, so three deferred phases are reviewed together; `--last`
+from the last gate that actually ran, so three deferred phases are reviewed together; `-l`
 gates whatever is still pending. a ref git cannot resolve stops it with a usage error - never read
 that as `defer`.
 
-`brain-shape.py --since <the last gated ref>` is the SECONDARY budget (4 changed source files or 400
-changed lines, in `shape.toml`): run it beside, and when brain-gate.py says `defer` on the final
-phase its under-budget verdict emits `under_budget`, straight to VERIFY. where the two disagree,
-brain-gate.py wins and the disagreement goes into plans/open-items/G01-two-gate-arming-checks.md,
+`b-shape -s <the last gated ref>` is the SECONDARY budget (`shape.toml [budget]`): run it
+beside, and when `b-gate` says `defer` on the final phase its under-budget verdict emits
+`under_budget`, straight to VERIFY. where the two disagree, `b-gate` wins and the disagreement goes into plans/open-items/G01-two-gate-arming-checks.md,
 which decides whether the second budget stays.
 
 this exists because the gate used to cost the same whether the phase was 5885 new lines or two
@@ -109,7 +105,7 @@ budget went where the phases were, not where the risk was
 ([[principle-53-rigor-scales-with-the-change]]). a stale count in a doc is the canonical false
 arm: re-measure it, correct it, move on ([[principle-54-a-count-is-a-measurement]]).
 
-`brain-shape.py` with no `--since` is the gate's STRUCTURE input - file lengths, folder fan-out,
+`b-shape` with no `-s` is the gate's STRUCTURE input - file lengths, folder fan-out,
 duplicated datatypes - and that half runs at every gate, armed or not, because none of it is
 visible in a diff (P27, P28).
 

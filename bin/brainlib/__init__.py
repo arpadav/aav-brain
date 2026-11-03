@@ -17,21 +17,17 @@ from brainlib.paths import (
     DataLayout,
     EvidenceLayout,
     Layout,
-    find_archive,
+    XdgLayout,
     find_brain,
-    find_config,
-    find_data,
-    find_gate_state,
     find_repo,
     find_repo_root,
-    find_served,
     plain_name,
 )
 from brainlib.recall import (
     BEST_SHARE,
     EXPLAIN_FLOOR,
     INLINE_BYTES,
-    INLINE_CARDS,
+    INLINE_PRINCIPLES,
     MAX_N,
     MAX_REFERENCES,
     REFERENCE_FLOOR,
@@ -40,8 +36,11 @@ from brainlib.recall import (
     RecallIndex,
     Scores,
 )
-from brainlib.repos import UNTRACKED, Change, RepoError, RepoTree, git
-from brainlib.served import Mark, ServedLog
+from brainlib.repo.diff import Patch
+from brainlib.repo.private import PrivateScan, ScanScope
+from brainlib.repo.push import NO_REPLACE, Excerpt, Origin, Outgoing
+from brainlib.repo.tree import UNTRACKED, Change, Ending, GitRun, RepoError, RepoTree, git
+from brainlib.session import Mark, SessionLog, SessionRecord
 from brainlib.store import Decision, Ledger, MergeCount, PrunePolicy, ShapePolicy
 from brainlib.text import (
     Json,
@@ -54,7 +53,7 @@ from brainlib.text import (
     split_frontmatter,
     write_text,
 )
-from brainlib.tool import Args, NoVerdict, Tool, UsageError
+from brainlib.tool import Args, Tool
 from brainlib.transcript import (
     Claude,
     Denied,
@@ -72,6 +71,7 @@ from brainlib.transcript import (
 from brainlib.vocab import (
     ENCODING,
     GIT_TIMEOUT,
+    LONG_GIT_TIMEOUT,
     PYTHON_VERSION,
     Confidence,
     Env,
@@ -79,8 +79,10 @@ from brainlib.vocab import (
     Flag,
     Frontmatter,
     Kind,
+    NoVerdict,
     Rel,
     Tier,
+    UsageError,
 )
 
 # --------------------------------------------------
@@ -88,14 +90,16 @@ from brainlib.vocab import (
 # --------------------------------------------------
 # the public surface, named once so a reader sees it without chasing modules
 __all__ = [
-    "BEST_SHARE", "ENCODING", "EXPLAIN_FLOOR", "GIT_TIMEOUT", "INLINE_BYTES", "INLINE_CARDS", "MAX_N",
-    "MAX_REFERENCES", "PYTHON_VERSION", "REFERENCE_FLOOR", "UNTRACKED",
-    "Args", "Artifact", "Change", "Claude", "Confidence", "DataLayout", "Decision", "Denied", "Driven", "Edge", "Entry",
-    "Env", "Event", "EvidenceLayout", "Exit", "Flag", "Flow", "Frontmatter", "Graph", "Harness", "Harnesses",
-    "Interrupted", "Json", "Kind", "Layout", "Ledger", "Mark", "MergeCount", "NoVerdict", "Node", "PrunePolicy",
-    "Recall", "RecallError", "RecallIndex", "Record", "Rel", "Replied", "RepoError", "RepoTree", "Scores", "ServedLog",
-    "ShapePolicy", "Spoke", "State", "Tier", "Tool", "Transcript", "TranscriptError", "Transition", "UsageError",
-    "clip", "find_archive", "find_brain", "find_config", "find_data", "find_gate_state", "find_repo", "find_repo_root",
-    "find_served", "git", "iso_now", "kind_rank", "parse_frontmatter", "parse_iso", "plain_name", "read_text",
-    "split_frontmatter", "write_text",
+    "BEST_SHARE", "ENCODING", "EXPLAIN_FLOOR", "GIT_TIMEOUT", "INLINE_BYTES", "INLINE_PRINCIPLES",
+    "LONG_GIT_TIMEOUT", "MAX_N", "MAX_REFERENCES", "NO_REPLACE", "PYTHON_VERSION", "REFERENCE_FLOOR", "UNTRACKED",
+    "Args", "Artifact", "Change", "Claude", "Confidence", "DataLayout", "Decision", "Denied", "Driven", "Edge",
+    "Ending", "Entry", "Env", "Event", "EvidenceLayout", "Excerpt", "Exit", "Flag", "Flow", "Frontmatter", "GitRun",
+    "Graph", "Harness", "Harnesses", "Interrupted", "Json", "Kind", "Layout", "Ledger", "Mark", "MergeCount",
+    "NoVerdict", "Node", "Origin", "Outgoing", "Patch", "PrivateScan", "PrunePolicy", "Recall", "RecallError",
+    "RecallIndex", "Record", "Rel", "Replied", "RepoError", "RepoTree", "ScanScope", "Scores", "SessionLog",
+    "SessionRecord", "ShapePolicy", "Spoke", "State", "Tier", "Tool", "Transcript", "TranscriptError", "Transition",
+    "UsageError", "XdgLayout",
+    "clip", "find_brain", "find_repo", "find_repo_root",
+    "git", "iso_now", "kind_rank", "parse_frontmatter", "parse_iso", "plain_name",
+    "read_text", "split_frontmatter", "write_text",
 ]

@@ -18,7 +18,7 @@ His examples, verbatim in substance:
 - `agentic-files/skills/brain-meta-drive/SKILL.md`, section "reporting", the paragraph that starts "every gate report also answers ONE line, unasked".
 - `agentic-files/skills/brain-meta-style/SKILL.md`, plan lens, the "proportion (P14 at the SUBSYSTEM scale)" bullet.
 - `agentic-files/skills/brain-plan/SKILL.md`, step 5, "proportion, then reuse + minimal surface".
-- `brain/principles/principle-14-minimal-surface.md`, the card behind all three.
+- `brain/principles/principle-14-minimal-surface.md`, the principle behind all three.
 
 ## Proposed text
 

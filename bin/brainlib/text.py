@@ -22,7 +22,7 @@ from typing import TypeGuard
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# the line that opens a card's frontmatter block and the line that closes it
+# the line that opens a markdown file's frontmatter block and the line that closes it
 FENCE = "---"
 # a whole line that is a fence: the fence alone, trailing blanks and a crlf's carriage return allowed
 FENCE_LINE = re.compile(rf"{re.escape(FENCE)}[ \t]*\r?")
@@ -190,11 +190,11 @@ def parse_iso(stamp: str) -> dt.datetime | None:
 
 
 def kind_rank(kind: str) -> int:
-    """a card kind's sort position, tolerating an unknown kind.
+    """a kind's sort position, tolerating an unknown kind.
 
     # Arguments
 
-    * `kind` - the kind string as read from a card or the built graph
+    * `kind` - the kind string as read from a principle's or interest's frontmatter, or the built graph
 
     # Returns
 
@@ -249,14 +249,14 @@ def write_text(path: Path, content: str) -> None:
 
 
 def split_frontmatter(text: str) -> tuple[str, str] | None:
-    r"""split a card into its frontmatter block and the body after it.
+    r"""split a markdown file into its frontmatter block and the body after it.
 
     the one reader of the fence: a block opens when the file's first line is a
     fence and closes on the next line that is one
 
     # Arguments
 
-    * `text` - the full card file contents
+    * `text` - the full file contents
 
     # Returns
 
@@ -285,13 +285,13 @@ def split_frontmatter(text: str) -> tuple[str, str] | None:
 
 
 def parse_frontmatter(text: str) -> Frontmatter:
-    r"""parse a card's yaml-ish frontmatter without a yaml dependency.
+    r"""parse a markdown file's yaml-ish frontmatter without a yaml dependency.
 
     handles scalars, bare lists ([a, b]) for interest/tension, and quoted
     lists (["a, b"]) for tells
 
     # Arguments
-    * `text` - the full card file contents
+    * `text` - the full file contents
 
     # Returns
     a dict of frontmatter fields, or an empty dict if there is none or it never closes

@@ -15,7 +15,7 @@ python-version = "3.12"
 # the search path a script needs is NOT written here. a relative `extra-paths`
 # is re-resolved against each PEP-723 script's OWN directory, so one spelled
 # here fires `invalid-script-metadata` on every script outside this repo and
-# masks the real diagnostics behind it; brain-lint passes
+# masks the real diagnostics behind it; b-lint passes
 # `--extra-search-path` per run, derived from the paths actually being checked
 
 [rules]

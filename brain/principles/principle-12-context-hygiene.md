@@ -5,7 +5,7 @@ tier: conditional
 rule: Think in code. Use context-mode to derive answers in the sandbox; keep raw bytes out of the window.
 interest: [intent-efficiency]
 confidence: high
-evidence_count: 6
+evidence_count: 7
 tells: ["exclusively use context mode skill", "think in code", "use the mcp context-mode", "brain-find --export and then $AAV_BRAIN is a lot of tokens when added up - how to reduce CLI length of calls to maximize token efficiency?"]
 ---
 
@@ -26,10 +26,14 @@ of it, not a context glutton.
   appropriately and 'think in code'."
 - Prefer `ctx_execute` / `ctx_batch_execute` over Bash+cat for anything you'll process.
 - Read a file to *edit* it; run code over a file to *analyze* it.
-- The brain's own calls are context too: a preamble every skill and agent repeats (`eval "$(brain-find
-  --export)"`, then `$AAV_BRAIN/bin/...` paths) is paid on every run. He asked for the call length to be
-  cut ("how to reduce CLI length of calls to maximize token efficiency?"), as its own plan, after the
-  current fixes. Shorten a recurring invocation once, in the tool, not in each prompt that uses it.
+- The brain's own calls are context too: a call every skill and agent repeats is paid on every run
+  ("how to reduce CLI length of calls to maximize token efficiency?"). Each brain script is a short
+  command (`Layout.scripts` in bin/brainlib/paths.py says which file is one). Shorten a recurring invocation once, in the tool, not in each
+  prompt that uses it.
+- Shortening is compression, not obfuscation: every command and arg gets its short form (`b-*` for
+  `brain-*`), the long flags stay as aliases, a lookup table is printed on init for an agent that forgot a
+  flag, and each command's inputs/outputs are trimmed too ("think about it like a compression algorithm
+  ... dont over obfuscate, but definitely reduce to where its llm/machine compatible").
 - When a tool errors pointing at context-mode, use it: "listen to the error: use the mcp
   context-mode."
 

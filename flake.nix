@@ -1,7 +1,8 @@
 {
   # --------------------------------------------------
   # aav brain, installable on its own: skills + agents
-  # linked into claude and codex, plus brain-find
+  # linked into claude and codex, plus one command per
+  # brain script (module.nix)
   # --------------------------------------------------
   description = "aav brain";
 

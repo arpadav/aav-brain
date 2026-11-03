@@ -2,7 +2,7 @@
 name: principle-61-private-infra-stays-out-of-tracked-files
 kind: principle
 tier: conditional
-rule: his real hosts, LAN ips, usernames and device ids belong to live runs, untracked plans/ and memory - never to a doc, test or source file git tracks or will track. those carry neutral placeholders (`user@gpu-host`); a real value that gets pushed is a leak he has to rewrite history to undo. his tailnet names count too. what the scan checks and cannot see: `brain-private.py --help`.
+rule: his real hosts, LAN ips, usernames and device ids belong to live runs, untracked plans/ and memory - never to a doc, test or source file git tracks or will track. those carry neutral placeholders (`user@gpu-host`); a real value that gets pushed is a leak he has to rewrite history to undo. his tailnet names count too. what the scan checks and cannot see: `b-private -h`.
 interest: [intent-sovereignty, intent-control]
 confidence: high
 evidence_count: 2
@@ -20,8 +20,8 @@ fixtures, expected strings, source - a new test file is untracked until the comm
 the same shape is spelled with a neutral placeholder (`user@gpu-host`, `user@gpu-host.lan`). his tailnet
 domain and magicdns names are the same class as a LAN ip.
 
-`bin/check/brain-private.py` enforces it, and `brain-verify.py --run` runs it in VERIFY. what the scan
-checks and cannot see: `brain-private.py --help`.
+`bin/check/brain-private.py` enforces it, and `b-verify -r` runs it in VERIFY. what the scan
+checks and cannot see: `b-private -h`.
 
 ## why
 [[intent-sovereignty]]: the permanent record is his, and a pushed value is in the shared repo's history for

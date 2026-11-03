@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-register: flag conversational filler in docs (P57, textbook / ICD register).
+"""b-register: flag conversational filler in docs (P57, textbook / ICD register).
 
 a doc heading is a noun phrase and an instruction is an imperative. the flagged
 forms, each from his corrections: "Now the bytes" -> "Bytes", "The struct" ->
@@ -11,8 +11,8 @@ forms, each from his corrections: "Now the bytes" -> "Bytes", "The struct" ->
 "Example: without length". prose is checked for a closed set of filler phrases.
 fenced code is skipped. a hit is a finding to rewrite, never an auto-fix
 
-    python3 brain-register.py [FILE...]   lint the named .md files; with none,
-                                          every changed or untracked .md in the repo
+    b-register [FILE...]  lint the named .md files; with none,
+                          every changed or untracked .md in the repo
 
 FINDINGS when anything is flagged
 
@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Exit, RepoTree, Tool, find_repo_root
+from brainlib import Args, Exit, Layout, RepoTree, Tool, find_repo_root
 
 # --------------------------------------------------
 # external
@@ -37,8 +37,8 @@ import re
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # an atx heading line; the group is its text without the leading and any closing hashes
 HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
 # the line that opens or closes a fenced code block, backtick or tilde
@@ -158,4 +158,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, positionals=(0, None)).run(main)
+    Tool.of(TOOL, __doc__, positionals=(0, None)).run(main)

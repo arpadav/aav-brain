@@ -3,26 +3,25 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-gate: decide WHEN the review gate runs, how big it is, and when it stops.
+"""b-gate: decide WHEN the review gate runs, how big it is, and when it stops.
 
-the gate used to run after every phase with a fixed lens set, and loop until a
-pass came back clean. a 3-line phase drew the same review as a 2k-line one, and
-a design that kept producing findings was patched round after round (measured:
-62 top-level dispatches, 154 subagent transcripts, one session). this tool makes
-the three calls deterministic, from the diff and the round counts, never from
-the agent's mood (P30):
+a fixed lens set after every phase, looped until a pass comes back clean, would
+review a 3-line phase like a 2k-line one and patch a design that keeps
+producing findings round after round. this tool makes the three calls
+deterministic, from the diff and the round counts, never from the agent's
+mood (P30):
 
-    python3 brain-gate.py phase [--since REV] [--tag S|M|L] [--last]
+    b-gate phase [-s REV] [-t S|M|L] [-l]
         score the phase just built and add it to the pending total. prints
         `gate N` (run the review gate now, N reviewers) or `defer` (take the next
         phase; a later gate covers this one). --last gates any nonzero pending score
-    python3 brain-gate.py round VALID SERIOUS
+    b-gate round VALID SERIOUS
         record one adjudicated round: VALID findings, SERIOUS of them medium or
         worse. prints the ADJUDICATE event: all_invalid | valid_remain |
         final_fix | not_converging | capped
-    python3 brain-gate.py design
+    b-gate design
         mark that DESIGN ran; the next round is its acceptance test (net decrease)
-    python3 brain-gate.py reset
+    b-gate reset
         delete this repo's gate state (CLEANUP runs it; the run leaves no residue)
 
 the score: changed lines in code at 1, plus a structural weight per added,
@@ -52,7 +51,7 @@ from brainlib import (
     ShapePolicy,
     Tool,
     UsageError,
-    find_gate_state,
+    XdgLayout,
 )
 
 # --------------------------------------------------
@@ -65,8 +64,8 @@ from dataclasses import asdict, dataclass, field
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # pending score at which the gate fires. about 300 changed code lines, or a
 # handful of new modules - one reviewable sitting
 THRESHOLD = 300.0
@@ -160,11 +159,11 @@ def state_path() -> Path:
 
     # Returns
 
-    `<find_gate_state()>/<repo>-<hash8>.json`
+    `<XdgLayout.gate_state>/<repo>-<hash8>.json`
     """
     top = checkout().repos[0]
     digest = hashlib.sha256(str(top).encode()).hexdigest()[:8]
-    return find_gate_state() / f"{top.name}-{digest}.json"
+    return XdgLayout.discover().gate_state / f"{top.name}-{digest}.json"
 
 
 def score(change: Change) -> float:
@@ -295,7 +294,7 @@ def main(args: Args) -> None:
     if command == "phase":
         tag = args.value(Flag.TAG).upper()
         if tag and tag not in TAG_SCORE:
-            raise UsageError(f"--tag is one of {', '.join(TAG_SCORE)}")
+            raise UsageError(f"{Flag.TAG.spelling} is one of {', '.join(TAG_SCORE)}")
         state.tagged += TAG_SCORE.get(tag, 0.0)
         measured = measure(args.value(Flag.SINCE, "HEAD"))
         pending = max(state.tagged, measured - state.gated_at)
@@ -334,4 +333,4 @@ def main(args: Args) -> None:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.SINCE, Flag.TAG, Flag.LAST), positionals=(1, 3)).run(main)
+    Tool.of(TOOL, __doc__, positionals=(1, 3)).run(main)

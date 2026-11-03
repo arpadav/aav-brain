@@ -2,8 +2,8 @@
 
 one reader and one writer for every corpus that may only ever grow - the
 evidence views and the decision trace - so that invariant lives in a single
-place. recall's served logs are a per-machine cache, not a corpus, and keep
-their own reader and writer (brainlib.served). the policies beside them are
+place. the session logs are a per-machine cache, not a corpus, and keep
+their own reader and writer (brainlib.session). the policies beside them are
 authored data read from toml, so no tool hardcodes a number
 
 Author: aav
@@ -12,7 +12,7 @@ Author: aav
 # local
 # --------------------------------------------------
 from brainlib.paths import DataLayout, find_repo, find_repo_root
-from brainlib.repos import git
+from brainlib.repo.tree import git
 from brainlib.text import iso_now, read_text, write_text
 from brainlib.vocab import ENCODING
 
@@ -459,13 +459,11 @@ class ShapePolicy:
 
     P27 says a file that is "too long" should split to a tree and P28 says a
     datatype defined twice should merge. both are adjectives, and a worker
-    resolves an adjective against its own priors (P40). the build that forced
-    these numbers is recorded once, on principle-27 under `## the measurement`,
-    and is not retold here. these fields are what make the two cards
-    measurable, and `budget` is
-    what decouples the cold review from the phase COUNT and attaches it to the
-    phase SIZE. the evidence is stated once, on principle-27 itself, under
-    `## the measurement` - not retold here
+    resolves an adjective against its own priors (P40). these fields are what
+    make the two principles measurable, and `budget` is what decouples the cold
+    review from the phase COUNT and attaches it to the phase SIZE. the build
+    that forced these numbers is recorded once, on principle-27 under
+    `## the measurement`, and is not retold here
 
     a crossing is a FINDING, not a verdict, exactly as PrunePolicy's window is
     eligibility and not a prune: a 2400-line table of sourced constants is one
@@ -502,15 +500,20 @@ class ShapePolicy:
         the policy; the field defaults when the file is absent, unreadable,
         malformed or the wrong shape. a broken config must still MEASURE, the
         same way a broken prune policy still reports - a tool that goes silent
-        on a bad config is the failure this whole card set exists to prevent
+        on a bad config is the failure this whole principle set exists to prevent
         """
+        # --------------------------------------------------
+        # no policy file: the same rule the tool follows, never go quiet about a measurement
+        # you could not take. a silently-swapped policy scans eleven suffixes
+        # where the authored one scans twenty-five, and reports the shortfall
+        # as a clean repo
+        # --------------------------------------------------
         if not path.is_file():
-            # the same rule the tool follows: never go quiet about a measurement
-            # you could not take. a silently-swapped policy scans eleven suffixes
-            # where the authored one scans twenty-five, and reports the shortfall
-            # as a clean repo
             print(f"no {path.name} at {path.parent}; measuring against built-in defaults", file=sys.stderr)
             return cls()
+        # --------------------------------------------------
+        # parse the authored policy, clamping every number to its floor
+        # --------------------------------------------------
         try:
             data = tomllib.loads(read_text(path))
             tree, budget, scan = data.get("tree", {}), data.get("budget", {}), data.get("scan", {})
@@ -616,7 +619,7 @@ class ShapePolicy:
         """whether a folder's fan-out is the deliberate form, not a defect.
 
         the one place a real crossing may be silenced, so it is authored and
-        narrow: a zettelkasten is one file per card on purpose
+        narrow: a zettelkasten is one file per principle on purpose
 
         # Arguments
 

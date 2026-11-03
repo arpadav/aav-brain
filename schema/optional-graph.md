@@ -11,9 +11,9 @@ for a reader outside the brain, never an input. no brain tool reads it, so nothi
 not warranted as a runtime. neo4j is a server, a port, a process to babysit - infra for a graph that
 fits in a small json file, against [[../brain/principles/principle-14-minimal-surface]] and "dont pull
 infra unless needed". neo4j would add a stateful mutable store, the opposite of a graph re-derived
-from the cards on demand. `graph.json` is typed nodes and edges, portable to any graph tool.
+from the principles on demand. `graph.json` is typed nodes and edges, portable to any graph tool.
 
 ## context-mode (optional semantic layer)
-the cards are plain markdown. for fuzzy/semantic recall on top of the deterministic graph, index the
+the principles are plain markdown. for fuzzy/semantic recall on top of the deterministic graph, index the
 store once with context-mode and `ctx_search` over it. that path is non-deterministic by construction
 (bm25 + fusion), so it stays a convenience, never the contract. the graph is the contract.

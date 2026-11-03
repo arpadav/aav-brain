@@ -5,12 +5,9 @@ description: "Write a dispatch prompt to a worker agent in Arpad's voice and int
 
 # brain-meta-author-prompt: write the worker prompt in his voice
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
-discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
-
-load his style: `$AAV_BRAIN/brain/voice/VOICE.md` and `LEXICON.md`, plus
-the relevant cards via `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the work unit on the next line, then `EOF`.
+## setup
+load his style: `$AVB/brain/voice/VOICE.md` and `LEXICON.md`, plus
+the relevant principles via `b-recall <<'EOF'`, the work unit on the next line, then `EOF`.
 
 ## input -> output
 you get an interest + a unit of work. you output a dispatch prompt for a specific worker agent that,
@@ -30,7 +27,7 @@ when run, satisfies the interest.
 ## the DOCTRINE clause - MANDATORY on every dispatch that WRITES code
 you own the DOCTRINE state, and it is a gate: emit `resolved` only when all three hold, else
 `unresolved` and halt. this exists because the brain's own scripts were written with 48 hand-built
-paths and zero enums while the cards forbidding both were already in the store - present, abstract,
+paths and zero enums while the principles forbidding both were already in the store - present, abstract,
 and never loaded ([[principle-40-idiom-needs-exemplars]]).
 
 1. **PURPOSE, as a register.** scratch/testing -> idiom is skipped. ephemeral tutorial -> light, not
@@ -40,7 +37,7 @@ and never loaded ([[principle-40-idiom-needs-exemplars]]).
 2. **THE LANGUAGE ROW**, from [[principle-06-idiomatic-per-language]]. a language with no row is a
    question for him, never a guess. rust resolves to `aav-rust-implementer`, which already carries
    the doctrine; every other language gets it from you, injected into the worker prompt.
-3. **THE EXEMPLARS, PASTED IN.** run `brain-recall.py --binds code <<'EOF'`, the task on the next line, then `EOF` (plus `--binds docs` when the task writes prose, which carries P57 and `brain-register.py`)
+3. **THE EXEMPLARS, PASTED IN.** run `b-recall -b code <<'EOF'`, the task on the next line, then `EOF` (plus `-b docs` when the task writes prose, which carries P57 and `b-register`)
    and copy the relevant before/after pairs from P40's catalogue INTO the prompt. do not write "be
    idiomatic", "follow his style", or "make it clean" - a worker resolves an adjective against its
    own priors, so the wrong form and the right form both go on the page.
@@ -99,8 +96,8 @@ and a better lens fits, choose it and note why.
 picking a lens or an agent REJECTS the others - "if a better lens fits, choose it and note
 why" is a fork. log it when you choose, not at the end:
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-meta-author-prompt --decision "<what to dispatch>" \
-    --chosen "<agent/lens>" --reject "<alternative>=<why not>" --principle P18
+b-trace -k brain-meta-author-prompt -d '<what to dispatch>' \
+    -c '<agent/lens>' -r '<alternative>=<why not>' -p P18
 ```
 
 ## output

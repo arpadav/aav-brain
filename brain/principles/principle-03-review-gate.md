@@ -89,7 +89,7 @@ can trust it without reading every line."*
   back to a plan/design phase" - rebuild per [[principle-51-spaghetti-is-a-design-fault]]. For
   device-facing code the live run, not another review round, is the gate
   ([[principle-60-device-facing-code-is-gated-by-a-live-run]]).
-- **The bound is scripted.** `brain-gate.py` schedules the gate by measured diff (phases batch; a
+- **The bound is scripted.** `b-gate` schedules the gate by measured diff (phases batch; a
   3-line phase does not get a 2k-line phase's review), sizes it at 2-6 reviewers, and ends it after
   two rounds: a round-2 decrease is fixed and verified, no decrease goes to DESIGN. He: "dude stop
   reviewing its okay just fix it up, continue, then review at the end".

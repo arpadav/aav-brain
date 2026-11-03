@@ -3,11 +3,11 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-flow: populate docs/DEV_FLOWCHART.md from its template and flow.toml.
+"""b-flow: populate docs/DEV_FLOWCHART.md from its template and flow.toml.
 
-    python3 brain-flow.py            write docs/DEV_FLOWCHART.md
-    python3 brain-flow.py --check    fail if the doc drifts from a fresh render
-    python3 brain-flow.py --mermaid  print the mermaid view alone
+    b-flow     write docs/DEV_FLOWCHART.md
+    b-flow -c  fail if the doc drifts from a fresh render
+    b-flow -m  print the mermaid view alone
 
 the flow is AUTHORED as data in brain/flow/flow.toml and stepped directly by
 brain-walk.py; both load and validate it through brainlib.Flow. this script
@@ -17,8 +17,8 @@ the diagram or table generated from flow.toml. an unsound flow is refused
 
 the flow is the EXECUTION SEQUENCE, kept strictly separate from the knowledge
 GRAPH (brain-graph.py): the flow has states/transitions, the graph has
-nodes/edges, and the coupling is one-directional (a state may CALL recall via
-its `recall` flag; the graph never calls the flow). see P30
+nodes/edges, and the coupling is one-directional (a state's `recall = true`
+makes b-walk print the b-recall call; the graph never reaches the flow). see P30
 
 Author: aav
 """
@@ -41,8 +41,8 @@ from dataclasses import dataclass
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 
@@ -177,14 +177,13 @@ class FlowDoc(Artifact):
         return [(self.out_dir / "DEV_FLOWCHART.md", doc)]
 
     def summary(self) -> str:
-        """a one-line build summary.
+        """the build summary, in the `done -> PATH` form every builder prints.
 
         # Returns
         the state/transition/entry counts
         """
-        return (f"brain-flow done -> {self.out_dir / 'DEV_FLOWCHART.md'}\n"
-                f"  states: {len(self.flow.states)} | transitions: {len(self.flow.transitions)} | "
-                f"entries: {len(self.flow.entries)}")
+        return (f"{TOOL} done -> {self.out_dir / 'DEV_FLOWCHART.md'}\n  {len(self.flow.states)} states, "
+                f"{len(self.flow.transitions)} transitions, {len(self.flow.entries)} entries")
 
 
 def main(args: Args) -> Exit | None:
@@ -224,4 +223,4 @@ def main(args: Args) -> Exit | None:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.CHECK, Flag.MERMAID), modes=((Flag.CHECK,), (Flag.MERMAID,))).run(main)
+    Tool.of(TOOL, __doc__, modes=((Flag.CHECK,), (Flag.MERMAID,))).run(main)

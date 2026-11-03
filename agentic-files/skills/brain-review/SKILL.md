@@ -10,11 +10,8 @@ biggest-bug-to-smallest-nit pass by independent reviewers, converged, with even 
 blocking. it does NOT walk the flow by hand - the walk is `brain-meta-drive`'s job. this entry only sets
 the start node and the ask-first regime; the engine reuses the same gate machinery a build uses.
 
-## setup (run first - discover the brain, no hardcoded path)
-```bash
-eval "$(brain-find --export)"   # sets $AAV_BRAIN
-```
-read `$AAV_BRAIN/brain/CONSTITUTION.md`.
+## setup
+read `$AVB/brain/CONSTITUTION.md`.
 
 ## 1. set the entry
 - `$STATE` = `REVIEW` (the cold-review node).
@@ -36,16 +33,16 @@ the SHARED `PHASEGATE -> REMEDIATE -> VERIFY` loop: converge the findings, fix e
 re-review, verify, to a terminal. the review region adds NO new transitions on those shared states - it
 just enters them.
 
-handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode build` (paste the output) - the handoff contract lives in brain-meta-drive.
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `build`, call `Skill(brain-meta-drive)` and run `b-walk -s "$STATE" -m build` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## 2b. the would-arpad pass (a SUPERPOSITION on the cold gate, P29)
 the cold gate above is only HALF of a brain review. it has no brain memory by design. so, INDEPENDENTLY
 and after it, run a second brain-guided pass on the same diff - this is the superposition, not a
 replacement, and the cold pass is never warmed by it:
-- recall the cards the diff touches: `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, what the diff changes on the next line, then `EOF`.
+- recall the principles the diff touches: `b-recall <<'EOF'`, what the diff changes on the next line, then `EOF`.
 - with that memory loaded, interrogate the diff at EVERY granularity - "would arpad write THIS file
   like this? this folder structure like this? this individual function like this?" (P29). a "no" is
-  binding only with a reason - cite the card it violates.
+  binding only with a reason - cite the principle it violates.
 - this is DISTINCT from the programming-style pass (brain-meta-style: trim/format/docs). here the
   question is whether he'd have written it this way AT ALL, not how to tidy it.
 - converge would-arpad findings INTO the same gate: a would-arpad nit blocks advancement exactly like

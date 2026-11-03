@@ -22,16 +22,16 @@ does. two exits, and the measurement picks one:
 
 the budget is a NUMBER, not a judgement made fresh each time - the same reason
 [[principle-27-organization-reorg]] has thresholds instead of the adjective "too long".
-`brain-gate.py phase` scores the change (code lines, plus a weight per added, deleted or renamed
+`b-gate phase` scores the change (code lines, plus a weight per added, deleted or renamed
 file; prose scores nothing) and prints `gate N` or `defer`. under it, the change still gets
 verified and styled; it just does not commission reviewers. a ref git cannot resolve stops the
 script with a usage error - that is never a `defer`.
 
-**small changes accumulate; they do not each dodge the review.** brain-gate.py keeps the pending
+**small changes accumulate; they do not each dodge the review.** `b-gate` keeps the pending
 score per checkout from the last review that ACTUALLY RAN, so two deferred phases are measured
-together with the third. `--last` on the final phase gates whatever is still pending.
-`brain-shape.py --since` is a second, cruder budget kept beside it while
-plans/open-items/G01-two-gate-arming-checks.md is open; where they disagree, brain-gate.py wins.
+together with the third. `b-gate phase -l` on the final phase gates whatever is still pending.
+`b-shape -s` is a second, cruder budget kept beside it while
+plans/open-items/G01-two-gate-arming-checks.md is open; where they disagree, `b-gate` wins.
 
 **KIND overrides size in one direction only.** a two-line change to an authorization door is ARMED
 - tag its phase `L` and the plan's expected size outranks the small diff. a thousand lines of
@@ -54,7 +54,7 @@ carefully, and the findings that matter arrive in the same list as the ones that
   [[principle-35-gates-are-agent-side]] asks for when it says a phase too small to gate must SAY so.
 - a remediation is a change like any other: it re-enters the loop and is re-measured, never waved
   through because a review already looked at the thing it fixes.
-- the rounds are bounded by `brain-gate.py round`: two per gate. a round-2 decrease is fixed and
+- the rounds are bounded by `b-gate round`: two per gate. a round-2 decrease is fixed and
   verified with no third review; no decrease goes to DESIGN ([[principle-51-spaghetti-is-a-design-fault]]).
 
 ## documentation never buys a cold gate
@@ -72,5 +72,5 @@ review for a one-line fix. [[principle-03-review-gate]] is what the review does 
 
 ## anti-pattern
 a full cold review commissioned for a stale number in a doc comment. and its mirror, which is worse:
-reading this card as permission to skip the review on a change that moved a type or touched money
+reading this principle as permission to skip the review on a change that moved a type or touched money
 because the diff looked small.

@@ -9,7 +9,7 @@ this is ONE repo: the doctrine (`brain/`), the tooling (`bin/`), and the acting 
 (evidence + trace) lives in the `logs/` submodule, never in this repo's history.
 
 > human-facing doc - nothing reads this at runtime. the authoritative sources are
-> `brain/CONSTITUTION.md`, the cards, and `brain/flow/flow.toml`.
+> `brain/CONSTITUTION.md`, the principles, and `brain/flow/flow.toml`.
 
 ## why
 i delegate to AI for leverage, not to hand off judgment. the brain is the part that stays in the loop
@@ -23,44 +23,45 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
   ARCHITECTURE.md      the system: memory tiers, the 5 entries + brain-meta-* machinery + agents
   brain/               the queryable DOCTRINE store (committed, public knowledge)
     CONSTITUTION.md    tier-1 core: the hard rules + voice (always loaded)
-    principles/        atomic principle cards (one belief each)
-    intents/           interest cards (the why)
+    principles/        atomic principles (one belief each)
+    intents/           interests (the why)
     voice/             how to write/review as me
-    flow/  graph/      the deterministic flow + the graph derived from the cards
+    flow/  graph/      the deterministic flow + the graph derived from the principles
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
     skills/            the 13 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/
-  bin/                 all tooling: brain-find and brainlib (the shared lib) at the top; each
-                       script under store/, run/ and check/ answers --help
+  bin/                 all tooling: brainlib (the shared lib), and the brain scripts, each a command
+                       `b-<name>` (`Layout.scripts` says which file is one); each answers -h, and
+                       ARCHITECTURE.md says how they reach PATH
     store/             build and keep the knowledge
     run/               used while a task runs
     check/             measure
   prune.toml           how old a trace entry must be before it is eligible to be judged
   shape.toml           the numbers behind P27 and P28, and a secondary change budget (G01)
-  tiers.toml           which cards always load, which are scored, and the measurement behind it
-  eval/                brain-eval.py + 25 tasks and their card-derived rubrics: does a brain
+  tiers.toml           which principles always load, which are scored, and the measurement behind it
+  eval/                brain-eval.py + 25 tasks and their principle-derived rubrics: does a brain
                        version change how the work comes out, measured paired (on vs off)
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
                        lives in a separate private repo, never here; the scripts write to it via
-                       the XDG symlink ~/.local/share/aav-brain -> logs/ (brainlib.find_data).
+                       the XDG symlink ~/.local/share/aav-brain -> logs/ (brainlib.XdgLayout.data).
   docs/                INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
-  schema/              the card / flow / trace schemas
+  schema/              the principle / flow / trace schemas
 ```
 
 ## quickstart
 ```bash
 # 1. (re)build the evidence from my real history. explicit signal only, no accepted-edit guessing.
-python3 bin/store/brain-extract.py          # or: uv run bin/store/brain-extract.py
+b-extract          # or: uv run bin/store/brain-extract.py
 
 # 2. ask the brain what it knows about a task
-python3 bin/run/brain-recall.py <<'EOF'
+b-recall <<'EOF'
 rust idiomatic review, dont commit, dont fake the benchmark
 EOF
 
 # 3. read the index
-python3 bin/run/brain-recall.py --all
+b-recall -a
 ```
 
 the acting suite lives in `agentic-files/` (home-manager links it into ~/.claude and ~/.codex). use the
@@ -77,8 +78,8 @@ call it directly.
 4. never fabricate. honest "its slower" beats a flattering fiction.
 5. the git record is sovereign. prepare it; i commit it.
 6. tooling in my stack & voice. rust/bash, never node/mjs. general agent brain, not claude-coupled.
-7. learn continuously. every interruption and "no" updates a card.
+7. learn continuously. every interruption and "no" updates a principle.
 
 see ARCHITECTURE.md for the design. built by mining every
-human turn across 45 claude projects + the full codex history. re-run brain-extract.py to keep it
+human turn across 45 claude projects + the full codex history. re-run `b-extract` to keep it
 current.

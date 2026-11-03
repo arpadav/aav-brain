@@ -5,7 +5,7 @@ the brain's archive), and what each of its lines says. the readers - the
 extractor, recall's session record, the misses report - ask these types rather
 than parse a harness's directories or line shapes themselves. text in his slot
 passes through as written: the wrapper tags a harness injects there are
-brain-extract's RE_MACHINE to strip, so a third harness is a subclass, an entry
+b-extract's RE_MACHINE to strip, so a third harness is a subclass, an entry
 in `Harnesses.discover`, and any wrapper of its own added to that pattern
 
 Author: aav
@@ -21,7 +21,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.paths import find_archive, plain_name
+from brainlib.paths import XdgLayout, plain_name
 from brainlib.text import parse_iso
 from brainlib.vocab import ENCODING, Env
 
@@ -346,7 +346,7 @@ class Harness(ABC):
 
     # the user's home, under which the harness writes
     home: Path
-    # the brain's cold store root, find_archive()
+    # the brain's cold store root, `XdgLayout.archive`
     archive: Path
 
     # the evidence rows' `src`, and the harness's folder in the archive
@@ -368,9 +368,9 @@ class Harness(ABC):
 
         # Returns
 
-        the harness over `Path.home()` and `find_archive()`
+        the harness over `Path.home()` and `XdgLayout.archive`
         """
-        return cls(Path.home(), find_archive())
+        return cls(Path.home(), XdgLayout.discover().archive)
 
     def running(self) -> str | None:
         """this process's session id, when it runs under this harness.
@@ -407,7 +407,7 @@ class Harness(ABC):
 
     @property
     def cold(self) -> Place:
-        """the gzipped copies `brain-extract --archive` keeps.
+        """the gzipped copies `b-extract --archive` keeps.
 
         # Returns
 
@@ -810,13 +810,13 @@ class Harnesses:
 
         # Arguments
 
-        * `archive` - the cold store root; `find_archive()` when omitted
+        * `archive` - the cold store root; `XdgLayout.archive` when omitted
 
         # Returns
 
         claude then codex, the order their sessions are listed in
         """
-        home, cold = Path.home(), archive or find_archive()
+        home, cold = Path.home(), archive or XdgLayout.discover().archive
         return cls((Claude(home, cold), Codex(home, cold)))
 
     def named(self, name: str) -> Harness | None:

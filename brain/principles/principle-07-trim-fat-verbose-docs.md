@@ -2,7 +2,7 @@
 name: principle-07-trim-fat-verbose-docs
 kind: principle
 tier: conditional
-rule: Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough. This is the VERBOSITY knob - how MUCH to write; what a comment may SAY is a separate card.
+rule: Cut ancillary/YAGNI inline comments and dead surface; keep doc comments and doc tests verbose and thorough. This is the VERBOSITY knob - how MUCH to write; what a comment may SAY is a separate principle.
 interest: [intent-craft]
 confidence: high
 evidence_count: 6
@@ -16,10 +16,10 @@ tells: ["trim the fat", "get to the damn point", "verbose doc comments tho", "re
   ancillary comments. Go **line by line**. Get to the point. Delete dead/old test files.
 - **Doc comments + doc tests -> verbose and thorough.** These are the durable interface
   and stay rich.
-- **This card sets the VOLUME, not the CONTENT.** What a comment is allowed to say -
+- **This principle sets the VOLUME, not the CONTENT.** What a comment is allowed to say -
   never the edit, never a dead identifier, never a restatement of his instruction - is
   [[principle-37-comment-the-artifact-not-the-edit]]. Both apply to every comment: P37
-  decides whether it may exist, this card decides how long it gets.
+  decides whether it may exist, this principle decides how long it gets.
 
 **Why.** Signal-to-noise ([[intent-craft]]). Inline chatter is debt that rots; doc
 comments are the contract a future reader (including him) relies on. The distinction is

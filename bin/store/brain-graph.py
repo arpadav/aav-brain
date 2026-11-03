@@ -3,10 +3,10 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-graph: write the knowledge graph out as graph.json, and print its warnings.
+"""b-graph: write the knowledge graph out as graph.json, and print its warnings.
 
-    python3 brain-graph.py            write brain/graph/graph.json
-    python3 brain-graph.py --check    build to memory, fail if it drifts from disk
+    b-graph     write brain/graph/graph.json
+    b-graph -c  build to memory, fail if it drifts from disk
 
 the graph and its warnings: see brainlib.graph. what graph.json is for: see
 schema/optional-graph.md. this is where a human sees the warnings
@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Graph, Layout, Tool
+from brainlib import Args, Artifact, Exit, Graph, Layout, Tool
 
 # --------------------------------------------------
 # external
@@ -34,8 +34,8 @@ from dataclasses import dataclass
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # the file the graph is written to, inside Layout.graph_dir
 GRAPH_JSON = "graph.json"
 
@@ -96,4 +96,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)
+    Tool.of(TOOL, __doc__).run(main)

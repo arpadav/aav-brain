@@ -3,16 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-extract: distill my interaction fingerprint into the brain store.
+"""b-extract: distill my interaction fingerprint into the brain store.
 
 distilled from raw agent transcripts, stdlib only, safe to run any time
 
-    uv run brain-extract.py                  (or: python3 brain-extract.py)
-    uv run brain-extract.py --out DIR        the evidence dir; default: the evidence dir of the
-                                             brain's private data dir
-    uv run brain-extract.py --archive        also cold-store the raw transcripts first
-    uv run brain-extract.py --archive-dir D  the cold-storage root; default: find_archive(),
-                                             OUTSIDE git
+    b-extract         mine the transcripts into the evidence
+    b-extract -o DIR  the evidence dir; default: the evidence dir of the
+                      brain's private data dir
+    b-extract -a      also cold-store the raw transcripts first
+    b-extract -d D    the cold-storage root; default: XdgLayout.archive,
+                      OUTSIDE git
 
 every human turn is captured into prompts.jsonl with a primary bucket and
 a multi-label class set - nothing is dropped. sources are both my codex
@@ -48,6 +48,7 @@ from brainlib import (
     Flag,
     Harnesses,
     Interrupted,
+    Layout,
     Ledger,
     MergeCount,
     Replied,
@@ -55,8 +56,8 @@ from brainlib import (
     Tool,
     Transcript,
     TranscriptError,
+    XdgLayout,
     clip,
-    find_archive,
     iso_now,
     write_text,
 )
@@ -77,8 +78,8 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # negation / disagreement, tuned to my lowercase no-apostrophe register
 RE_REJECT = re.compile(
     r"\b(nope|nah|dont|don't|do not|stop|undo|revert|isnt|isn't|wasnt|incorrect|disagree|"
@@ -149,8 +150,8 @@ class Signal(StrEnum):
     a turn carries several of these at once (the classes) and exactly one as its
     primary bucket. the vocabulary was spelled as bare strings at each of the
     four sites that use it - the pattern table, the priority order, the
-    classifier's extra tests and the view writer - so a new label read as a
-    typo at three of them and the set could only be recovered by grep
+    classifier's extra tests and the view writer - are all keyed by these
+    members, so a new label is one edit and the set is read off one class
 
     # Example
 
@@ -289,8 +290,14 @@ class Reader:
         next real turn after an interruption. raises TranscriptError when the
         file cannot be read
         """
+        # --------------------------------------------------
+        # resolve the harness that wrote this transcript
+        # --------------------------------------------------
         harness = self.transcript.harness
         proj, src = harness.project(self.transcript.path), harness.NAME
+        # --------------------------------------------------
+        # walk the events, settling machine-driven sessions and yielding human turns
+        # --------------------------------------------------
         settled = False
         for event in self.events():
             match event:
@@ -468,11 +475,20 @@ class Corpus:
         # Returns
         the full statistics dict
         """
+        # --------------------------------------------------
+        # count the prompts and name the scanned sources, codex first: the order
+        # every stored corpus-stats.json spells
+        # --------------------------------------------------
         total = len(self.prompts)
-        # codex first: the order every stored corpus-stats.json spells
         sources = "+".join(harness.NAME for harness in reversed(harnesses.all))
+        # --------------------------------------------------
+        # sort the prompt lengths and timestamps for the percentiles and the date range
+        # --------------------------------------------------
         lens = sorted(p.get("len", 0) for p in self.prompts)
         stamps = sorted(p["ts"] for p in self.prompts if p.get("ts"))
+        # --------------------------------------------------
+        # assemble the stats dict
+        # --------------------------------------------------
         return {
             "generated_at": iso_now(),
             "covers": {"first_turn": stamps[0] if stamps else "", "last_turn": stamps[-1] if stamps else "",
@@ -714,7 +730,7 @@ def main(args: Args) -> None:
     """
     out, cold = args.value(Flag.OUT), args.value(Flag.ARCHIVE_DIR)
     evidence = EvidenceLayout((Path(out) if out else DataLayout.discover().evidence.root).resolve())
-    archive = (Path(cold) if cold else find_archive()).resolve()
+    archive = (Path(cold) if cold else XdgLayout.discover().archive).resolve()
     harnesses = Harnesses.discover(archive)
     # --------------------------------------------------
     # archive first: the source must be preserved BEFORE anything reads it
@@ -742,4 +758,4 @@ def main(args: Args) -> None:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.OUT, Flag.ARCHIVE, Flag.ARCHIVE_DIR)).run(main)
+    Tool.of(TOOL, __doc__).run(main)

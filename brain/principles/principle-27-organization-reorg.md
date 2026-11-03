@@ -2,7 +2,7 @@
 name: principle-27-organization-reorg
 kind: principle
 tier: narrow
-rule: organization and folder/subfolder hierarchy are critical, always. reorg in BOTH directions by a MEASURED threshold, never an adjective: the numbers live in shape.toml and brain-shape.py reports the crossings - flat->tree past file_lines or folder_files, tree->flat when a refactor shrank things and the structure is now overkill.
+rule: organization and folder/subfolder hierarchy are critical, always. reorg in BOTH directions by a MEASURED threshold, never an adjective: the numbers live in shape.toml and b-shape reports the crossings - flat->tree past file_lines or folder_files, tree->flat when a refactor shrank things and the structure is now overkill.
 interest: [intent-craft]
 confidence: very-high
 evidence_count: 5
@@ -20,7 +20,7 @@ size/cohesion threshold:
   and the tree is overkill -> collapse it back to flat. structure for its own sake is debt
   ([[principle-14-minimal-surface]]).
 the trigger is a threshold in either direction, not a one-time decision - and the threshold is a
-NUMBER, read from `shape.toml` and reported by `brain-shape.py`, because "too long" is an adjective
+NUMBER, read from `shape.toml` and reported by `b-shape`, because "too long" is an adjective
 and a worker resolves an adjective against its own priors ([[principle-40-idiom-needs-exemplars]]).
 **the values live in `shape.toml` and are not repeated here** - a number written down in two places
 is a number that will disagree with itself.
@@ -55,7 +55,7 @@ figures as of 2026-09-05 and re-running the count will move them.
   conformance. the design document says nothing about file length, so conformance passed. **that is
   the finding.** it is not that nobody looked; it is that what they were shown could not contain the
   defect.
-- **this card was in context for it.** it appears in 9 recall outputs across the same build.
+- **this principle was in context for it.** it appears in 9 recall outputs across the same build.
 - **~29% of agent dispatches were refused** by the permission classifier (55 of 187), between 14%
   and 50% depending on the agent, and a refusal was absorbed silently rather than reported as a hole.
 
@@ -64,7 +64,7 @@ crate, and that the layout lens was dropped because it was denied. the denials w
 retries carried; the lens then stopped being asked for, which is a different failure.
 
 ## how to apply
-- **run `brain-shape.py <repo>` at every phase gate**, and hand its crossings to the structure lens
+- **run `b-shape <repo>` at every phase gate**, and hand its crossings to the structure lens
   as that lens's input. this is the half a diff-scoped review cannot see: a phase that adds 800
   lines to a 6700-line file produces a hunk that reads fine, and the FILE is the defect
   ([[principle-19-think-in-code-ops]]).
@@ -88,7 +88,7 @@ vs tree-shape vs de-duplication.
 letting a file grow unbounded because splitting is work; or keeping a deep tree after a refactor
 hollowed it out. ignoring hierarchy because "it still runs".
 
-and the one that actually happened, which is worse because it looks like compliance: this card was
+and the one that actually happened, which is worse because it looks like compliance: this principle was
 in context (`## the measurement`) while a file grew to 7540 lines, because every review was scoped to
-a diff and nobody ever ran `wc -l`. **a card that is loaded and never measured against is a card that
+a diff and nobody ever ran `wc -l`. **a principle that is loaded and never measured against is a principle that
 did not fire** ([[principle-40-idiom-needs-exemplars]], [[principle-51-spaghetti-is-a-design-fault]]).

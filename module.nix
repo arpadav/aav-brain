@@ -6,9 +6,10 @@
 }:
 let
   # --------------------------------------------------
-  # every link points into the live checkout, out of the
-  # store, so an edit to a card or skill is live without
-  # a switch
+  # every link, and every command's wrapper, points into
+  # the live checkout, out of the store, so an edit to a
+  # principle, skill or script is live without a switch; a new
+  # script needs one to become a command
   # --------------------------------------------------
   root = config.aav.brain.root;
   agentsRoot = "${root}/agentic-files/agents";
@@ -27,6 +28,47 @@ let
     name = "${prefix}/${name}";
     value.source = live "${skillsRoot}/${name}";
   }) skills);
+  # --------------------------------------------------
+  # one command per brain script, read off the checkout,
+  # so a new script needs no edit here, only its flags
+  # row in COMMANDS (bin/brainlib/tool.py). the rule
+  # `Layout.scripts` (bin/brainlib/paths.py) spells: a
+  # `brain-?*.py` file in bin/ or a folder directly
+  # under it but brainlib and __pycache__, neither a
+  # symlink (readDir types one "symlink"). its name is
+  # `b-`, then the file stem past `brain-`, which must
+  # match `Layout.command`. two scripts with one name
+  # stop the switch. each runs under `python3 -I`, the
+  # isolation `Layout.private_command` also spells
+  # --------------------------------------------------
+  binDirs =
+    if builtins.pathExists "${root}/bin"
+    then builtins.attrNames (lib.filterAttrs
+      (dir: type: type == "directory" && !(builtins.elem dir [ "brainlib" "__pycache__" ]))
+      (builtins.readDir "${root}/bin"))
+    else throw "aav.brain.root = ${root} holds no bin/ - point it at a brain checkout";
+  scriptDirs = [ "bin" ] ++ map (dir: "bin/${dir}") binDirs;
+  scriptsIn = dir: map (file: "${root}/${dir}/${file}") (builtins.attrNames (lib.filterAttrs
+    (file: type: type == "regular" && lib.hasPrefix "brain-" file && lib.hasSuffix ".py" file
+      && file != "brain-.py")
+    (builtins.readDir "${root}/${dir}")));
+  scripts = lib.concatMap scriptsIn scriptDirs;
+  command = script: "b-${lib.removePrefix "brain-" (lib.removeSuffix ".py" (baseNameOf script))}";
+  sharing = lib.filterAttrs (_: same: builtins.length same > 1) (lib.groupBy command scripts);
+  commands =
+    if sharing != { }
+    then throw "aav.brain: scripts share a command: ${lib.concatStringsSep "; " (lib.mapAttrsToList
+      (name: same: "${name} <- ${lib.concatStringsSep ", " same}") sharing)}"
+    else builtins.listToAttrs (map (script: {
+      name = ".local/bin/${command script}";
+      value = {
+        executable = true;
+        text = ''
+          #!/usr/bin/env bash
+          exec ${pkgs.python3}/bin/python3 -I ${lib.escapeShellArg script} "$@"
+        '';
+      };
+    }) scripts);
 in
 {
   # --------------------------------------------------
@@ -57,24 +99,25 @@ in
         ".claude/agents/style".source = live "${agentsRoot}/style";
         ".codex/agents".source = live codexAgents;
         ".local/share/aav-brain".source = live "${root}/logs";
-        ".local/bin/brain-find" = {
-          executable = true;
-          text = ''
-            #!/usr/bin/env bash
-            exec ${pkgs.python3}/bin/python3 "${root}/bin/brain-find.py" "$@"
-          '';
-        };
       }
+      // commands
     );
     # --------------------------------------------------
-    # scripts find the brain through this variable
+    # the root: his shells and the skills' and agents'
+    # text read a brain file off `$AVB`; the flake reads
+    # `AAV_BRAIN` at switch time. no script reads either,
+    # each finds the root from its own location
     # --------------------------------------------------
-    home.sessionVariables.AAV_BRAIN = root;
+    home.sessionVariables = {
+      AAV_BRAIN = root;
+      AVB = root;
+    };
     # --------------------------------------------------
-    # compile codex TOML agents on every switch
+    # compile codex TOML agents on every switch, under
+    # the `-I` every command runs with
     # --------------------------------------------------
     home.activation.brainCompile = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${pkgs.python3}/bin/python3 "${root}/bin/store/compile.py" \
+      run ${pkgs.python3}/bin/python3 -I ${lib.escapeShellArg "${root}/bin/store/brain-compile.py"} \
         || warnEcho "codex agent compile failed; .generated/ may be stale"
     '';
   };

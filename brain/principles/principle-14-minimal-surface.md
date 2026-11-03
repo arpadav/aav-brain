@@ -5,8 +5,8 @@ tier: conditional
 rule: Build the smallest correct thing. No dependencies or abstractions you don't need. Only what is critical. Bloat means unnecessary code, never a line count: what he asked for is not bloat.
 interest: [intent-craft]
 confidence: high
-evidence_count: 7
-tells: ["no clap, custom cli", "worlds simplest docker image", "do NOT add superfluous things just for the sake of adding them - just what is critical", "investigate bloat in this software, anything redundant or unused which can be pruned?", "bloat", "redundant", "just review as-is, LOC =/= bloat, bloat is unnecessary stuff, but i asked for this, no?"]
+evidence_count: 8
+tells: ["no clap, custom cli", "worlds simplest docker image", "do NOT add superfluous things just for the sake of adding them - just what is critical", "investigate bloat in this software, anything redundant or unused which can be pruned?", "bloat", "redundant", "just review as-is, LOC =/= bloat, bloat is unnecessary stuff, but i asked for this, no?", "that's such an edge case tho, im just going to restart agents bruh don't worry about it"]
 ---
 
 # P14 - Minimal surface (only what is critical)
@@ -19,6 +19,8 @@ read beats pulling `clap`; the simplest Docker image that runs the binary beats 
 multi-stage cathedral.
 
 **How to apply.**
+- an edge case he sidesteps by hand (restarting an agent, opening a fresh shell) does not earn a
+  redesign; name the case and its manual fix in one line and build nothing (2026-11-03).
 - "minimal rust crate with axum ... no clap, custom cli that you literally run using
   ./binary /path/to/folder."
 - "i need the worlds simplest docker image which just runs the binary and i can mount a

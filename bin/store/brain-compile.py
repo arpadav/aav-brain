@@ -3,16 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""compile: render the brain into the surfaces that consume it.
+"""b-compile: render the brain into the surfaces that consume it.
 
-    python3 compile.py            build the codex agents + the global preamble
-    python3 compile.py --check    rebuild in memory, fail if either drifts
+    b-compile     build the codex agents + the global preamble
+    b-compile -c  rebuild in memory, fail if either drifts
 
 two targets. the CODEX AGENTS are described below. the GLOBAL PREAMBLE carries
 the handful of rules that must hold in EVERY session, including the ones where
 no brain skill is ever loaded and none of the store is reachable: those render
-from their cards into a marked block in ~/.claude/CLAUDE.md, so the always-on
-copy cannot say something the card does not
+from their principles into a marked block in ~/.claude/CLAUDE.md, so the always-on
+copy cannot say something the principle does not
 
 the brain SKILLS are universal (same SKILL.md in claude, codex, and ~/.agents)
 so they need no compilation - they symlink raw. the AGENTS differ per surface:
@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Args, Artifact, Exit, Flag, Layout, Tool, read_text, split_frontmatter
+from brainlib import Args, Artifact, Exit, Layout, Tool, read_text, split_frontmatter
 
 # --------------------------------------------------
 # external
@@ -47,14 +47,14 @@ from typing import override
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
-# the cards that bind with no skill loaded, and the always-read file they land in
+# the principles that bind with no skill loaded, and the always-read file they land in
 # home is discovered, never spelled out (P32); a surface whose file is absent is
 # skipped rather than created, so this never invents config for a tool he doesn't run
-PREAMBLE_CARDS = (
+PREAMBLE_PRINCIPLES = (
     "principle-09-git-sovereignty",
     "principle-37-comment-the-artifact-not-the-edit",
     "principle-43-report-state-not-changelog",
@@ -67,7 +67,7 @@ PREAMBLE_FILE = PREAMBLE_DIR / "CLAUDE.md"
 # that file is his (P09)
 MARK_OPEN = "<!-- GENERATED from the brain - do not hand-edit -->"
 MARK_CLOSE = "<!-- END GENERATED -->"
-# the `## rule` section of a card, up to the next `##` heading
+# the `## rule` section of a principle, up to the next `##` heading
 RULE_SECTION = re.compile(r"^## rule\n(.*?)(?=^## )", re.MULTILINE | re.DOTALL)
 # one `key: value` frontmatter line; keys allow letters/underscores (e.g. model_id)
 FRONT_KV = re.compile(r"([A-Za-z_]+):\s*(.*)")
@@ -270,7 +270,12 @@ class Compiler(Artifact):
 
     @override
     def emit(self) -> None:
-        """delete every orphaned agent file, naming each, then build."""
+        """delete every orphaned agent file, naming each, then build.
+
+        each orphan is an agent file in the output folder that no source builds;
+        it is unlinked and reported on stdout before the normal targets are
+        written, so a rename in the source never leaves the old file behind
+        """
         for orphan in self.orphans():
             orphan.unlink()
             print(f"{TOOL}: pruned {orphan.name}: no agent source builds it")
@@ -283,38 +288,38 @@ class Compiler(Artifact):
         the directory and the compiled agent names
         """
         names = sorted(path.stem for path, _ in self.targets())
-        return f"compile done -> {self.out_dir}\n  codex agents: {', '.join(names)}"
+        return f"{TOOL} done -> {self.out_dir}\n  codex agents: {', '.join(names)}"
 
 
 @dataclass
 class Preamble(Artifact):
-    """renders the always-on cards into the global prompt file.
+    """renders the always-on principles into the global prompt file.
 
     a brainlib.Artifact, so the drift gate is inherited. it owns ONLY the span
     between the two markers: the surrounding file is hand-written and stays
     untouched, and a file that has no markers yet gets the block appended
     """
 
-    cards_dir: Path = Path()
-    cards: tuple[str, ...] = ()
+    principles_dir: Path = Path()
+    principles: tuple[str, ...] = ()
 
     def block(self) -> str:
-        """the generated span, rendered from every named card.
+        """the generated span, rendered from every named principle.
 
         # Returns
         the marked block, markers included, without a trailing newline
         """
         parts = [MARK_OPEN]
-        for name in self.cards:
-            text = read_text(self.cards_dir / f"{name}.md")
+        for name in self.principles:
+            text = read_text(self.principles_dir / f"{name}.md")
             match = RULE_SECTION.search(text)
             if not match:
                 raise ValueError(f"{name}: no `## rule` section to render")
             rule = match.group(1).strip()
-            # a [[card]] link resolves only inside the store; emitting one into a
+            # a [[principle]] link resolves only inside the store; emitting one into a
             # file read with no store loaded hands the reader a dead reference
             if "[[" in rule:
-                raise ValueError(f"{name}: the rule section links to another card, so it cannot render standalone")
+                raise ValueError(f"{name}: the rule section links to another principle, so it cannot render standalone")
             parts.append(rule)
         parts.append(MARK_CLOSE)
         return "\n\n".join(parts)
@@ -347,11 +352,11 @@ class Preamble(Artifact):
         """a one-line build summary.
 
         # Returns
-        the file written and the cards it carries
+        the file written and the principles it carries
         """
         if not self.targets():
             return f"{TOOL}: {PREAMBLE_FILE} absent, preamble skipped"
-        return f"compile done -> {PREAMBLE_FILE}\n  preamble cards: {', '.join(self.cards)}"
+        return f"{TOOL} done -> {PREAMBLE_FILE}\n  preamble principles: {', '.join(self.principles)}"
 
 
 def main(args: Args) -> Exit:
@@ -367,9 +372,9 @@ def main(args: Args) -> Exit:
     """
     return Artifact.run_all([
         Compiler(out_dir=LAYOUT.codex_agents, agents_dir=LAYOUT.agents),
-        Preamble(out_dir=PREAMBLE_DIR, cards_dir=LAYOUT.principles, cards=PREAMBLE_CARDS),
+        Preamble(out_dir=PREAMBLE_DIR, principles_dir=LAYOUT.principles, principles=PREAMBLE_PRINCIPLES),
     ], args, TOOL)
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)
+    Tool.of(TOOL, __doc__).run(main)

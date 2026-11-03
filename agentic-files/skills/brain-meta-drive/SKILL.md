@@ -1,6 +1,6 @@
 ---
 name: brain-meta-drive
-description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.toml from the entry's $STATE to a terminal by executing brain-walk.py, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
+description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.toml from the entry's $STATE to a terminal by executing b-walk, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
 ---
 
 # brain-meta-drive: the shared flow-traversal engine
@@ -19,19 +19,27 @@ the caller (`brain-plan` @IDEATION, `brain-execute` @DOCTRINE, `brain-edit` @EDI
 - set `$STATE` = its entry node, `$REGIME` = ask-first | execute-through (read it from the entry, do
   NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it),
   and `$MODE` = its mode, the `mode` of its `[[entries]]` row in flow.toml (`build`, `edit`,
-  `self-refine`, ...). brain-walk rejects a mode flow.toml does not declare.
+  `self-refine`, ...). b-walk rejects a mode flow.toml does not declare.
 
-**pass `--mode "$MODE"` verbatim on every walk call; never infer it.** a guarded transition resolves by
+**pass `-m "$MODE"` verbatim on every walk call; never infer it.** a guarded transition resolves by
 mode, so the same (state, event) leads somewhere different per entry - `VERIFY --more_phases-->
 DOCTRINE` is guarded `build` and exists for neither a refine nor an edit run, both of which are
 phase-less. a wrong mode silently takes the build branch and can send a two-line edit back to
 DOCTRINE for a phase that does not exist.
 
+## setup
+home-manager exports the brain root as `$AVB` (long name `$AAV_BRAIN`) and puts every brain script on
+PATH as `b-<name>` (`b-walk`, `b-recall`, `b-trace`, ...); a brain file is `$AVB/<path>`.
+the first `b-walk` of a session prints a legend of every command's flags (`-s=--state`, ...); later
+walks print `legend: b-walk -l`, the call that reprints it. a state's doc likewise prints in full once
+per session; a later walk prints the `b-walk ... -d` call that reprints it - run it when the doc is not
+in your context (a subagent shares the session and never saw it).
+
 ## the handoff contract (every entry ends here)
 the handoff has TWO steps and both are mandatory - a summary of what the engine does is NOT a
 substitute for running it:
 ```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE"   # paste the output
+b-walk -s "$STATE" -m "$MODE"   # paste the output
 ```
 **you may not proceed until that output is in the transcript.** it names the state's owner and its
 transitions; if it is absent, the walk did not happen. then, and only then, `Skill(brain-meta-drive)` -
@@ -40,34 +48,29 @@ way - a `Skill(...)` or `Agent(...)` line under the state. make that call before
 work; the owner skill IS the method, and hand-rolling it inline looks identical in the transcript
 while discarding it.
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH, so they
-run the same on any machine:
-```bash
-eval "$(brain-find --export)"   # sets $AAV_BRAIN
-```
-
 ## EXECUTE, do not read-and-reason (the cardinal rule)
-the flow is a program; you RUN it, you do not interpret it. you MUST execute `$AAV_BRAIN/bin/run/brain-walk.py` for
+the flow is a program; you RUN it, you do not interpret it. you MUST execute `b-walk` for
 every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.toml` and reason about
 transitions yourself - that re-derives the machine by hand, non-deterministically, and is the exact bug
 this design exists to prevent. if a script errors, FIX the error; never fall back to reading the data
-file and guessing. same for brain-recall: run it, use its output; do not hand-pick cards.
+file and guessing. same for b-recall: run it, use its output; do not hand-pick principles.
 
 ## the trampoline (the engine itself) - loop from `$STATE` until a terminal
 ```bash
-step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE")     # the state's owner + recall flag
+b-walk -s "$STATE" -m "$MODE"     # the state's owner, its recall call, its exits
 ```
-- if the step's `recall: true` -> run `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the active task on the next line, then `EOF`, FIRST to load
-  the relevant cards. this is the ONLY call into the graph (context); the graph never decides the next
+- if its output carries a `RECALL first, its principles are the method:` line -> run the `b-recall ...
+  <<'EOF'` call printed under it, `<task>` replaced by the active task, FIRST to load the relevant
+  principles. this is the ONLY call into the graph (context); the graph never decides the next
   step. the query is the task PLUS the state's own job from its doc line ("<task> - judge names,
-  extension, use" at PLANGATE), so each state gets its own cards. the output is an index: READ the
-  cards you judge relevant, then cite each one you applied, with its evidence, in the state's
+  extension, use" at PLANGATE), so each state gets its own principles. the output is an index: READ the
+  principles you judge relevant, then cite each one you applied, with its evidence, in the state's
   output (`P27: bench/ has 14 files, limit 12`). a state with no citation did not use the brain.
-- **LOAD THE OWNER. this is the step that gets skipped.** `brain-walk.py` prints the literal call
+- **LOAD THE OWNER. this is the step that gets skipped.** `b-walk` prints the literal call
   under every state that has one:
   ```
-  LOAD ITS OWNER FIRST:  Skill(brain-meta-style)
+  LOAD FIRST: Skill(brain-meta-style)
+  ^ make the call, not a Read; never this state's work inline
   ```
   make that call. **you may not do a state's work until its owner is in context** - the same bar the
   walk output itself is held to. "run the owner" does NOT mean "do the state's work yourself": the
@@ -77,13 +80,14 @@ step=$(python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode "$MODE")
   (4%), `brain-meta-author-prompt` 19 times and loaded once (5%). the ONE owner that carries a literal
   call in its handoff - this engine - loads every time. a name is not an instruction.
   the two cold AGENTS (`brain-verifier` / `brain-review-gate`) are DISPATCHED instead, and the walk
-  says so. a state owned by the entry itself, or by `brain-recall` (a script), prints no directive -
+  says so (`DISPATCH COLD: Agent(subagent_type='brain-verifier')`). a state owned by the entry itself,
+  or by `brain-recall` (the `b-recall` script), prints no directive -
   those are the only states you act on directly.
 - the owner returns an OUTCOME EVENT (`threshold_met` / `below_threshold` / `unsound` / `set_grew` /
   `drafted`, ...).
 - get the next state from the data, never from your own judgement:
 ```bash
-python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --on "$EVENT" --mode "$MODE"
+b-walk -s "$STATE" -o "$EVENT" -m "$MODE"
 ```
 
 ## cyclic refinement is REQUIRED (P03) - the gate loops never advance dirty
@@ -96,9 +100,9 @@ the flow encodes threshold loops; you do not advance a phase until its metric ho
 - **IMPL -> PHASEGATE -> VERIFY**: PHASEGATE `below_threshold` -> REMEDIATE -> PHASEGATE until the review
   converges; VERIFY `unsound` -> REMEDIATE until the build/test/bench is sound. only then advance.
 - a gate below threshold routes BACK (to PLAN or REMEDIATE), never forward.
-- **the loop is bounded by a script, not by judgement.** `brain-gate.py phase` after each phase says
+- **the loop is bounded by a script, not by judgement.** `b-gate phase` after each phase says
   whether a gate is due (phases batch until the measured diff earns one) and how many reviewers it
-  gets (2-6). `brain-gate.py round <valid> <serious>` after each ADJUDICATE names the event: two
+  gets (2-6). `b-gate round <valid> <serious>` after each ADJUDICATE names the event: two
   rounds per gate, a round-2 decrease is fixed and verified with no third review, and a count that
   does not drop goes to DESIGN - the design is the defect, not the diff (the same state a design-fault
   verdict reaches). DESIGN's one re-review is
@@ -109,7 +113,7 @@ the flow encodes threshold loops; you do not advance a phase until its metric ho
 
 ## boundary + stops
 - **SANCTION** (only on entries that pass through it) is the regime flip ask-first -> execute-through;
-  LOG the plan's decided-against forks to the trace (`brain-trace.py`) per the SANCTION state doc before
+  LOG the plan's decided-against forks to the trace (`b-trace`) per the SANCTION state doc before
   flipping. for entries that never cross it (review, self-refine) the regime stays whatever the entry set.
 - a transition to a `blocked`/ASK state is the only sanctioned pause: cross back and ask via
   `brain-meta-intent`. post-sanction, never assume - decision he'd want = ask; mechanical detail = proceed. several small details that together decide what USING it feels like are NOT mechanical: ask the experience once, plainly, up front (P42).
@@ -170,7 +174,7 @@ finding against the artifact's stated contract before any of it becomes work:
 
 **the design-fault verdict is the one the loop used to lack**, and REMEDIATE's own doc still says it
 "does NOT leave the impl phase" - DESIGN is the single exception, reached from here: by this verdict,
-or by `brain-gate.py round` reporting a count that does not drop. the tells are mechanical, not a feeling: every fix you can name adds a branch/flag/parameter
+or by `b-gate round` reporting a count that does not drop. the tells are mechanical, not a feeling: every fix you can name adds a branch/flag/parameter
 and none removes one; the same seam produces a different finding every round; the fix needs to know
 about something it should not. one of those, and you design that ONE atomic part - the error model,
 the id scheme, the one seam - write it to plans/ as an addendum, and come back. destructive and
@@ -186,7 +190,7 @@ the two classes that MUST be rejected, because "fixing" them cannot terminate:
   phase N+1's deliverable is asking you to abandon the phasing.
 
 log every rejection so the next pass inherits it instead of re-litigating:
-`brain-trace.py --skill <entry> --decision "<finding>" --chosen "rejected" --reject "<finding>=<why>"`.
+`b-trace -k '<entry>' -d '<finding>' -c rejected -r '<finding>=<why>'`.
 a reviewer that self-reports uncertainty, or that you catch fabricating, is discounted wholesale -
 verify its claims yourself before any of them become work (P04, P08).
 

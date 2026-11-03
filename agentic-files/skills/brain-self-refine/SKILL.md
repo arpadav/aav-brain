@@ -12,18 +12,14 @@ decides; then it builds.
 
 this is P29 (interrogate the work) pointed inward: the artifact under review IS the brain.
 
-## setup (run first - discover the brain, no hardcoded path)
-the brain scripts live in `$AAV_BRAIN/bin`, discovered via `brain-find` on PATH.
-discover the store once: `eval "$(brain-find --export)"` (sets `$AAV_BRAIN`).
-
 ## 0. REFRESH THE CORPUS FIRST (every invocation, before the scan)
 this command is the scheduled refresh point. the transcript sources EXPIRE -
 claude prunes `~/.claude/projects` at roughly 26 days - so evidence not captured
 before then is gone from every source forever. run this first, always:
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-extract.py --archive   # cold-store raw transcripts, then merge + re-stamp
+b-extract -a   # cold-store raw transcripts, then merge + re-stamp
 ```
-`--archive` gzips any unseen transcript into `$XDG_DATA_HOME/aav-brain-archive`
+`-a` gzips any unseen transcript into `$XDG_DATA_HOME/aav-brain-archive`
 (deliberately OUTSIDE the logs submodule - raw transcripts are bulk, not
 versioned knowledge) so a better classifier can always be re-run over old
 material. the extract itself is a MERGE keyed on a content hash: it only ever
@@ -59,7 +55,7 @@ the trampoline is the engine's; the steps below are this skill's per-state work
 SR_ASK blocks on his selection (a pre-sanction ASK gate, never auto-applied). step 0 is the ONE
 exception and needs no consent: it only preserves and merges evidence, never edits the brain.
 
-handoff: with `$STATE`/`$REGIME` set and `$MODE` = `self-refine`, call `Skill(brain-meta-drive)` and run `python3 $AAV_BRAIN/bin/run/brain-walk.py --state "$STATE" --mode self-refine` (paste the output) - the handoff contract lives in brain-meta-drive.
+handoff: with `$STATE`/`$REGIME` set and `$MODE` = `self-refine`, call `Skill(brain-meta-drive)` and run `b-walk -s "$STATE" -m self-refine` (paste the output) - the handoff contract lives in brain-meta-drive.
 
 ## 1. scan deterministically (EXECUTE the checks, do not eyeball)
 run the scripted checks and collect their output - this is the machine pass, it must be reproducible.
@@ -68,41 +64,41 @@ run the scripted checks and collect their output - this is the machine pass, it 
 every conformance check below confirms a decision already made; these ask whether it still holds.
 a config can hide the thing it should report, so they run before anything that trusts one:
 ```bash
-python3 $AAV_BRAIN/bin/check/brain-decisions.py generated  # tracked files a builder writes or .gitignore disowns, and whether shape.toml says why
-python3 $AAV_BRAIN/bin/check/brain-decisions.py reach      # units named from too many files outside themselves (threshold in shape.toml)
-python3 $AAV_BRAIN/bin/check/brain-decisions.py untraced   # decision-making skills (entries + flow owners) that never logged a fork (CONSTITUTION)
+b-decisions generated  # tracked files a builder writes or .gitignore disowns, and whether shape.toml says why
+b-decisions reach      # units named from too many files outside themselves (threshold in shape.toml)
+b-decisions untraced   # decision-making skills (entries + flow owners) that never logged a fork (CONSTITUTION)
 ```
 
 ### then conformance
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-cards.py            # structural errors: dangling links, missing frontmatter, INDEX gaps
-python3 $AAV_BRAIN/bin/store/brain-graph.py --check    # graph drift from the cards
-python3 $AAV_BRAIN/bin/store/brain-flow.py --check     # flow + flowchart drift from flow.toml
-python3 $AAV_BRAIN/bin/store/compile.py --check        # codex agents + the global preamble drift from their sources
-python3 $AAV_BRAIN/bin/check/brain-lint.py             # every installed python checker, each on its pinned config
-python3 $AAV_BRAIN/bin/check/brain-fmt.py --stale $AAV_BRAIN/bin/*.py   # comments naming a symbol the file lost (P37)
-python3 $AAV_BRAIN/bin/check/brain-shape.py "$AAV_BRAIN"  # file length, folder fan-out, one datatype twice (P27, P28)
-python3 $AAV_BRAIN/bin/store/brain-trace.py --against        # decisions that rejected an option
-python3 $AAV_BRAIN/bin/store/brain-trace.py --stale-candidates # entries whose affects resolves to nothing
-python3 $AAV_BRAIN/bin/check/brain-misses.py           # his heated/interrupting/rejecting turns since the last self-refine, with the cards recall ranks for each
-grep -rn -- '/home/[a-z]\|-home-[a-z]' "$AAV_BRAIN/bin" "$AAV_BRAIN/agentic-files"  # hardcoded paths incl hyphen-encoded form (P32)
-find "$AAV_BRAIN/agentic-files" -type l -lname '*../*'          # layout-baking symlinks: the P32 costume case grep cannot see
+b-principles                                   # structural errors: dangling links, missing frontmatter, INDEX gaps
+b-graph -c                                     # graph drift from the principles
+b-flow -c                                      # flow + flowchart drift from flow.toml
+b-compile -c                                   # codex agents + the global preamble drift from their sources
+b-lint                                         # every installed python checker, each on its pinned config
+find "$AVB/bin" -name '*.py' -exec b-fmt -S {} +  # comments naming a symbol the file lost (P37)
+b-shape "$AVB"                                 # file length, folder fan-out, one datatype twice (P27, P28)
+b-trace -g                                     # decisions that rejected an option
+b-trace -S                                     # entries whose affects resolves to nothing
+b-misses                                       # his heated/interrupting/rejecting turns since the last self-refine, with the principles recall ranks for each
+grep -rn -- '/home/[a-z]\|-home-[a-z]' "$AVB/bin" "$AVB/agentic-files"  # hardcoded paths incl hyphen-encoded form (P32)
+find "$AVB/agentic-files" -type l -lname '*../*'  # layout-baking symlinks: the P32 costume case grep cannot see
 ```
 also sweep the structural smells the brain reviews for elsewhere: a datatype/helper defined in 2+
 files (P31), free-function logic that should live on a type (P26), a recurring deterministic op done
-by hand that should be a script (P19), a card that overlaps another (P29 orthogonality).
+by hand that should be a script (P19), a principle that overlaps another (P29 orthogonality).
 
 ## 2. read the trace and let it drive (the knowledge trace, point of the log)
-for every decided-AGAINST entry, ask: do the `--reject` reasons still hold?
-- still hold -> the finding is "reinforce": strengthen the card/prompt wording so it isn't re-litigated.
+for every decided-AGAINST entry (`b-trace -g`), ask: do its rejection reasons still hold?
+- still hold -> the finding is "reinforce": strengthen the principle/prompt wording so it isn't re-litigated.
 - no longer hold -> the finding is "revise": the entry's `affects` pointer says exactly WHERE to change
-  the card / graph link / flow / prompt. that precision is why the trace exists.
+  the principle / graph link / flow / prompt. that precision is why the trace exists.
 - genuinely unsure -> that becomes a QUESTION for arpad, not a silent edit.
 
 ### pruning the trace - ONLY here, and only by marking
 this is the one session that may make the brain forget. an entry about an architecture the brain has
-since left is read by every `--against` sweep from now on and costs judgement every time.
-`--stale-candidates` narrows the trace to entries whose `affects` resolves to nothing; that is a
+since left is read by every `b-trace -g` sweep from now on and costs judgement every time.
+`b-trace -S` narrows the trace to entries whose `affects` resolves to nothing; that is a
 SHORTLIST TO READ, never a verdict. the tool cannot tell stale from elsewhere - `plans/01-scaffold.md`
 is a live file in the repo that run happened in - so it tags each entry `this repo` / a repo name /
 `unattributed`, and judging it is the work. an `unattributed` entry predates the `repo` field and can
@@ -110,15 +106,15 @@ only be judged by reading what it decided.
 
 each prune is a FINDING for step 4, never a silent edit. only what he selects gets:
 ```bash
-python3 $AAV_BRAIN/bin/store/brain-trace.py --prune <ts>   # marks stale; every reader skips it
+b-trace -x TS   # marks stale; every reader skips it
 ```
-the line stays on disk. `brain-learner` reverses it with `--restore <ts>` when a later run shows the
-topic is live again, and a restore PINS the entry against any future prune. cards and docs have no
+the line stays on disk. `brain-learner` reverses it with `b-trace -b <ts>` when a later run shows the
+topic is live again, and a restore PINS the entry against any future prune. principles and docs have no
 such staging - they are versioned, so git is their undo.
 
 ## 3. generate the questions - ASK THE BRAIN, do not hardcode them (point 7, the hard rule)
-do NOT ship a fixed checklist. for each finding (and for the store as a whole), pull the cards it
-touches with `python3 $AAV_BRAIN/bin/run/brain-recall.py <<'EOF'`, the finding on the next line, then `EOF`, and ask, in context: "what would arpad ask
+do NOT ship a fixed checklist. for each finding (and for the store as a whole), pull the principles it
+touches with `b-recall <<'EOF'`, the finding on the next line, then `EOF`, and ask, in context: "what would arpad ask
 about this?" the recalled principles + tells generate the questions. examples the brain has produced
 before (illustrative, NOT the list): "why does this artifact exist - is it consumed, or dead output?",
 "should this be read instead of generated?", "is this its own principle or an expansion of an existing
@@ -134,19 +130,19 @@ valid. the brain proposes the questions; arpad owns the answers.
 
 ## 5. execute the selected edits, then log them
 only AFTER he selects + annotates:
-- for each chosen item, make the brain edit through the right skill (brain-meta-curate for cards/INDEX,
+- for each chosen item, make the brain edit through the right skill (brain-meta-curate for principles/INDEX,
   brain-meta-style for prose/idiom, direct edits to flow.toml / bin scripts), honoring his note.
-- rebuild what the edit touches. the gating is VERIFY's job now, not this skill's: emit `edited`
-  and let the walk carry you into VERIFY (drift gates + `brain-lint.py`), STYLE, RECORD and CURATE.
+- rebuild what the edit touches. the gating is VERIFY's job, not this skill's: emit `edited`
+  and let the walk carry you into VERIFY (drift gates + `b-lint`), STYLE, RECORD and CURATE.
 - for each PRUNE he approved, mark it here. this is the only step that applies one, and a prune
   surfaced in step 2 but never run is a finding he approved and did not get:
   ```bash
-  python3 $AAV_BRAIN/bin/store/brain-trace.py --prune '<ts>' --prune '<ts>'
+  b-trace -x '<ts>' -x '<ts>'
   ```
 - log each decision to the trace so the NEXT self-refine sees it:
   ```bash
-  python3 $AAV_BRAIN/bin/store/brain-trace.py --skill brain-self-refine --decision '<what>' --chosen '<what won>' \
-    --reject '<option>=<why>' --affects '<path>' --principle P29
+  b-trace -k brain-self-refine -d '<what>' -c '<what won>' \
+    -r '<option>=<why>' -a '<path>' -p P29
   ```
   SINGLE-quote every value: a decision text carrying a backtick or `$(...)` is data, and a
   double-quoted shell argument evaluates it before the tool sees it.

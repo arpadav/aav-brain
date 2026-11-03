@@ -7,10 +7,10 @@ with [[../bin/run/brain-recall]] (graph traversal).
 ## tier 1: core (always loaded when the brain acts)
 - [[CONSTITUTION]] : prime rule, who i am, the operating loop, the hard rules, voice.
 
-## tier 2: principles (retrieved on demand; one belief per card)
+## tier 2: principles (retrieved on demand; one belief per principle)
 - [[principles/principle-01-no-assumptions]] : ask under any ambiguity
 - [[principles/principle-02-plan-before-build]] : small verbose plan + worked example
-- [[principles/principle-03-review-gate]] : cold independent multi-lens gate, scheduled by diff size (brain-gate.py), 2-6 reviewers, two rounds
+- [[principles/principle-03-review-gate]] : cold independent multi-lens gate, scheduled by diff size (b-gate), 2-6 reviewers, two rounds
 - [[principles/principle-04-anti-fabrication]] : never fake results/issues
 - [[principles/principle-05-reuse-first]] : DRY, reuse the existing primitive
 - [[principles/principle-06-idiomatic-per-language]] : rust-in-rust, ts-in-ts, house conventions
@@ -72,7 +72,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-63-brainstorming-does-not-change-the-plan]] : an exploratory question gets an answer only; the live plan is untouched until he says change it
 - [[principles/principle-64-resume-after-interruption-verifies-then-redispatches]] : after a restart verify each worker, recover its output or re-dispatch; never assume done
 - [[principles/principle-65-numbered-recommendations-get-one-word-replies]] : numbered items with a recommended default so he can answer "affirm"; overrules are about extensibility or configurability
-- [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (brain-open-items.py)
+- [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (b-open-items)
 - [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
 - [[principles/principle-68-a-simplicity-restriction-is-droppable-when-free]] : a "(for now)" / "to keep it simple" restriction is a cost-limiter - lift it, scoped to the one feature that needs it, when lifting is as cheap; ask once if the cost is unknown
 - [[principles/principle-69-reap-what-you-spawn]] : every process the run starts is the run's to stop - kill it when its output is in hand or superseded, budget heavy jobs to the machine, leave nothing running at the end
@@ -92,7 +92,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 ## tier 2.5: the graph
 - see `bin/brainlib/graph.py`
 
-## tier 3: evidence (machine-derived; regenerate with `python3 bin/store/brain-extract.py`)
+## tier 3: evidence (machine-derived; regenerate with `b-extract`)
 - evidence/prompts.jsonl : EVERY human turn, one per line, with a primary bucket + multi-label classes.
   the canonical corpus - nothing dropped.
 - evidence/corpus-stats.json : quantitative fingerprint (tone %, class counts, sequencing histogram,

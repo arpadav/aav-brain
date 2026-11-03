@@ -68,8 +68,8 @@ read_text(path)                        # after
 
 **6. logic lives on a type, not loose in a module ([[principle-26-struct-based]])**
 ```python
-def card_dirs(store): return [store / "principles", store / "intents"]   # before
-layout.card_dirs                                                        # after
+def principle_dirs(store): return [store / "principles", store / "intents"]   # before
+layout.principle_dirs                                                        # after
 ```
 
 **7. modern generics, no deprecated typing aliases**
@@ -107,7 +107,7 @@ PYTHON_VERSION = "3.12"   # after: named once, referenced
   find any more" is part of the ask, not a caveat on it.
 - learning a new rule from him -> capture the pair, not just the sentence. a rule that arrives
   without an example is not yet finished.
-- the catalogue GROWS. every correction he gives adds a row; that is what keeps this card from
+- the catalogue GROWS. every correction he gives adds a row; that is what keeps this principle from
   going abstract again.
 
 ## orthogonality

@@ -6,7 +6,7 @@
 """brain-eval: does a brain version actually change how the work comes out.
 
 a public coding benchmark scores `model + harness + context` jointly, and model
-variance dominates - so a leaderboard number cannot tell you whether the cards
+variance dominates - so a leaderboard number cannot tell you whether the principles
 work. this measures the only thing a context layer can be credited with: whether
 the brain's own rules landed in the output.
 
@@ -15,10 +15,10 @@ the brain's context and once without, and the two are compared per task rather
 than as two aggregate scores. that removes the model from the comparison, which
 is the whole difficulty.
 
-criteria are BINARY and card-derived. binary judgements agree between graders
+criteria are BINARY and principle-derived. binary judgements agree between graders
 because there is no boundary to argue over; gradation comes from the weighted
-composite. every criterion names the card it came from, so a rule that stops
-mattering is traceable to the card that changed.
+composite. every criterion names the principle it came from, so a rule that stops
+mattering is traceable to the principle that changed.
 
 25 tasks over five categories - patch, zero-to-one, long-form, plan, review.
 that is enough to see a graded effect and NOT enough to see a small binary one,
@@ -66,6 +66,8 @@ TOOL = Path(__file__).stem
 
 # every path inside the brain, spelled once
 LAYOUT = Layout.discover()
+# the command whose output the `on` arm carries, for the notes that replace it
+RECALL = Layout.command(Layout.RECALL)
 
 # this harness's own tree, beside the tool
 HERE = Path(__file__).resolve().parent
@@ -75,7 +77,7 @@ RUNS = HERE / "results"
 
 # the two arms of every pair. `off` is the control: the same model and the same
 # task with no brain context at all, which is what makes a difference
-# attributable to the cards rather than to the model
+# attributable to the principles rather than to the model
 ARMS = ("on", "off")
 
 # `collect` is the one subcommand taking two positionals: the run and the file
@@ -97,12 +99,12 @@ class RunError(UsageError):
 
 @dataclass(frozen=True)
 class Criterion:
-    """one binary judgement, its weight, and the card it comes from."""
+    """one binary judgement, its weight, and the principle it comes from."""
 
     key: str
     weight: int
     met: str
-    card: str = ""
+    principle: str = ""
 
     def line(self) -> str:
         """this criterion as a grading-sheet entry.
@@ -111,7 +113,7 @@ class Criterion:
 
         a markdown block with an unfilled verdict slot
         """
-        origin = f"  _{self.card}_\n" if self.card else ""
+        origin = f"  _{self.principle}_\n" if self.principle else ""
         body = " ".join(self.met.split())
         return f"- [ ] **{self.key}** ({self.weight})\n{origin}  {body}\n"
 
@@ -164,7 +166,7 @@ def load_tasks() -> list[Task]:
         # --------------------------------------------------
         # the shared criteria of the groups this file names
         # --------------------------------------------------
-        common = [Criterion(key, body["weight"], body["met"], body.get("card", ""))
+        common = [Criterion(key, body["weight"], body["met"], body.get("principle", ""))
                   for group in groups for key, body in shared.get(group, {}).items()]
         for entry in spec.get("task", []):
             # --------------------------------------------------
@@ -256,7 +258,12 @@ def require_run(run: str) -> Path:
 
 
 def cmd_tasks() -> None:
-    """print the task set with its point totals."""
+    """print the task set with its point totals.
+
+    tasks are grouped by category; each row shows a task's id, criteria count,
+    points and title, and a final line gives the task, point and category
+    totals. reads the task files only and changes nothing on disk
+    """
     tasks = load_tasks()
     # --------------------------------------------------
     # group the tasks by category
@@ -332,10 +339,10 @@ def cmd_pack(run: str) -> None:
     """write each task-arm's exact dispatch prompt.
 
     the ONE difference between the arms is here: the `on` prompt carries what
-    `brain-recall` returns for that task, the `off` prompt carries nothing. a
+    `b-recall` returns for that task, the `off` prompt carries nothing. a
     dispatched agent inherits the global preamble either way and it cannot be
     stripped per agent - but it is identical in both arms, so it cancels in the
-    paired difference. what varies between brain versions is the cards and the
+    paired difference. what varies between brain versions is the principles and the
     retrieval, which is what this isolates
 
     # Arguments
@@ -352,10 +359,10 @@ def cmd_pack(run: str) -> None:
             # --------------------------------------------------
             lines = [f"# {task.title}", "", task.prompt, ""]
             if arm == "on":
-                cards = run_recall(task.prompt)
+                principles = run_recall(task.prompt)
                 lines += ["---", "", "## the rules that apply to this task", "",
                           "these came from the brain for this task. they are the standing rules",
-                          "you work under - not part of the request.", "", cards, ""]
+                          "you work under - not part of the request.", "", principles, ""]
             lines += ["---", "",
                       "work in this directory. do not read or write outside it.",
                       "when you are done, report what is done and what is left."]
@@ -387,16 +394,16 @@ def run_recall(prompt: str) -> str:
     # run recall on the task text; any failure becomes a bracketed note in the prompt, not a crash
     # --------------------------------------------------
     # each task goes to a fresh agent that never saw an earlier task's recall, so
-    # recall must not shorten a card it printed for an earlier task in this session
+    # recall must not shorten a principle it printed for an earlier task in this session
     env = {k: v for k, v in os.environ.items() if k != Env.SESSION_ID}
     try:
         done = subprocess.run(argv, input=prompt, capture_output=True, text=True, check=False,  # noqa: S603
                               timeout=60, env=env)
     except (OSError, subprocess.SubprocessError) as broken:
-        return f"[brain-recall could not run: {broken}]"
+        return f"[{RECALL} could not run: {broken}]"
     if done.returncode != Exit.OK:
-        return f"[brain-recall exited {done.returncode}: {done.stderr.strip()}]"
-    return done.stdout.strip() or "[brain-recall returned nothing for this task]"
+        return f"[{RECALL} exited {done.returncode}: {done.stderr.strip()}]"
+    return done.stdout.strip() or f"[{RECALL} returned nothing for this task]"
 
 
 def cmd_collect(run: str, reports: Path) -> None:

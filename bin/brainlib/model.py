@@ -1,7 +1,7 @@
 """brainlib.model: the datatypes one tool writes and another reads.
 
-a Node read from a card is the same Node recall ranks and brain-graph exports,
-and a State rendered by brain-flow is the same State stepped by brain-walk. that
+a Node read from a principle is the same Node recall ranks and b-graph exports,
+and a State rendered by b-flow is the same State stepped by b-walk. that
 shared shape is the whole point of the library
 
 Author: aav
@@ -25,13 +25,13 @@ from typing import Any
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# a [[link]] to a principle card anywhere in a card's file, frontmatter included;
+# a [[link]] to a principle anywhere in a principle's file, frontmatter included;
 # the captured id is a relates edge's destination
-CARD_LINK = re.compile(r"\[\[(principle-[a-z0-9-]+)\]\]")
+PRINCIPLE_LINK = re.compile(r"\[\[(principle-[a-z0-9-]+)\]\]")
 
 @dataclass
 class Node:
-    """one card as a graph node, read from its file by `from_card`."""
+    """one principle as a graph node, read from its file by `from_principle`."""
 
     id: str
     kind: str
@@ -42,9 +42,9 @@ class Node:
     tension: list[str]
     body_links: list[str]
     path: str
-    # contexts this card loads in regardless of score; see schema/principle-card.md
+    # contexts this principle loads in regardless of score; see schema/principle.md
     binds: list[str] = field(default_factory=list)
-    # how this card reaches an agent - always, by score, or on a lower bar (Tier)
+    # how this principle reaches an agent - always, by score, or on a lower bar (Tier)
     tier: str = Tier.CONDITIONAL
 
     def to_dict(self) -> Frontmatter:
@@ -55,8 +55,8 @@ class Node:
 
         # Example
 
-            >>> card = Node("principle-99-example", Kind.PRINCIPLE, "h", [], "c", [], [], [], "p")
-            >>> list(card.to_dict())[:3], "tension" in card.to_dict()
+            >>> principle = Node("principle-99-example", Kind.PRINCIPLE, "h", [], "c", [], [], [], "p")
+            >>> list(principle.to_dict())[:3], "tension" in principle.to_dict()
             (['id', 'kind', 'tier'], False)
         """
         return {"id": self.id, "kind": self.kind, "tier": self.tier, "headline": self.headline,
@@ -65,34 +65,34 @@ class Node:
 
     @property
     def short_id(self) -> str | None:
-        """a principle card's short id, the `P<nn>` that cards cite and `RecallIndex.resolve` reads back.
+        """a principle's short id, the `P<nn>` that principles cite and `RecallIndex.resolve` reads back.
 
         # Returns
 
-        `P` and the card's number, or None for a card that is not a numbered principle
+        `P` and the principle's number, or None for a node that is not a numbered principle
 
         # Example
 
-            >>> card = Node("principle-99-example", Kind.PRINCIPLE, "", [], "", [], [], [], "")
-            >>> card.short_id, Node("intent-craft", Kind.INTEREST, "", [], "", [], [], [], "").short_id
+            >>> principle = Node("principle-99-example", Kind.PRINCIPLE, "", [], "", [], [], [], "")
+            >>> principle.short_id, Node("intent-craft", Kind.INTEREST, "", [], "", [], [], [], "").short_id
             ('P99', None)
         """
         number = self.id.removeprefix(f"{Kind.PRINCIPLE}-").split("-")[0]
         return f"P{number}" if self.kind == Kind.PRINCIPLE and number.isdigit() else None
 
     @classmethod
-    def from_card(cls, path: Path, kind: str, root: Path) -> "Node":
-        """one card file as a node.
+    def from_principle(cls, path: Path, kind: str, root: Path) -> "Node":
+        """one principle file as a node.
 
         # Arguments
 
-        * `path` - the card file
-        * `kind` - the kind of card its directory holds
+        * `path` - the principle file
+        * `kind` - the kind its directory holds
         * `root` - the brain root `path` sits under; the node stores its path relative to it
 
         # Returns
 
-        the node; a field the card leaves out takes its default, and the id falls
+        the node; a field the principle leaves out takes its default, and the id falls
         back to the file's stem
         """
         text = read_text(path)
@@ -101,7 +101,7 @@ class Node:
                    headline=cls._text(front, "rule") or cls._text(front, "one_line") or path.stem,
                    interest=cls._list(front, "interest"), confidence=cls._text(front, "confidence"),
                    tells=cls._list(front, "tells"), tension=cls._list(front, "tension"),
-                   body_links=sorted(set(CARD_LINK.findall(text))), path=str(path.relative_to(root)),
+                   body_links=sorted(set(PRINCIPLE_LINK.findall(text))), path=str(path.relative_to(root)),
                    binds=cls._list(front, "binds"), tier=cls._text(front, "tier") or Tier.CONDITIONAL)
 
     @staticmethod
@@ -178,8 +178,8 @@ class Edge:
 class State:
     """one execution state, authored in flow.toml.
 
-    `recall` is the single coupling to the graph: when true, the walker fires
-    brain-recall to load context before the owner runs. `terminal` marks an end
+    `recall` is the single coupling to the graph: when true, the walker prints
+    the b-recall call the agent runs to load context before the owner runs. `terminal` marks an end
     state with no exit. `regime` is the autonomy an entry state establishes
     (ask-first | execute-through), read from the entry, NOT inferred from the
     SANCTION crossing - review and self-refine reach a terminal without it
@@ -192,7 +192,7 @@ class State:
     doc: str
     terminal: bool = False
     regime: str = ""
-    # context tags this state's recall must bind, so the cards a scored query
+    # context tags this state's recall must bind, so the principles a scored query
     # would rank off the bottom still reach the owner
     binds: list[str] = field(default_factory=list)
 
@@ -315,7 +315,12 @@ class Artifact:
         return all(path.exists() and read_text(path) == content for path, content in self.targets())
 
     def emit(self) -> None:
-        """write every target and print this builder's summary."""
+        """write every target and print this builder's summary.
+
+        creates the output folder when it is missing, writes each
+        `(path, content)` pair `targets` yields, then prints `summary` on
+        stdout
+        """
         self.out_dir.mkdir(parents=True, exist_ok=True)
         for path, content in self.targets():
             write_text(path, content)
@@ -327,7 +332,7 @@ class Artifact:
         # Arguments
 
         * `args` - the parsed command line
-        * `label` - the tool name, for messages
+        * `label` - the tool's command (`Layout.command`), for messages and the rerun it names
 
         # Returns
 
@@ -346,7 +351,7 @@ class Artifact:
 
         * `artifacts` - the Artifact instances to build or check
         * `args` - the parsed command line
-        * `label` - the tool name, for messages
+        * `label` - the tool's command (`Layout.command`), for messages and the rerun it names
 
         # Returns
 
@@ -358,11 +363,11 @@ class Artifact:
         if args.has(Flag.CHECK):
             stale = [a for a in artifacts if not a.is_current()]
             if not stale:
-                print(f"{label}: artifacts are current")
+                print(f"{label}: current")
                 return Exit.OK
             for artifact in stale:
                 print(f"{label}: DRIFT in {type(artifact).__name__} -> {artifact.out_dir}")
-            print(f"{label}: re-run `python3 {label}.py`")
+            print(f"{label}: re-run `{label}`")
             return Exit.FINDINGS
         # --------------------------------------------------
         # build mode

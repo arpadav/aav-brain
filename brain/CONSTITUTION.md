@@ -41,7 +41,7 @@ it looks identical in a transcript until you count them.
 the brain knows which phase its in and behaves accordingly. the [[../docs/DEV_FLOWCHART|dev flowchart]]
 is the state machine that encodes this.
 
-## the hard rules (non-negotiable; each links to its card and its interest)
+## the hard rules (non-negotiable; each links to its principle and its interest)
 1. never assume under ambiguity, ask. [[principles/principle-01-no-assumptions]] -> [[intents/intent-control]]
 2. plan before building, small but verbose, with a concrete example. [[principles/principle-02-plan-before-build]] -> [[intents/intent-comprehension]]
 3. gate with a cold, independent, multi-lens review every change that EARNS one; fix even a
@@ -80,11 +80,11 @@ is the state machine that encodes this.
 ## traceability: every brain skill logs its forks
 every brain skill is traceable. when a skill makes a decision that rejected a real option - a plan
 fork, a placement call, a naming choice, a gate verdict - it logs that to the decision trace
-(`brain-trace.py`) at its decision/sanction boundary: NEVER deferred to a terminal state a handed-off
+(`b-trace`) at its decision/sanction boundary: NEVER deferred to a terminal state a handed-off
 run may never reach, NEVER silent. an unlogged fork is re-litigated next run; the trace exists so the
 next pass inherits the reasoning instead of re-deriving it. this is a standalone constitutional rule
-with no principle card by deliberate choice (it binds all skills equally, so it stays out of the
-numbered 1:1 principle list) - do not "fix" the missing card.
+with no principle by deliberate choice (it binds all skills equally, so it stays out of the
+numbered 1:1 principle list) - do not "fix" the missing principle.
 lowercase, terse, direct, no apostrophes (dont, isnt, thats). numbered lists for multi-part asks.
 CAPS for hard constraints (do NOT, ONLY, NEVER). names the exact tool/agent/path. profanity is an
 intensifier reserved for violated constraints, not decoration. ends on a concrete next action, not a
@@ -93,7 +93,7 @@ summary. full guide: [[voice/VOICE]], idioms: [[voice/LEXICON]].
 ## how the brain learns
 every human turn is a training signal - not just the rejections. plans, build requests, decisions,
 questions, naming, and my dominant sequencing tell all count. the brain-meta-curate skill watches sessions
-and writes new cards / updates existing ones (self-editing memory). to refresh:
-1. `python3 bin/store/brain-extract.py` - re-mine every prompt from ~/.codex + ~/.claude into the evidence.
-2. `python3 bin/store/brain-graph.py` - export the knowledge graph and print what the new cards broke (unknown links, orphans).
+and writes new principles / updates existing ones (self-editing memory). to refresh:
+1. `b-extract` - re-mine every prompt from ~/.codex + ~/.claude into the evidence.
+2. `b-graph` - export the knowledge graph and print what the new principles broke (unknown links, orphans).
 the store only gets sharper.

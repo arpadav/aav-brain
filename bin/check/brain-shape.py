@@ -3,13 +3,13 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""brain-shape: measure a repo's SHAPE, so P27 and P28 stop being adjectives.
+"""b-shape: measure a repo's SHAPE, so P27 and P28 stop being adjectives.
 
 a recurring deterministic check (P19), and the one measurement the phase gate
 never had. it reports four crossings against shape.toml - a file past
 `file_lines`, a folder past `folder_files`, a folder small enough to collapse
 back to flat, and a type name declared in `duplicate_type_files` or more files
-- plus, under --since, the SECONDARY change budget (brain-gate.py decides whether
+- plus, under --since, the SECONDARY change budget (b-gate decides whether
 a phase boundary buys a cold review).
 
 it exists because a review scoped to a diff cannot see any of them. a phase that
@@ -24,9 +24,9 @@ it refuses rather than reassures: if the tree cannot be listed, or a --since ref
 does not resolve, it says so and exits non-zero. a scan that reports CLEAN
 having measured nothing is the failure this tool was written to end
 
-    python3 brain-shape.py [PATH]              report every crossing
-    python3 brain-shape.py [PATH] --check      FINDINGS when anything crossed
-    python3 brain-shape.py [PATH] --since REF  the secondary change budget since a ref
+    b-shape [PATH]         report every crossing
+    b-shape [PATH] -c      FINDINGS when anything crossed
+    b-shape [PATH] -s REF  the secondary change budget since a ref
 
 Author: aav
 """
@@ -52,8 +52,8 @@ from enum import StrEnum
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# this tool's own name, for its messages; derived so a rename cannot desync them
-TOOL = Path(__file__).stem
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
 
 # every path inside the brain, spelled once (brainlib.Layout)
 LAYOUT = Layout.discover()
@@ -64,7 +64,7 @@ LAYOUT = Layout.discover()
 # work while two declaring `struct Ledger` is the duplication P31 forbids; a
 # declaration must be FOLLOWED by an opening delimiter, which excludes both a
 # c++ forward declaration `class Widget;` and a rust `type Err = ...` alias; and
-# prose suffixes are never scanned, so a card discussing `class Foo` does not
+# prose suffixes are never scanned, so a principle discussing `class Foo` does not
 # read as a definition of one
 TYPE_DECL = (
     # rust, c/c++, java, kotlin, swift, ts - the keyword leads the declaration
@@ -320,10 +320,10 @@ class Shape:
     def budget(self, ref: str) -> Budget:
         """the change accumulated since a git ref, and whether it arms a gate.
 
-        this is the secondary half of the gate measurement; brain-gate.py
-        decides. PHASEGATE fired once per phase whether the phase was 5885 new
-        lines or two lines of formatter appeasement, so the same cold
-        multi-lens review was spent on both
+        this is the secondary half of the gate measurement; b-gate
+        decides. a gate armed once per phase regardless of size would spend the same
+        cold multi-lens review on 5885 new lines and on two lines of formatter
+        appeasement
 
         counted the way the tree is counted: only files shape.toml admits, only
         under the measured path, and untracked new files included. a regenerated
@@ -356,7 +356,7 @@ class Shape:
 def main(args: Args) -> Exit:
     """measure the named repo, report every crossing, and gate --check on them.
 
-    `--since REF` adds the SECONDARY change budget; brain-gate.py decides whether
+    `--since REF` adds the SECONDARY change budget; b-gate decides whether
     a phase boundary buys a cold review
 
     # Arguments
@@ -387,4 +387,4 @@ def main(args: Args) -> Exit:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, flags=(Flag.CHECK, Flag.SINCE), positionals=(0, 1)).run(main)
+    Tool.of(TOOL, __doc__, positionals=(0, 1)).run(main)
