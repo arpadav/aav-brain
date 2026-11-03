@@ -144,8 +144,11 @@ class Outgoing:
 
         the range and how many repos it is read in
         """
-        return [f"every commit {self.tip} reaches and {self.base} does not, in {len(self.tree.repos)} repo(s): "
-                f"its raw object and the lines its patch adds"]
+        line = (
+            f"every commit {self.tip} reaches and {self.base} does not, in {len(self.tree.repos)} repo(s): "
+            "its raw object and the lines its patch adds"
+        )
+        return [line]
 
     def excerpts(self) -> Iterator[Excerpt]:
         r"""per repo, each commit's raw object, then each line the commits' patches add.
