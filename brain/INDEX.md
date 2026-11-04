@@ -102,3 +102,5 @@ with [[../bin/run/brain-recall]] (graph traversal).
 
 ## how retrieval works
 see `bin/brainlib/recall.py`
+- [[principles/principle-70-config-is-a-file-not-a-build]] : a tunable value is a file shipped inside the artifact, read at run time - changing it is an edit or a FROM-patch, never a rebuild, and nothing is mounted
+- [[principles/principle-71-check-every-requirement-then-list-all-missing]] : a tool checks every prerequisite first and stops once with the whole list of what is missing and how to get each - never one per run

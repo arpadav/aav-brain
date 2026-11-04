@@ -5,8 +5,8 @@ tier: conditional
 rule: on a long run, where it stands - the flow stage, the plan phase, what is running, what is left - is a page he can open, hosted locally and kept current at each merge, so knowing it never costs him a question. one background job over a minute is announced with its progress measure and time estimate; "status?" gets one line: percent and time left. the page is the run's to stop at the end (P69).
 interest: [intent-control, intent-comprehension]
 confidence: medium
-evidence_count: 45
-tells: ["what brain stage and plan phase are we at ? can i see ? can you host ?", "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals", "it looks good, can you update the status page?", "status? like estimate progress percent", "status? percent"]
+evidence_count: 46
+tells: ["what brain stage and plan phase are we at ? can i see ? can you host ?", "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals", "it looks good, can you update the status page?", "status? like estimate progress percent", "status? percent", "any way to persistant cat logs?"]
 ---
 
 # P55 - the run is visible
@@ -36,6 +36,7 @@ links: [[principle-48-look-at-the-rendered-output]], [[principle-42-plain-englis
   build, after ~400 commits had landed with no view of the run but the terminal)
 - "and can i get a sneakpeak of the app? like run it right now on main, id like to see visuals" (asked to see the live app mid-run)
 - "it looks good, can you update the status page?" (approved the page, then had to ask for it to be refreshed: it was not kept current at merges)
+- "any way to persistant cat logs?" (a background or remote job is started with its log file and the one command that follows it live (`tail -F <log>`), in the same message (2026-11-03, a 7-minute build on a balena device he could not watch))
 
 ## anti-pattern
 reporting the state only in terminal prose, so the only way to see the run is to ask and read

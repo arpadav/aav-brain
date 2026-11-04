@@ -326,7 +326,14 @@ class Repo:
         fetches = self.read("remote", "get-url", "--all", REMOTE).splitlines()
         pushes = self.read("remote", "get-url", "--push", "--all", REMOTE).splitlines()
         if len(fetches) != 1 or pushes != fetches:
-            raise SyncError(self.path, Stop.REMOTE, f"fetches from {', '.join(fetches)}; pushes to {', '.join(pushes)}")
+            detail = f"fetches from {', '.join(fetches)}; pushes to {', '.join(pushes)}"
+            # one push url is the split a bootstrap clone leaves: fold fetch onto it
+            if len(pushes) == 1:
+                detail += (
+                    f"; to make them one: git -C {self.path} remote set-url origin {pushes[0]}"
+                    f" && git -C {self.path} config --unset-all remote.{REMOTE}.pushurl"
+                )
+            raise SyncError(self.path, Stop.REMOTE, detail)
 
     def fetch(self) -> str:
         """step 1: fetch origin's main into BASE_REF and resolve it, once, to a commit id.

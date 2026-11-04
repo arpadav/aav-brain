@@ -52,8 +52,8 @@ TOOL = Layout.command(Path(__file__))
 # every path this tool touches, resolved once by the shared discovery
 LAYOUT = Layout.discover()
 # the principles that bind with no skill loaded, and the always-read file they land in
-# home is discovered, never spelled out (P32); a surface whose file is absent is
-# skipped rather than created, so this never invents config for a tool he doesn't run
+# home is discovered, never spelled out (P32); a surface whose config dir is absent
+# is skipped, so this never invents config for a tool he doesn't run
 PREAMBLE_PRINCIPLES = (
     "principle-09-git-sovereignty",
     "principle-37-comment-the-artifact-not-the-edit",
@@ -63,6 +63,9 @@ PREAMBLE_PRINCIPLES = (
 # where the preamble lives: the claude config dir, and the file in it the build writes into
 PREAMBLE_DIR = Path.home() / ".claude"
 PREAMBLE_FILE = PREAMBLE_DIR / "CLAUDE.md"
+# claude is in use on this machine when its config dir exists. read once, here,
+# because Artifact.emit creates out_dir before it asks for the targets
+PREAMBLE_SURFACE = PREAMBLE_DIR.is_dir()
 # only the span between these two lines belongs to the build; every other byte of
 # that file is his (P09)
 MARK_OPEN = "<!-- GENERATED from the brain - do not hand-edit -->"
@@ -297,7 +300,8 @@ class Preamble(Artifact):
 
     a brainlib.Artifact, so the drift gate is inherited. it owns ONLY the span
     between the two markers: the surrounding file is hand-written and stays
-    untouched, and a file that has no markers yet gets the block appended
+    untouched, a file that has no markers yet gets the block appended, and a
+    missing file is created holding only the block
     """
 
     principles_dir: Path = Path()
@@ -328,18 +332,24 @@ class Preamble(Artifact):
         """the global prompt file, with only its generated span replaced.
 
         # Returns
-        a list of one (path, content) pair, or none when the file is absent
+        a list of one (path, content) pair, or none when claude is not in use here
         """
         # --------------------------------------------------
-        # nothing to merge into when the global file is absent
+        # no claude config dir, no claude: write nothing
         # --------------------------------------------------
-        if not PREAMBLE_FILE.exists():
+        if not PREAMBLE_SURFACE:
             return []
+        # --------------------------------------------------
+        # a machine with claude but no global file yet gets one
+        # holding just the block
+        # --------------------------------------------------
+        block = self.block()
+        if not PREAMBLE_FILE.exists():
+            return [(PREAMBLE_FILE, block + "\n")]
         # --------------------------------------------------
         # render the block, then splice it over the marked span or append it
         # --------------------------------------------------
         text = read_text(PREAMBLE_FILE)
-        block = self.block()
         start = text.find(MARK_OPEN)
         end = text.find(MARK_CLOSE)
         if start != -1 and end != -1:
@@ -355,7 +365,7 @@ class Preamble(Artifact):
         the file written and the principles it carries
         """
         if not self.targets():
-            return f"{TOOL}: {PREAMBLE_FILE} absent, preamble skipped"
+            return f"{TOOL}: {PREAMBLE_DIR} absent, preamble skipped"
         return f"{TOOL} done -> {PREAMBLE_FILE}\n  preamble principles: {', '.join(self.principles)}"
 
 
