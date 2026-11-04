@@ -5,8 +5,8 @@ tier: narrow
 rule: work inside the folder he pointed at; never roam his file system for prior art or context; toolchain caches (~/.cargo registry, node_modules, cached .so files) are fine to read; anything else outside the folder is a question first.
 interest: [intent-sovereignty, intent-trust]
 confidence: very-high
-evidence_count: 1
-tells: ["STAY IN THIS FOLDER. do NOT move around my file system", "that other repo was purely arm vs x86 NOT a gpu workload spec review... never use that as a baseline, forgrt it ever exists", "uh yea i just said stay in this repo lile dont look at my other projects/files/sensitive but cargo registry and cached lib files and even so's are fine. make note"]
+evidence_count: 2
+tells: ["STAY IN THIS FOLDER. do NOT move around my file system", "that other repo was purely arm vs x86 NOT a gpu workload spec review... never use that as a baseline, forgrt it ever exists", "uh yea i just said stay in this repo lile dont look at my other projects/files/sensitive but cargo registry and cached lib files and even so's are fine. make note", "stop writing scripts into tmp dir man.... im asking you to write it HERE... this is what im giving to coworker"]
 ---
 
 # P46 - stay in the working folder
@@ -24,6 +24,7 @@ before reading any path outside the folder ask whether it is a toolchain cache; 
 - "STAY IN THIS FOLDER. do NOT move around my file system"
 - "that other repo was purely arm vs x86 NOT a gpu workload spec review... never use that as a baseline, forgrt it ever exists"
 - "uh yea i just said stay in this repo lile dont look at my other projects/files/sensitive but cargo registry and cached lib files and even so's are fine. make note"
+- "stop writing scripts into tmp dir man.... im asking you to write it HERE... this is what im giving to coworker" (the deliverable is written in the repo he is working in, never a temp dir (2026-11-03, the coworker script first landed in /tmp))
 
 ## anti-pattern
 "found another sandbox dir with a similar spec, using it as a baseline" - drew the heat above. links: [[principle-01-no-assumptions]], [[principle-15-tone-is-signal]].

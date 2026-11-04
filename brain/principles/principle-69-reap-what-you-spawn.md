@@ -5,8 +5,8 @@ tier: conditional
 rule: every process the run starts - a background shell, a dev server, a build, a watcher, a test loop - is the run's to stop. kill each one the moment its output is in hand or it is superseded, keep only as many heavy jobs alive as the machine can carry, and leave nothing running at the end that he did not ask to keep. a server he will use gets its start and stop commands, bind address as an argument, and is left for him to run. the one exception is the run's own status page (P55): it stays up while the run lasts and goes down at its end.
 interest: [intent-efficiency, intent-control]
 confidence: high
-evidence_count: 41
-tells: ["if the others are leftover, why havent you killed them?", "everytime ive said continue, my laptop breaks. no network connections, no display, no nothing", "just kill it man, unless there is nothing else to do. it keeps waiting on a build", "and now there are 4 shells not 3", "make note of disk incident, to auto clean", "i never said host it 127.0.0.1 do it 0.0.0.0 AND show me how to run it man, id rather i run and stop it, just give me start/stop commands", "it should be as simple as make build 0.0.0.0 or make build 127.0.0.1 thats IT its really not hard"]
+evidence_count: 42
+tells: ["if the others are leftover, why havent you killed them?", "everytime ive said continue, my laptop breaks. no network connections, no display, no nothing", "just kill it man, unless there is nothing else to do. it keeps waiting on a build", "and now there are 4 shells not 3", "make note of disk incident, to auto clean", "i never said host it 127.0.0.1 do it 0.0.0.0 AND show me how to run it man, id rather i run and stop it, just give me start/stop commands", "it should be as simple as make build 0.0.0.0 or make build 127.0.0.1 thats IT its really not hard", "clean up the thor, removing my images and all"]
 ---
 
 # P69 - reap what you spawn
@@ -32,6 +32,7 @@ question he has to ask instead of work he gets ([[intent-efficiency]]): *"and no
 not 3. if the others are leftover, why havent you killed them?"*
 
 ## how to apply
+- **a remote box is the same.** a clone, scp'd video, docker images or output a run left on a shared device (a perception runner he borrowed) are the run's to remove when he is done looking; he asks for it as "clean up", and it covers everything the run put there, not only the process.
 - **track what you start.** keep the id of every background shell, server or agent you launch; before
   launching another of the same kind, check what is already running and stop the one it replaces.
 - **done with the output -> stop the process.** a dev server started to take one screenshot is stopped
