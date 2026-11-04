@@ -135,6 +135,8 @@ class Env(StrEnum):
     XDG_DATA_HOME = "XDG_DATA_HOME"
     # the config root his private.toml sits under
     XDG_CONFIG_HOME = "XDG_CONFIG_HOME"
+    # the per-login runtime root a watch of open items keeps its lock and its reports under
+    XDG_RUNTIME_DIR = "XDG_RUNTIME_DIR"
     # the claude session a call runs in, which keys its session log
     SESSION_ID = "CLAUDE_CODE_SESSION_ID"
 
@@ -259,7 +261,9 @@ class Flag(StrEnum):
     CHOSEN = "--chosen", "c", VALUE
     COUNT = "--count", "n", VALUE
     DECISION = "--decision", "d", VALUE
+    DIR = "--dir", "d", VALUE
     DOC = "--doc", "d"
+    EVERY = "--every", "e", VALUE
     EXPORT = "--export", "e"
     GATE = "--gate", "g"
     HELP = "--help", "h"
@@ -381,5 +385,6 @@ class Exit(IntEnum):
     CONFLICT = 3
     # ran to a verdict, and listed what fails it: a row, a crossing, a hit, a stale artifact, a failed check
     FINDINGS = 4
-    # b-sync: any other stop it puts to him (`b-sync -h` lists every stop)
+    # b-sync: any other stop it puts to him (`b-sync -h` lists every stop); brain-open-items: another watch
+    # holds the folder
     BLOCKED = 5

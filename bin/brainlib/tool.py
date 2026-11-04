@@ -43,7 +43,6 @@ COMMANDS: Mapping[str, tuple[Flag, ...]] = MappingProxyType({
     "b-graph": (Flag.CHECK,),
     "b-lint": (Flag.LIST, Flag.VERBOSE),
     "b-misses": (Flag.SINCE,),
-    "b-open-items": (),
     "b-principles": (Flag.CHECK,),
     "b-private": (Flag.SINCE, Flag.TIP),
     "b-recall": (Flag.COUNT, Flag.BINDS, Flag.TELLS, Flag.NEIGHBORS, Flag.ALL),
