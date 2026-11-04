@@ -29,7 +29,7 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     flow/  graph/      the deterministic flow + the graph derived from the principles
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
-    skills/            the 13 skills (universal SKILL.md across claude / codex / ~/.agents)
+    skills/            the 14 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/
   bin/                 all tooling: brainlib (the shared lib), and the brain scripts, each a command
                        `b-<name>` (`Layout.scripts` says which file is one); each answers -h, and
