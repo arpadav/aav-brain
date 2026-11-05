@@ -14,25 +14,28 @@ when `life` is on PATH, each command that changes what the board shows runs
 `life open-item` first
 
     stamp ITEM...  `life open-item ask`, then the footer; prints the watch command when no watch holds the folder
-    status [DIR]   each item as edited | unchanged | new (DIR defaults to plans/open-items)
-    answer ITEM    replaces `## Your call` with stdin; refuses an item that does not exist
-    new PATH       makes an unstamped item at PATH from stdin
+    status [DIR]   each item as edited | new | parked | unchanged (DIR defaults to plans/open-items)
+    answer ITEM    replaces `## Your call` with stdin, which may not be empty; refuses an item that does not exist
+    new PATH       makes an unstamped item at PATH from stdin, which may not be empty
     resolve ITEM   `life open-item resolve`, then deletes the item, only if that succeeded
-    park ITEM      `life open-item park`; with no todo, writes `Parked.` as the section
-    unpark ITEM    `life open-item unpark`; with no todo, empties a `Parked.` section
+    park ITEM      `life open-item park`; with no todo, ends the section with a `Parked.` paragraph
+    unpark ITEM    `life open-item unpark`; with no todo, drops that paragraph
     watch [-d DIR]... [-e SECONDS]
                    polls each DIR (plans/open-items) every SECONDS (30), prints each new or edited
                    item that is not parked, once per content, with its note, then exits
 
-life's status 5 says no todo backs the item, which leaves it the brain's alone;
-any other failure leaves the item as it was. every write holds the folder's write
-lock, a flock on the folder itself, which life's ask holds too, so no lock is held
-across a `life` call. watch holds a lock of its own, under
-$XDG_RUNTIME_DIR/brain-open-items/, beside what it has reported
+life's status 5 (no such todo) and 6 (not set up) say no todo backs the item,
+which leaves it the brain's alone. any other status, a `life` that cannot run and
+one that does not answer in time are a refusal: `resolve`, `park` and `unpark`
+leave the item as it was, and `stamp` stamps it all the same. every write here
+holds the folder's write lock, a flock on the folder itself, which life's ask
+holds too, so no lock is held across a `life` call; life's daemon writes items
+without it. watch holds a lock of its own, under $XDG_RUNTIME_DIR/brain-open-items/,
+beside what it has reported
 
 Author: aav
 """
-# brainlib lives in the brain's bin/, three folders up
+# the brain's root is three folders up, and brainlib is in its bin/
 import sys
 from pathlib import Path
 
@@ -56,10 +59,10 @@ import shlex
 import shutil
 import subprocess
 import time
-from collections.abc import Generator, Iterator, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import Enum, StrEnum, auto
 from typing import Self
 
 # --------------------------------------------------
@@ -73,28 +76,45 @@ DEFAULT_DIR = Path("plans/open-items")
 ITEM_GLOB = "*.md"
 # the footer line; an html comment so it does not render
 FOOTER = "<!-- sha256: {} -->"
-# matched anywhere, so an answer typed below the footer still reads as an edit
+# matched anywhere below the heading, so an answer typed below the footer still reads as an edit
 FOOTER_RE = re.compile(r"^<!-- sha256: ([0-9a-f]{64}) -->[ \t]*$", re.MULTILINE)
 # the heading of the section his answer goes in
 HEADING = "## Your call"
 HEADING_RE = re.compile(rf"^{re.escape(HEADING)}[ \t]*$", re.MULTILINE)
-# a parked item's whole section, the line life's projection writes for a todo in backlog
+# the paragraph life's projection ends the section with for a todo in backlog
 PARKED = "Parked."
-# the blank line between the question, the heading, the section and the footer
+# a section whose last paragraph is PARKED
+PARKED_RE = re.compile(rf"(?:\A|\n[ \t]*\n){re.escape(PARKED)}\Z")
+# the blank line between the question, the heading, each paragraph of the section and the footer
 GAP = "\n\n"
+# the blank lines leading a section and the whitespace trailing it; a first line's indentation is kept
+EDGES_RE = re.compile(r"\A(?:[ \t]*\n)+|\s+\Z")
 # how a note's lines are set under their item in watch's report
 NOTE_INDENT = "  "
 # how often watch looks, in seconds, when -e names nothing
 EVERY = 30.0
 # the folder under $XDG_RUNTIME_DIR holding each watched folder's lock and what watch reported from it
 RUNTIME = "brain-open-items"
-# a stamp's probe holds a folder's watch lock for an instant; a watch that finds it held waits this
-# long, once, before it takes the lock for another watch's
+# a watch's lock file and its record, each named by its folder's key
+LOCK = ".lock"
+RECORD = ".json"
+# a watch that finds its lock held tries once more after this many seconds, the holder maybe a
+# stamp's probe, which lets go at once
 GRACE = 0.1
-# life's command; it is on PATH or the brain works without it (R-OI-2)
+# life's command; when it is not on PATH the brain works without it
 LIFE = "life"
-# life's status for an item no todo backs, its Exit.NOT_FOUND
-NO_TODO = 5
+# life's status when it did what it was asked
+LIFE_DONE = 0
+# life's statuses for an item no todo backs: 5, no such todo; 6, this machine not set up for life
+LIFE_NO_TODO = frozenset({5, 6})
+# a `life open-item` call unanswered after this many seconds is hung: each `todo` call it makes
+# gives up after 60, and it makes a few
+LIFE_TIMEOUT = 120.0
+# why a watch cannot run, for watch's refusal and stamp's
+NO_RUNTIME = f"${Env.XDG_RUNTIME_DIR} is no absolute path, so a watch has nowhere to hold its lock"
+# a missing item, and a missing folder
+NO_ITEM = "no item at {}"
+NO_DIR = "no open-items dir at {}"
 
 
 class Command(StrEnum):
@@ -166,14 +186,41 @@ class Command(StrEnum):
 
 
 class Status(StrEnum):
-    """where an item stands against its footer."""
+    """where an item stands, declared in the order `status` lists them: the ones carrying his input first."""
 
     # stamped, and changed since
     EDITED = "edited"
+    # no footer yet: an item life or `new` made, or one the agent has not stamped
+    NEW = "new"
+    # its section ends with a `Parked.` paragraph, stamped or not
+    PARKED = "parked"
     # stamped, and as stamped
     UNCHANGED = "unchanged"
-    # no footer yet: an item life made, or one the agent has not stamped
-    NEW = "new"
+
+    @property
+    def wakes(self) -> bool:
+        """whether an item standing so wakes a watch.
+
+        # Returns
+
+        True for a new or an edited item
+
+        # Example
+
+            >>> [status.wakes for status in Status]
+            [True, True, False, False]
+        """
+        return self in (Status.EDITED, Status.NEW)
+
+    @property
+    def rank(self) -> int:
+        """where `status` lists an item standing so.
+
+        # Returns
+
+        the declaration index
+        """
+        return list(Status).index(self)
 
 
 class LifeAction(StrEnum):
@@ -189,11 +236,32 @@ class Reply(Enum):
     """what a `life open-item` call came to."""
 
     # life did it: the todo moved, and life brought the item in step
-    DONE = "done"
+    DONE = auto()
     # no todo backs the item, or no life is on PATH: the item is the brain's alone
-    NO_TODO = "no todo"
-    # life refused or failed, and said why on stderr
-    REFUSED = "refused"
+    NO_TODO = auto()
+    # life refused, failed, could not run or did not answer, and said why on stderr
+    REFUSED = auto()
+
+    @classmethod
+    def of(cls, status: int) -> "Reply":
+        """what life's exit status says.
+
+        # Arguments
+
+        * `status` - the status
+
+        # Returns
+
+        the reply
+
+        # Example
+
+            >>> [Reply.of(status).name for status in (0, 4, 5, 6)]
+            ['DONE', 'REFUSED', 'NO_TODO', 'NO_TODO']
+        """
+        if status == LIFE_DONE:
+            return cls.DONE
+        return cls.NO_TODO if status in LIFE_NO_TODO else cls.REFUSED
 
 
 @dataclass(frozen=True)
@@ -209,22 +277,6 @@ class ItemText:
 
     # the file's text, as read
     text: str
-
-    @classmethod
-    def piped(cls) -> Self:
-        """the item text on stdin, verbatim.
-
-        # Returns
-
-        the text
-
-        # Raises
-
-        UsageError when stdin is a terminal, so nothing was piped
-        """
-        if sys.stdin.isatty():
-            raise UsageError("the text goes on stdin: `< file`, or a quoted heredoc")
-        return cls(sys.stdin.read())
 
     @staticmethod
     def digest(body: str) -> str:
@@ -245,6 +297,45 @@ class ItemText:
         """
         return hashlib.sha256(body.rstrip().encode(ENCODING)).hexdigest()
 
+    @staticmethod
+    def trimmed(section: str) -> str:
+        r"""a section without the blank lines leading it or the whitespace trailing it.
+
+        # Arguments
+
+        * `section` - the section
+
+        # Returns
+
+        the section, its first line's indentation kept
+
+        # Example
+
+            >>> ItemText.trimmed("\n \n  - a\n- b \n\n")
+            '  - a\n- b'
+        """
+        return EDGES_RE.sub("", section)
+
+    @property
+    def footer(self) -> re.Match[str] | None:
+        r"""the footer: the last footer-shaped line below the last `## Your call` heading.
+
+        one above the heading is quoted in the question, and is never the footer
+
+        # Returns
+
+        the footer's match, None for an unstamped item
+
+        # Example
+
+            >>> line = "<!-- sha256: " + "a" * 64 + " -->"
+            >>> ItemText(f"# Q: {line}\n\n{line}\n\n## Your call\n").footer is None
+            True
+        """
+        headings = list(HEADING_RE.finditer(self.text))
+        footers = list(FOOTER_RE.finditer(self.text, headings[-1].end() if headings else 0))
+        return footers[-1] if footers else None
+
     @property
     def body(self) -> str:
         r"""the item without its footer line; text typed below the footer joins the body.
@@ -257,16 +348,16 @@ class ItemText:
 
             >>> ItemText("# Q01: x\n\n<!-- sha256: " + "a" * 64 + " -->\nB\n").body
             '# Q01: x\n\nB'
-            >>> ItemText("# Q01: x\n").body
+            >>> ItemText("\n# Q01: x\n").body
             '# Q01: x'
         """
-        if match := FOOTER_RE.search(self.text):
-            return (self.text[: match.start()].rstrip() + GAP + self.text[match.end() :].strip()).strip()
-        return self.text.rstrip()
+        if footer := self.footer:
+            return (self.text[: footer.start()].rstrip() + GAP + self.text[footer.end() :].strip()).strip()
+        return self.text.strip()
 
     @property
     def status(self) -> Status:
-        r"""whether the item changed since it was stamped.
+        r"""where the item stands: parked, else against its footer.
 
         # Returns
 
@@ -277,10 +368,11 @@ class ItemText:
             >>> ItemText("# Q01: x\n\n<!-- sha256: " + "a" * 64 + " -->\n").status
             <Status.EDITED: 'edited'>
         """
-        match = FOOTER_RE.search(self.text)
-        if match is None:
+        if self.parked:
+            return Status.PARKED
+        if (footer := self.footer) is None:
             return Status.NEW
-        return Status.UNCHANGED if match.group(1) == self.digest(self.body) else Status.EDITED
+        return Status.UNCHANGED if footer.group(1) == self.digest(self.body) else Status.EDITED
 
     @property
     def note(self) -> str:
@@ -288,7 +380,7 @@ class ItemText:
 
         # Returns
 
-        the section, stripped; empty for an item with no heading
+        the section, trimmed; empty for an item with no heading
 
         # Example
 
@@ -296,11 +388,11 @@ class ItemText:
             'B'
         """
         headings = list(HEADING_RE.finditer(self.body))
-        return self.body[headings[-1].end() :].strip() if headings else ""
+        return self.trimmed(self.body[headings[-1].end() :]) if headings else ""
 
     @property
     def parked(self) -> bool:
-        r"""whether the section reads `Parked.` and nothing else.
+        r"""whether the section's last paragraph is `Parked.`.
 
         # Returns
 
@@ -308,10 +400,12 @@ class ItemText:
 
         # Example
 
-            >>> ItemText("# Q\n\n## Your call\n\nParked.\n").parked
+            >>> ItemText("# Q\n\n## Your call\n\n2026-11-03 14:02 arpad: later\n\nParked.\n").parked
             True
+            >>> ItemText("# Q\n\n## Your call\n\nnot Parked.\n").parked
+            False
         """
-        return self.note == PARKED
+        return PARKED_RE.search(self.note) is not None
 
     @property
     def fingerprint(self) -> str:
@@ -322,6 +416,37 @@ class ItemText:
         the hex digest
         """
         return hashlib.sha256(self.text.encode(ENCODING)).hexdigest()
+
+    def parked_note(self) -> str:
+        r"""the note, ending with a `Parked.` paragraph.
+
+        # Returns
+
+        the note as it reads when parked already, else with the paragraph added
+
+        # Example
+
+            >>> ItemText("# Q\n\n## Your call\n\nyes\n").parked_note()
+            'yes\n\nParked.'
+            >>> ItemText("# Q\n\n## Your call\n").parked_note()
+            'Parked.'
+        """
+        return self.note if self.parked else GAP.join(filter(None, (self.note, PARKED)))
+
+    def unparked_note(self) -> str:
+        r"""the note without its closing `Parked.` paragraph.
+
+        # Returns
+
+        the note, every paragraph above that one kept
+
+        # Example
+
+            >>> ItemText("# Q\n\n## Your call\n\nyes\n\nParked.\n").unparked_note()
+            'yes'
+        """
+        match = PARKED_RE.search(self.note)
+        return self.note[: match.start()] if match else self.note
 
     def stamped(self) -> str:
         r"""the item with a footer matching its body.
@@ -341,9 +466,10 @@ class ItemText:
     def answered(self, section: str) -> str:
         r"""the item with its `## Your call` section replaced whole.
 
-        everything through the last heading above the footer, and the footer
-        with all below it, are kept byte for byte, so a heading quoted in the
-        question never counts
+        everything through the last heading is kept as written, so a heading
+        quoted in the question never counts. text typed below the footer is
+        part of the section, and goes with it; the footer line is kept, so a
+        stamped item reads edited after
 
         # Arguments
 
@@ -355,30 +481,27 @@ class ItemText:
 
         # Example
 
-            >>> footer = "<!-- sha256: " + "a" * 64 + " -->\n"
-            >>> ItemText("# Q\n\n## Your call\n\nold\n\n" + footer).answered("new") == (
-            ...     "# Q\n\n## Your call\n\nnew\n\n" + footer)
+            >>> footer = "<!-- sha256: " + "a" * 64 + " -->"
+            >>> ItemText(f"# Q\n\n## Your call\n\nold\n\n{footer}\ntyped below\n").answered("new") == (
+            ...     f"# Q\n\n## Your call\n\nnew\n\n{footer}\n")
             True
-            >>> ItemText("# Q\n\n## Your call\n\nold\n\n" + footer).answered("") == "# Q\n\n## Your call\n\n" + footer
+            >>> ItemText(f"# Q\n\n## Your call\n\nold\n\n{footer}\n").answered("") == (
+            ...     f"# Q\n\n## Your call\n\n{footer}\n")
             True
             >>> ItemText("# Q\n").answered("Parked.")
             '# Q\n\n## Your call\n\nParked.\n'
         """
         # --------------------------------------------------
-        # the footer, and what is above it
+        # the body through its last heading, as written; a missing heading is added
         # --------------------------------------------------
-        footer = FOOTER_RE.search(self.text)
-        above, tail = (self.text[: footer.start()], self.text[footer.start() :]) if footer else (self.text, "")
+        body = self.body
+        headings = list(HEADING_RE.finditer(body))
+        kept = body[: headings[-1].end()] if headings else body + GAP + HEADING
         # --------------------------------------------------
-        # everything through the last heading, as written; a missing heading is added
+        # a stamped item: the section between blank lines, then the footer line
         # --------------------------------------------------
-        headings = list(HEADING_RE.finditer(above))
-        kept = above[: headings[-1].end()] if headings else above.rstrip() + GAP + HEADING
-        # --------------------------------------------------
-        # a stamped item: the section between blank lines, then the footer as written
-        # --------------------------------------------------
-        if tail:
-            return kept + GAP + (section + GAP if section else "") + tail
+        if footer := self.footer:
+            return kept + GAP + (section + GAP if section else "") + footer.group(0) + "\n"
         # --------------------------------------------------
         # an unstamped item ends with its section
         # --------------------------------------------------
@@ -407,7 +530,20 @@ class Folder:
     # the folder, as named on the command line or as an item's parent
     path: Path
 
-    @property
+    @classmethod
+    def distinct(cls, paths: Iterable[Path]) -> list[Self]:
+        """the folders these paths name, each once, by its real path.
+
+        # Arguments
+
+        * `paths` - the paths, relative or absolute
+
+        # Returns
+
+        one folder per real path, its path resolved, in first-named order
+        """
+        return [cls(path) for path in dict.fromkeys(path.resolve() for path in paths)]
+
     def items(self) -> list[Path]:
         """every item in the folder.
 
@@ -418,41 +554,38 @@ class Folder:
         return sorted(path for path in self.path.glob(ITEM_GLOB) if path.is_file())
 
     def status(self) -> None:
-        """print each item's status, edited first: the ones carrying his answer.
+        """print each item's status, the ones carrying his input first.
 
         # Raises
 
-        UsageError when the folder does not exist
+        NoVerdict when the folder does not exist, or an item cannot be read
         """
         if not self.path.is_dir():
-            raise UsageError(f"no open-items dir at {self.path}")
-        for status, name in sorted((ItemText(read_text(path)).status, path.name) for path in self.items):
-            print(f"{status:<10} {name}")
-
-    @property
-    def key(self) -> str:
-        """the name its watch lock and its reports go under: the folder's real path, hashed.
-
-        # Returns
-
-        the hex digest of the resolved path
-        """
-        return hashlib.sha256(str(self.path.resolve()).encode(ENCODING)).hexdigest()
+            raise NoVerdict(NO_DIR.format(self.path))
+        width = max(map(len, Status))
+        rows = sorted(((Item(path).read().status, path.name) for path in self.items()),
+                      key=lambda row: (row[0].rank, row[1]))
+        for status, name in rows:
+            print(f"{status:<{width}} {name}")
 
     @contextmanager
     def locked(self) -> Generator[None]:
         """the folder's write lock: a flock on the folder itself, which no write replaces.
 
-        life's ask holds the same lock, so an item is never written by both at
-        once, and an `answer` checks the item under it, so one that lands after
-        a resolve's delete finds nothing to write
+        every write here holds it, and life's `open-item ask` holds it for its
+        whole run, so those two never write an item at once. life's daemon
+        writes items without it, so a write here can still land between its
+        read and its write. an `answer` checks the item under it, so one that
+        lands after a resolve's delete finds nothing to write
 
         # Raises
 
-        NoVerdict when the folder cannot be opened
+        NoVerdict when the folder does not exist or cannot be opened
         """
         try:
             handle = os.open(self.path, os.O_RDONLY | os.O_DIRECTORY)
+        except FileNotFoundError:
+            raise NoVerdict(NO_DIR.format(self.path)) from None
         except OSError as error:
             raise NoVerdict(f"{self.path} cannot be locked: {error.strerror}") from None
         try:
@@ -489,16 +622,22 @@ class Life:
 
         # Returns
 
-        what the call came to; NO_TODO, without a call, when no life is on PATH
+        what the call came to; NO_TODO, without a call, when no life is on PATH; REFUSED, with one
+        line on stderr, when life cannot run or does not answer within LIFE_TIMEOUT
         """
         if self.command is None:
             return Reply.NO_TODO
-        # fixed arguments, the item a path, and no shell (S603)
-        status = subprocess.run([self.command, "open-item", action, str(item.absolute())],  # noqa: S603
-                                check=False).returncode
-        if status == 0:
-            return Reply.DONE
-        return Reply.NO_TODO if status == NO_TODO else Reply.REFUSED
+        argv = [self.command, "open-item", action, str(item.absolute())]
+        try:
+            # fixed arguments, the item a path, and no shell (S603)
+            done = subprocess.run(argv, check=False, timeout=LIFE_TIMEOUT)  # noqa: S603
+        except subprocess.TimeoutExpired:
+            print(f"{TOOL}: `{LIFE} open-item {action}` gave no answer in {LIFE_TIMEOUT:g} s", file=sys.stderr)
+            return Reply.REFUSED
+        except OSError as error:
+            print(f"{TOOL}: {self.command} cannot run: {error.strerror}", file=sys.stderr)
+            return Reply.REFUSED
+        return Reply.of(done.returncode)
 
 
 @dataclass(frozen=True)
@@ -527,12 +666,16 @@ class Item:
 
         # Raises
 
-        NoVerdict when there is no item
+        NoVerdict when there is no item, or it cannot be read or decoded
         """
         try:
             return ItemText(read_text(self.path))
         except FileNotFoundError:
-            raise NoVerdict(f"no item at {self.path}") from None
+            raise NoVerdict(NO_ITEM.format(self.path)) from None
+        except OSError as error:
+            raise NoVerdict(f"{self.path} cannot be read: {error.strerror}") from None
+        except UnicodeDecodeError as error:
+            raise NoVerdict(f"{self.path} cannot be read: {error.reason} at byte {error.start}") from None
 
     def present(self) -> None:
         """refuse an item that does not exist.
@@ -542,10 +685,21 @@ class Item:
         NoVerdict when there is no item
         """
         if not self.path.is_file():
-            raise NoVerdict(f"no item at {self.path}")
+            raise NoVerdict(NO_ITEM.format(self.path))
+
+    def write(self, text: ItemText, section: str) -> None:
+        """write the item with this section, unless its note already reads so.
+
+        # Arguments
+
+        * `text` - the item as read under the folder's lock
+        * `section` - the new section, trimmed
+        """
+        if section != text.note:
+            write_text(self.path, text.answered(section))
 
     def stamp(self, life: Life) -> None:
-        """ask life for the item's todo, then write the footer.
+        """ask life for the item's todo, then write the footer, unless it already matches.
 
         life reconciles the item before it returns, so the footer covers the
         section it wrote, and watch does not wake on the agent's own question.
@@ -560,17 +714,16 @@ class Item:
 
         NoVerdict when there is no item, or its folder cannot be locked
         """
-        self.present()
         life.open_item(LifeAction.ASK, self.path)
         with self.folder.locked():
-            write_text(self.path, self.read().stamped())
+            text = self.read()
+            if (stamped := text.stamped()) != text.text:
+                write_text(self.path, stamped)
         print(f"stamped {self.path}")
 
     @staticmethod
     def stamp_all(items: Sequence["Item"], life: Life) -> None:
-        """stamp each item, then print the command that starts a watch over the folders no watch holds.
-
-        the agent starts the watch, because only a background job of its own can wake it (R-W-5)
+        """stamp each item, once all of them exist, then say how a watch starts over their folders.
 
         # Arguments
 
@@ -579,31 +732,28 @@ class Item:
 
         # Raises
 
-        NoVerdict as `stamp` raises it
+        NoVerdict when an item does not exist, before any is stamped, or as `stamp` raises it
         """
         for item in items:
+            item.present()
+        for item in items:
             item.stamp(life)
-        watch = Watch.discover()
-        folders = list(dict.fromkeys(item.folder for item in items))
-        if unwatched := [folder for folder in folders if watch is None or not watch.held(folder)]:
-            print(f"no watch: {Watch.command(unwatched)}")
+        Watch.advise(Folder.distinct(item.path.parent for item in items))
 
     def answer(self, section: str) -> None:
         """replace the item's `## Your call` section, writing nothing when it already reads so.
 
         # Arguments
 
-        * `section` - the new section
+        * `section` - the new section; its leading blank lines and trailing whitespace are dropped
 
         # Raises
 
-        NoVerdict when there is no item, checked under the folder's lock, or the folder cannot be locked
+        NoVerdict when there is no item, checked again under the folder's lock, or the folder cannot be locked
         """
+        self.present()
         with self.folder.locked():
-            text = self.read()
-            answered = text.answered(section.strip())
-            if answered != text.text:
-                write_text(self.path, answered)
+            self.write(self.read(), ItemText.trimmed(section))
 
     def new(self, text: ItemText) -> None:
         """make an unstamped item.
@@ -654,6 +804,9 @@ class Item:
     def park(self, life: Life, *, parked: bool) -> Exit:
         """park the item or unpark it: its todo through life, else its section here.
 
+        with no todo, park ends the section with a `Parked.` paragraph and
+        unpark drops only that paragraph, so his answer above it stays
+
         # Arguments
 
         * `life` - the life to park through
@@ -675,15 +828,9 @@ class Item:
             case Reply.DONE:
                 pass
             case Reply.NO_TODO:
-                # --------------------------------------------------
-                # no todo: the section is the brain's, and unpark empties only a parked one
-                # --------------------------------------------------
                 with self.folder.locked():
                     text = self.read()
-                    if parked or text.parked:
-                        answered = text.answered(PARKED if parked else "")
-                        if answered != text.text:
-                            write_text(self.path, answered)
+                    self.write(text, text.parked_note() if parked else text.unparked_note())
         print(f"{action}ed {self.path}")
         return Exit.OK
 
@@ -720,15 +867,15 @@ class Watch:
 
         # Raises
 
-        UsageError for a folder that does not exist or a bad -e; NoVerdict when
-        $XDG_RUNTIME_DIR is unset or relative
+        UsageError for a bad -e; NoVerdict for a folder that does not exist, or
+        when $XDG_RUNTIME_DIR is unset or relative
         """
         # --------------------------------------------------
-        # the folders, each one there
+        # the folders, each once and each there
         # --------------------------------------------------
-        folders = [Folder(Path(name)) for name in args.values(Flag.DIR)] or [Folder(DEFAULT_DIR)]
+        folders = Folder.distinct([Path(name) for name in args.values(Flag.DIR)] or [DEFAULT_DIR])
         if missing := [folder.path for folder in folders if not folder.path.is_dir()]:
-            raise UsageError(f"no open-items dir at {missing[0]}")
+            raise NoVerdict(NO_DIR.format(missing[0]))
         # --------------------------------------------------
         # the seconds between looks, a finite number above 0
         # --------------------------------------------------
@@ -743,8 +890,24 @@ class Watch:
         # --------------------------------------------------
         watch = cls.discover()
         if watch is None:
-            raise NoVerdict(f"${Env.XDG_RUNTIME_DIR} is no absolute path, so a watch has nowhere to hold its lock")
+            raise NoVerdict(NO_RUNTIME)
         return watch.run(folders, every)
+
+    @classmethod
+    def advise(cls, folders: Sequence[Folder]) -> None:
+        """print the command that starts a watch over the folders no watch holds, or why none can run.
+
+        the agent starts the watch, because only a background job of its own can wake it
+
+        # Arguments
+
+        * `folders` - the folders, each once
+        """
+        watch = cls.discover()
+        if watch is None:
+            print(f"{TOOL}: {NO_RUNTIME}", file=sys.stderr)
+        elif unwatched := [folder for folder in folders if not watch.held(folder)]:
+            print(f"no watch: {cls.command(unwatched)}")
 
     @staticmethod
     def command(folders: Sequence[Folder]) -> str:
@@ -761,8 +924,27 @@ class Watch:
         dirs = " ".join(f"{Flag.DIR} {shlex.quote(str(folder.path))}" for folder in folders)
         return f"python3 {shlex.quote(__file__)} {Command.WATCH} {dirs}"
 
+    def file(self, folder: Folder, suffix: str) -> Path:
+        """a folder's lock or record: named by its real path, hashed.
+
+        # Arguments
+
+        * `folder` - the folder
+        * `suffix` - LOCK or RECORD
+
+        # Returns
+
+        the file's path under the root
+        """
+        key = hashlib.sha256(str(folder.path.resolve()).encode(ENCODING)).hexdigest()
+        return self.root / f"{key}{suffix}"
+
     def held(self, folder: Folder) -> bool:
         """whether a watch holds the folder's lock.
+
+        the probe takes a shared lock for an instant: a watch's exclusive lock
+        refuses it, and another stamp's probe never does. a watch taking its
+        lock in that instant finds it held, and tries again after GRACE
 
         # Arguments
 
@@ -772,12 +954,12 @@ class Watch:
 
         True while a watch runs on it
         """
-        lock = self.root / f"{folder.key}.lock"
+        lock = self.file(folder, LOCK)
         if not lock.is_file():
             return False
         handle = os.open(lock, os.O_RDONLY)
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
         except BlockingIOError:
             return True
         finally:
@@ -799,7 +981,7 @@ class Watch:
         True when this watch holds it, False when another does
         """
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
-        handle = os.open(self.root / f"{folder.key}.lock", os.O_RDWR | os.O_CREAT, 0o600)
+        handle = os.open(self.file(folder, LOCK), os.O_RDWR | os.O_CREAT, 0o600)
         stack.callback(os.close, handle)
         for wait in (GRACE, None):
             try:
@@ -823,57 +1005,75 @@ class Watch:
         the reports; none for a folder never reported, or a record that does not parse
         """
         try:
-            record = json.loads(read_text(self.root / f"{folder.key}.json"))
+            record = json.loads(read_text(self.file(folder, RECORD)))
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
         if not Json.is_object(record):
             return {}
         return {name: value for name, value in record.items() if isinstance(value, str)}
 
-    def unreported(self, folder: Folder) -> Iterator[tuple[Path, ItemText]]:
-        """every item to report from a folder: new or edited, not parked, and not reported as it reads.
+    def record(self, folder: Folder, reports: dict[str, str]) -> None:
+        """write a folder's reports.
 
         # Arguments
 
         * `folder` - the folder
+        * `reports` - each reported item's name and fingerprint
+        """
+        write_text(self.file(folder, RECORD), json.dumps(reports, indent=1, sort_keys=True) + "\n")
+
+    def look(self, folder: Folder, skipped: set[Path]) -> list[tuple[Path, ItemText]]:
+        """one look at a folder: every item that wakes the watch and was not reported as it reads.
+
+        the record forgets an item gone or reading unchanged, so an answer of
+        his after that is reported even when it repeats one reported before
+
+        # Arguments
+
+        * `folder` - the folder
+        * `skipped` - the items this watch could not read, each said once on stderr; grows here
 
         # Returns
 
         each item and its text
         """
-        reported = self.reported(folder)
-        for path in folder.items:
+        # --------------------------------------------------
+        # every item that reads; one that does not is said once and passed by
+        # --------------------------------------------------
+        texts: dict[str, tuple[Path, ItemText]] = {}
+        for path in folder.items():
             try:
-                text = ItemText(read_text(path))
-            except FileNotFoundError:
-                continue
-            if text.status is not Status.UNCHANGED and not text.parked and reported.get(path.name) != text.fingerprint:
-                yield path, text
-
-    def record(self, folder: Folder, found: Sequence[tuple[Path, ItemText]]) -> None:
-        """add a folder's reports to its record, and drop the items that are gone.
-
-        # Arguments
-
-        * `folder` - the folder
-        * `found` - the items just reported from it
-        """
-        names = {path.name for path in folder.items}
-        kept = {name: value for name, value in self.reported(folder).items() if name in names}
-        kept |= {path.name: text.fingerprint for path, text in found}
-        write_text(self.root / f"{folder.key}.json", json.dumps(kept, indent=1, sort_keys=True) + "\n")
+                texts[path.name] = (path, Item(path).read())
+            except NoVerdict as unread:
+                if path not in skipped:
+                    skipped.add(path)
+                    print(f"{TOOL}: skipped: {unread}", file=sys.stderr)
+        # --------------------------------------------------
+        # the record, without the items gone or settled
+        # --------------------------------------------------
+        reported = self.reported(folder)
+        kept = {name: fingerprint for name, fingerprint in reported.items()
+                if name in texts and texts[name][1].status is not Status.UNCHANGED}
+        if kept != reported:
+            self.record(folder, kept)
+        return [(path, text) for path, text in texts.values()
+                if text.status.wakes and kept.get(path.name) != text.fingerprint]
 
     def run(self, folders: Sequence[Folder], every: float) -> Exit:
         """hold each folder's lock, then poll until an item is to report; print it, record it, and exit.
 
         # Arguments
 
-        * `folders` - the folders to watch
+        * `folders` - the folders to watch, each once
         * `every` - seconds between looks
 
         # Returns
 
         OK once something was reported, BLOCKED when another watch holds a folder
+
+        # Raises
+
+        NoVerdict once no watched folder exists
         """
         with ExitStack() as stack:
             # --------------------------------------------------
@@ -884,9 +1084,12 @@ class Watch:
                     print(f"{TOOL}: already watching {folder.path}", file=sys.stderr)
                     return Exit.BLOCKED
             # --------------------------------------------------
-            # look until something is new
+            # look until something is new, while a folder is left to look in
             # --------------------------------------------------
-            while not (found := {folder: items for folder in folders if (items := list(self.unreported(folder)))}):
+            skipped: set[Path] = set()
+            while not (found := {folder: items for folder in folders if (items := self.look(folder, skipped))}):
+                if not any(folder.path.is_dir() for folder in folders):
+                    raise NoVerdict(NO_DIR.format(", ".join(str(folder.path) for folder in folders)))
                 time.sleep(every)
             # --------------------------------------------------
             # each item with its note, then the record, so a re-run does not repeat it
@@ -896,7 +1099,7 @@ class Watch:
                     print(f"{text.status} {path}")
                     for line in text.note.splitlines():
                         print(f"{NOTE_INDENT}{line}".rstrip())
-                self.record(folder, items)
+                self.record(folder, self.reported(folder) | {path.name: text.fingerprint for path, text in items})
         return Exit.OK
 
 
@@ -914,7 +1117,8 @@ def main(args: Args) -> Exit | None:
     # Raises
 
     UsageError for an unknown subcommand, a wrong count of arguments, a flag
-    another subcommand owns, or a bad -e; NoVerdict for an item that does not exist
+    another subcommand owns, a bad -e, or no text on stdin for `answer` or
+    `new`; NoVerdict for an item or a folder that does not exist
     """
     # --------------------------------------------------
     # the subcommand, and its arguments; -d and -e are watch's alone
@@ -929,9 +1133,9 @@ def main(args: Args) -> Exit | None:
         case Command.STATUS:
             Folder(Path(rest[0]) if rest else DEFAULT_DIR).status()
         case Command.ANSWER:
-            Item(Path(rest[0])).answer(ItemText.piped().text)
+            Item(Path(rest[0])).answer(args.stdin_verbatim())
         case Command.NEW:
-            Item(Path(rest[0])).new(ItemText.piped())
+            Item(Path(rest[0])).new(ItemText(args.stdin_verbatim()))
         case Command.RESOLVE:
             return Item(Path(rest[0])).resolve(life)
         case Command.PARK | Command.UNPARK:
