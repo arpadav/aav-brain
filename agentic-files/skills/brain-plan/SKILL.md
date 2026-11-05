@@ -77,9 +77,12 @@ dialogue at the start, not a delivery.
 6. open decisions. anything ambiguous, as a question with options + a rec - and err toward MORE
    questions, stated verbosely, not fewer (P24, P01). a decision that outlives this session (he
    wants to think, or it waits on someone) becomes an open-item file instead, per P66:
-   `plans/open-items/<ID>-<slug>.md`, stamped with the brain-open-items skill's `stamp`. at RECON, recall with
-   `-b plans` and run its `status`: an `edited` item carries his answer and is input to this plan. include the would-arpad fidelity questions for
-   the artifacts the plan introduces: "would arpad write this file / folder / function like this?"
+   `plans/open-items/<ID>-<slug>.md`, stamped with the brain-open-items skill's `stamp`; when
+   `stamp` prints `no watch: <command>`, run that command in the background, as the skill's loop
+   says. at RECON, recall with `-b plans` and run the skill's `status`: an `edited` item carries
+   his answer, and a `new` `U-` item is one he made on the board; both are input to this plan, and
+   a `parked` one waits. include the would-arpad fidelity questions for the artifacts the plan
+   introduces: "would arpad write this file / folder / function like this?"
    (P29), each with the alternative and your lean, for him to settle.
 
 ## the hard rule: never assume
