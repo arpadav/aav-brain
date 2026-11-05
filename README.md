@@ -31,7 +31,7 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
   agentic-files/       the acting suite (home-manager links it into claude + codex)
     skills/            the 14 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/
-  bin/                 all tooling: brainlib (the shared lib), and the brain scripts, each a command
+  bin/                 brainlib (the shared lib) and the brain scripts, each a command
                        `b-<name>` (`Layout.scripts` says which file is one); each answers -h, and
                        ARCHITECTURE.md says how they reach PATH
     store/             build and keep the knowledge

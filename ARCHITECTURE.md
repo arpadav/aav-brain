@@ -86,10 +86,12 @@ prints the legend of every command's flags, and `b-walk -l` reprints it. `b-find
 the ENTRIES (call these) are the `[[entries]]` rows of flow.toml - each names its skill, the node it
 enters the unified flow at, and the mode it walks in; docs/DEV_FLOWCHART.md lists them.
 
-two more skills sit OUTSIDE the flow: `brain-measure`, user-callable, runs the 25 eval tasks with the
+three more skills sit OUTSIDE the flow: `brain-measure`, user-callable, runs the 25 eval tasks with the
 brain's principles and without, and hands him one file to grade (`eval/brain-eval.py`); `brain-open-items`
 writes, stamps and watches the P66 open items, its script beside its SKILL.md, keeping each in step
-with its todo when `life` is on PATH.
+with its todo when `life` is on PATH; `brain-sync`, user-callable, pushes the brain's submodules,
+the brain and the home-manager repo that holds it to GitHub main with `b-sync`, then applies them with
+`home-manager switch`.
 
 the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directly):
 | brain-meta-* | role |
