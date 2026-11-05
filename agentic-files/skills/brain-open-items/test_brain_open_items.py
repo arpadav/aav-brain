@@ -704,7 +704,9 @@ eval "$(b-find -e)"
 {setup}
 test "$B" -ef {shlex.quote(str(SCRIPT))}
 python3 "$B" stamp plans/open-items/Q02-default-status.md
+python3 "$B" question plans/open-items/Q02-default-status.md
 python3 "$B" answer plans/open-items/Q02-default-status.md < section.md
+python3 "$B" clear plans/open-items/Q02-default-status.md
 python3 "$B" park plans/open-items/Q02-default-status.md
 python3 "$B" unpark plans/open-items/Q02-default-status.md
 python3 "$B" new plans/open-items/U-the-visuals-are-bad.md < body.md
@@ -764,6 +766,31 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         self.assertEqual(path.read_text(), QUESTION + "\n  - new\n\n" + footer + "\n")
         missing = rig.folder / "Q09-none.md"
         self.assertEqual(rig.run("answer", str(missing), stdin="x\n").returncode, Exit.FAILED)
+        self.assertFalse(missing.exists())
+
+    def test_question_prints_the_body_above_the_section_stamped_or_not(self) -> None:
+        """`question` prints the item above its last `## Your call` heading, a quoted one kept, stamped or not."""
+        rig = Rig.of(self)
+        quoted = "# Q02: x\n\n## Your call\n\nquoted"
+        path = rig.item(text=f"{quoted}\n\n## Your call\n\nhis answer\n")
+        bare = rig.run("question", str(path))
+        rig.run("stamp", str(path), life=NO_TODO)
+        stamped = rig.run("question", str(path))
+        for done in (bare, stamped):
+            self.assertEqual((done.returncode, done.stdout), (Exit.OK, quoted + "\n"), done.stderr)
+        missing = rig.run("question", str(rig.folder / "Q09-none.md"))
+        self.assertEqual((missing.returncode, len(missing.stderr.splitlines())), (Exit.FAILED, 1), missing.stderr)
+
+    def test_clear_empties_the_section_and_refuses_a_missing_item(self) -> None:
+        """`clear`, given no stdin, empties `## Your call` and keeps the footer; it refuses a missing item."""
+        rig = Rig.of(self)
+        path = rig.item(text=QUESTION + "\nhis answer\n")
+        rig.run("stamp", str(path), life=NO_TODO)
+        footer = path.read_text().splitlines()[-1]
+        self.assertEqual(rig.run("clear", str(path)).returncode, Exit.OK)
+        self.assertEqual(path.read_text(), QUESTION + "\n" + footer + "\n")
+        missing = rig.folder / "Q09-none.md"
+        self.assertEqual(rig.run("clear", str(missing)).returncode, Exit.FAILED)
         self.assertFalse(missing.exists())
 
     def test_answer_and_new_refuse_empty_stdin(self) -> None:

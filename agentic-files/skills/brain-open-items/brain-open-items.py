@@ -15,7 +15,9 @@ when `life` is on PATH, each command that changes what the board shows runs
 
     stamp ITEM...  `life open-item ask`, then the footer; prints the watch command when no watch holds the folder
     status [DIR]   each item as edited | new | parked | unchanged (DIR defaults to plans/open-items)
+    question ITEM  prints the item without `## Your call` and without the footer: what it asks
     answer ITEM    replaces `## Your call` with stdin, which may not be empty; refuses an item that does not exist
+    clear ITEM     empties `## Your call`, which answer's empty stdin never does; refuses an item that does not exist
     new PATH       makes an unstamped item at PATH from stdin, which may not be empty
     resolve ITEM   `life open-item resolve`, then deletes the item, only if that succeeded
     park ITEM      `life open-item park`; with no todo, ends the section with a `Parked.` paragraph
@@ -126,7 +128,9 @@ class Command(StrEnum):
 
     STAMP = "stamp"
     STATUS = "status"
+    QUESTION = "question"
     ANSWER = "answer"
+    CLEAR = "clear"
     NEW = "new"
     RESOLVE = "resolve"
     PARK = "park"
@@ -420,6 +424,41 @@ class ItemText:
         return (footer := self.footer) is not None and footer.group(1) == self.digest(self.body)
 
     @property
+    def heading(self) -> re.Match[str] | None:
+        r"""the heading opening the section: the body's last `## Your call` line, so one quoted above it never counts.
+
+        # Returns
+
+        the heading's match in `body`, None for an item with no heading
+
+        # Example
+
+            >>> text = ItemText("# Q: see\n## Your call\n\n## Your call\n\nyes\n")
+            >>> text.body[text.heading.start() :]
+            '## Your call\n\nyes'
+        """
+        headings = list(HEADING_RE.finditer(self.body))
+        return headings[-1] if headings else None
+
+    @property
+    def question(self) -> str:
+        r"""what the item asks: the body above its section's heading.
+
+        # Returns
+
+        the question, stripped; the whole body for an item with no heading
+
+        # Example
+
+            >>> ItemText("# Q01: x\n\nwhy\n\n## Your call\n\nyes\n\n<!-- sha256: " + "a" * 64 + " -->\n").question
+            '# Q01: x\n\nwhy'
+            >>> ItemText("# Q01: x\n").question
+            '# Q01: x'
+        """
+        heading = self.heading
+        return self.body[: heading.start()].strip() if heading else self.body
+
+    @property
     def note(self) -> str:
         r"""his answer: what follows the last `## Your call` heading in the body.
 
@@ -432,8 +471,8 @@ class ItemText:
             >>> ItemText("# Q\n\nsee ## Your call\n\n## Your call\n\nB\n\n<!-- sha256: " + "a" * 64 + " -->\n").note
             'B'
         """
-        headings = list(HEADING_RE.finditer(self.body))
-        return self.trimmed(self.body[headings[-1].end() :]) if headings else ""
+        heading = self.heading
+        return self.trimmed(self.body[heading.end() :]) if heading else ""
 
     @property
     def parked(self) -> bool:
@@ -540,9 +579,8 @@ class ItemText:
         # --------------------------------------------------
         # the body through its last heading, as written; a missing heading is added
         # --------------------------------------------------
-        body = self.body
-        headings = list(HEADING_RE.finditer(body))
-        kept = body[: headings[-1].end()] if headings else body + GAP + HEADING
+        body, heading = self.body, self.heading
+        kept = body[: heading.end()] if heading else body + GAP + HEADING
         # --------------------------------------------------
         # a stamped item: the section between blank lines, then the footer line
         # --------------------------------------------------
@@ -1224,7 +1262,7 @@ def main(args: Args) -> Exit | None:
 
     UsageError for an unknown subcommand, a wrong count of arguments, a flag
     another subcommand owns, a bad -e, or no text on stdin for `answer` or
-    `new`; NoVerdict for an item or a folder that does not exist
+    `new`; NoVerdict for an item or a folder that does not exist, or an item that cannot be read
     """
     # --------------------------------------------------
     # the subcommand, and its arguments; -d and -e are watch's alone
@@ -1238,8 +1276,10 @@ def main(args: Args) -> Exit | None:
             Item.stamp_all([Item.of(Path(name)) for name in rest], life)
         case Command.STATUS:
             Folder.of(Path(rest[0]) if rest else DEFAULT_DIR).status()
-        case Command.ANSWER:
-            Item.of(Path(rest[0])).answer(args.stdin_verbatim())
+        case Command.QUESTION:
+            print(Item.of(Path(rest[0])).read().question)
+        case Command.ANSWER | Command.CLEAR:
+            Item.of(Path(rest[0])).answer(args.stdin_verbatim() if command is Command.ANSWER else "")
         case Command.NEW:
             Item.of(Path(rest[0])).new(ItemText(args.stdin_verbatim()))
         case Command.RESOLVE:

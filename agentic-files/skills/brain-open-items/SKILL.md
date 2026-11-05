@@ -15,7 +15,9 @@ B="$AVB/agentic-files/skills/brain-open-items/brain-open-items.py"   # a shell o
 
 - `python3 "$B" stamp <item>...`: asks life, then writes the footer; prints `no watch: <command>` when no watch holds the folder.
 - `python3 "$B" status [<dir>]`: each item, `edited`, `new`, `parked` or `unchanged`.
+- `python3 "$B" question <item>`: prints what the item asks, without `## Your call` and the footer.
 - `python3 "$B" answer <item> < section.md`: replaces `## Your call`; refuses an item that does not exist, and empty stdin.
+- `python3 "$B" clear <item>`: empties `## Your call`; refuses an item that does not exist.
 - `python3 "$B" new <path> < body.md`: an unstamped item; refuses empty stdin.
 - `python3 "$B" resolve <item>`: life's resolve, then deletes the item; exit 1 when life refuses, the item kept and life's reason on stderr.
 - `python3 "$B" park <item>`, `python3 "$B" unpark <item>`: exit 1 when life refuses, as for `resolve`.
