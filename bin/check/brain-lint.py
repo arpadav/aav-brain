@@ -125,7 +125,8 @@ class Target:
         a script anywhere in the brain inserts bin/ itself, however deep it
         sits (`bin/run/brain-walk.py`, `eval/brain-eval.py` and a skill's script
         reach brainlib that way), so bin/ is a search root whenever a checked
-        file lies in the brain
+        file lies in the brain, and never for a file outside it, which a run
+        names by its absolute path
 
         a directory holding an `__init__.py` IS a package and is deliberately
         excluded: its modules are reached through their parent as `pkg.module`,
@@ -144,6 +145,8 @@ class Target:
             ('/r/bin', '/r/bin/run')
             >>> Target(paths=("eval/brain-eval.py",), root=Path("/r")).search_paths
             ('/r/bin', '/r/eval')
+            >>> Target(paths=("/elsewhere/x.py",), root=Path("/r")).search_paths
+            ('/elsewhere',)
         """
         brain_bin = Layout(self.root).bin
         parents = {path.parent for path in self.files}
@@ -433,7 +436,7 @@ CHECKERS = (
     # that exists, so unlike ty's it cannot be re-resolved into a path that does not
     Checker(name="basedpyright", config="pyrightconfig.json", args=("--project", "."),
             total_re=r"(\d+) errors?,"),
-    # the repo's only tests: the doctests carried by the pure helpers (aav-style-items §12)
+    # the doctests carried by the pure helpers (aav-style-items §12); the tests verify.toml names run under b-verify
     Checker(name="doctest", config="(inline)", args=(), total_re=r"\*\*\* (\d+) failures",
             module="doctest", expands_dirs=True),
 )

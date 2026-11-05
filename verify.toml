@@ -1,0 +1,6 @@
+# checks a change to the brain must pass before it counts as verified, keyed
+# by the paths they cover. brain-verify.py reads it; `*` crosses directories
+[[check]]
+name = "open-items tests"
+when = ["agentic-files/skills/brain-open-items/*", "bin/brainlib/*", "bin/brain-find.py"]
+run = "python3 agentic-files/skills/brain-open-items/test_brain_open_items.py"
