@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "bin"))
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib import Exit, find_brain
+from brainlib import Exit, find_brain, write_text
 
 # --------------------------------------------------
 # external
@@ -29,6 +29,7 @@ from brainlib import Exit, find_brain
 import fcntl
 import importlib.util
 import io
+import json
 import os
 import select
 import shlex
@@ -519,7 +520,7 @@ class Watching(unittest.TestCase):
         path = rig.item()
         rig.run("stamp", str(path), life=NO_TODO)
         path.write_text(path.read_text() + "## Your call\nyes\n")
-        self.assertEqual(rig.run("status").stdout, f"edited    {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"edited     {Q02}\n")
         self.assertEqual(rig.watch().stdout, f"edited {rig.shown()}\n  yes\n")
 
     def test_a_report_leaves_the_watch_before_its_record_is_written(self) -> None:
@@ -603,7 +604,7 @@ class Stamping(unittest.TestCase):
         path = rig.item()
         self.assertEqual(rig.run("stamp", str(path), life=REFUSED).returncode, Exit.OK)
         self.assertEqual(rig.life_calls(), [f"open-item ask {rig.shown()} bare"])
-        self.assertEqual(rig.run("status").stdout, f"unchanged {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"unchanged  {Q02}\n")
 
     def test_stamp_prints_the_watch_command_only_when_no_watch_runs(self) -> None:
         """`stamp` prints the watch command only when no watch runs, and the command it prints runs."""
@@ -647,7 +648,7 @@ class Stamping(unittest.TestCase):
         rig = Rig.of(self)
         path = rig.item(text="\n" + QUESTION)
         rig.run("stamp", str(path))
-        self.assertEqual(rig.run("status").stdout, f"unchanged {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"unchanged  {Q02}\n")
 
     def test_stamp_keeps_a_footer_quoted_in_the_question_and_writes_nothing_twice(self) -> None:
         """a footer-shaped line above the heading is the question's; a second stamp writes nothing."""
@@ -655,7 +656,7 @@ class Stamping(unittest.TestCase):
         path = rig.item(text=f"# Q02: the footer\n\nit reads\n\n{QUOTED_FOOTER}\n\n## Your call\n")
         rig.run("stamp", str(path))
         self.assertIn(f"\n{QUOTED_FOOTER}\n\n## Your call\n", path.read_text())
-        self.assertEqual(rig.run("status").stdout, f"unchanged {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"unchanged  {Q02}\n")
         inode = path.stat().st_ino
         rig.run("stamp", str(path))
         self.assertEqual(path.stat().st_ino, inode)
@@ -741,20 +742,62 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         edited.write_text(edited.read_text().replace("## Your call\n", "## Your call\n\nyes\n"))
         rig.item("C-parked.md", QUESTION + "\n" + PARKED_WITH_COMMENT)
         rig.item("D-new.md")
-        self.assertEqual(rig.run("status").stdout,
-                         "edited    A-edited.md\nnew       D-new.md\nparked    C-parked.md\nunchanged B-unchanged.md\n")
+        listed = "edited     A-edited.md\nnew        D-new.md\nparked     C-parked.md\nunchanged  B-unchanged.md\n"
+        self.assertEqual(rig.run("status").stdout, listed)
 
-    def test_an_unreadable_item_fails_status_and_answer_on_one_line(self) -> None:
-        """an item that does not decode fails `status` and `answer`, each in one line, and is left as it was."""
+    def test_an_unreadable_item_reads_unreadable_in_status_and_fails_answer(self) -> None:
+        """an item that does not decode is an `unreadable` row of `status`, which lists the rest; `answer` fails.
+
+        each says why in one stderr line, and the item is left as it was
+        """
         rig = Rig.of(self)
         binary = rig.folder / "Q01-binary.md"
         binary.write_bytes(b"\xff\xfe")
+        rig.item()
         status = rig.run("status")
+        self.assertEqual((status.returncode, status.stdout), (Exit.OK, f"new        {Q02}\nunreadable Q01-binary.md\n"))
         answer = rig.run("answer", str(binary), stdin="x\n")
+        self.assertEqual(answer.returncode, Exit.FAILED)
         for done in (status, answer):
-            self.assertEqual((done.returncode, len(done.stderr.splitlines())), (Exit.FAILED, 1), done.stderr)
+            self.assertEqual(len(done.stderr.splitlines()), 1, done.stderr)
             self.assertIn("cannot be read", done.stderr)
         self.assertEqual(binary.read_bytes(), b"\xff\xfe")
+
+    def test_status_j_maps_each_name_as_the_folder_lists_it_to_its_status(self) -> None:
+        """`status -j` is one json object: every item's own name, a leading space or a newline kept, to its status.
+
+        a symlinked item reads `unreadable`, never as what it points at; -j on any other command is a usage error
+        """
+        rig = Rig.of(self)
+        rig.item(" Q01-spaced.md")
+        rig.item("Q03-two\nlines.md", QUESTION + "\n" + PARKED_WITH_COMMENT)
+        target = rig.repo / "precious.md"
+        target.write_text(QUESTION)
+        (rig.folder / "Q04-link.md").symlink_to(target)
+        done = rig.run("status", "-j")
+        self.assertEqual(done.returncode, Exit.OK, done.stderr)
+        self.assertEqual(json.loads(done.stdout),
+                         {" Q01-spaced.md": "new", "Q03-two\nlines.md": "parked", "Q04-link.md": "unreadable"})
+        self.assertEqual(rig.run("question", "-j", str(rig.folder / " Q01-spaced.md")).returncode, Exit.USAGE)
+
+    def test_a_symlink_at_the_item_is_never_read_or_written_through(self) -> None:
+        """every command refuses a symlink planted at an item, and what it points at is never read out or written."""
+        rig = Rig.of(self)
+        target = rig.repo.parent / "precious.md"
+        precious = QUESTION + "\nsecret\n"
+        target.write_text(precious)
+        link = rig.folder / Q02
+        link.symlink_to(target)
+        for command, stdin in (("question", ""), ("answer", "x\n"), ("clear", ""), ("new", "# U: x\n"),
+                               ("stamp", ""), ("park", "")):
+            with self.subTest(command=command):
+                done = rig.run(command, str(link), stdin=stdin, life=NO_TODO)
+                self.assertEqual((done.returncode, done.stdout), (Exit.FAILED, ""), done.stderr)
+                self.assertEqual((target.read_text(), link.is_symlink()), (precious, True))
+        dangling = rig.folder / "U-dangling.md"
+        dangling.symlink_to(rig.repo.parent / "absent.md")
+        self.assertEqual(rig.run("new", str(dangling), stdin="# U: x\n").returncode, Exit.FAILED)
+        self.assertFalse((rig.repo.parent / "absent.md").exists())
 
     def test_answer_replaces_the_section_and_refuses_a_missing_item(self) -> None:
         """`answer` replaces `## Your call` whole and keeps the footer; it refuses an item that does not exist."""
@@ -822,6 +865,24 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         self.assertEqual(rig.run("new", str(path), stdin="# U: y\n").returncode, Exit.FAILED)
         self.assertEqual(path.read_text(), "# U: x\n\n## Your call\n")
 
+    def test_new_j_writes_the_question_and_the_section_at_once(self) -> None:
+        """`new -j` makes the item from a json question and section, a heading quoted in the question kept as asked.
+
+        a record that does not parse, or holds a blank question, is a usage error and makes nothing
+        """
+        rig = Rig.of(self)
+        path = rig.folder / "U-x.md"
+        question = "# U: x\n\nsee\n\n## Your call"
+        record = json.dumps({"question": question, "section": "2026-11-03 14:02 arpad: yes\n"})
+        self.assertEqual(rig.run("new", "-j", str(path), stdin=record).returncode, Exit.OK)
+        self.assertEqual(path.read_text(), f"{question}\n\n## Your call\n\n2026-11-03 14:02 arpad: yes\n")
+        self.assertEqual(rig.run("question", str(path)).stdout, question + "\n")
+        for bad in ("not json", json.dumps({"question": " ", "section": ""})):
+            with self.subTest(record=bad):
+                other = rig.folder / "U-y.md"
+                self.assertEqual(rig.run("new", "-j", str(other), stdin=bad).returncode, Exit.USAGE)
+                self.assertFalse(other.exists())
+
     def test_resolve_deletes_only_when_life_succeeded(self) -> None:
         """`resolve` keeps the item when life refuses, and deletes it when life resolved it or no todo backs it."""
         rig = Rig.of(self)
@@ -884,11 +945,11 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         rig.run("stamp", str(path), life=NO_TODO)
         self.assertEqual(rig.run("unpark", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual((rig.run("status").stdout, path.read_text()),
-                         (f"unchanged {Q02}\n", tool().ItemText(QUESTION).stamped()))
+                         (f"unchanged  {Q02}\n", tool().ItemText(QUESTION).stamped()))
         path.write_text(path.read_text().replace("## Your call\n", "## Your call\n\nyes\n"))
         rig.run("park", str(path), life=NO_TODO)
         rig.run("unpark", str(path), life=NO_TODO)
-        self.assertEqual(rig.run("status").stdout, f"edited    {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"edited     {Q02}\n")
 
     def test_park_keeps_his_answer_and_unpark_drops_only_parked(self) -> None:
         """`park` keeps his answer above a `Parked.` paragraph, and `unpark` drops only that paragraph.
@@ -904,7 +965,7 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         self.assertEqual(path.read_text(), answered)
         self.assertEqual(rig.run("park", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual(path.read_text(), QUESTION + "\nhis answer\n\nParked.\n")
-        self.assertEqual(rig.run("status").stdout, f"parked    {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"parked     {Q02}\n")
         self.assertEqual(rig.run("unpark", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual(path.read_text(), answered)
 
@@ -917,7 +978,80 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         path.write_text(path.read_text() + "yes\n")
         self.assertEqual(rig.run("park", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual(path.read_text(), QUESTION + "\nyes\n\nParked.\n\n" + footer + "\n")
-        self.assertEqual(rig.run("status").stdout, f"parked    {Q02}\n")
+        self.assertEqual(rig.run("status").stdout, f"parked     {Q02}\n")
+
+
+class WriteText(unittest.TestCase):
+    """brainlib's write_text, which every item write here lands through: never through a symlink, the mode kept."""
+
+    def scratch(self) -> Path:
+        """a temp folder, removed when the test ends.
+
+        # Returns
+
+        its path
+        """
+        return Path(self.enterContext(tempfile.TemporaryDirectory()))
+
+    @staticmethod
+    def new_file_mode() -> int:
+        """the mode a new file gets under this process's umask, read without changing it for long.
+
+        # Returns
+
+        the permission bits
+        """
+        umask = os.umask(0)
+        os.umask(umask)
+        return 0o666 & ~umask
+
+    def test_a_symlink_at_the_target_is_replaced_never_followed(self) -> None:
+        """a symlink at the target is replaced by a regular file with a new file's mode, and its target untouched."""
+        folder = self.scratch()
+        victim = folder / "victim.md"
+        victim.write_text("kept\n")
+        victim.chmod(0o600)
+        target = folder / "item.md"
+        target.symlink_to(victim)
+        write_text(target, "new\n")
+        self.assertEqual((target.is_symlink(), target.read_text()), (False, "new\n"))
+        self.assertEqual(target.stat().st_mode & 0o777, self.new_file_mode())
+        self.assertEqual((victim.read_text(), victim.stat().st_mode & 0o777), ("kept\n", 0o600))
+
+    def test_a_regular_target_keeps_its_mode_and_a_new_one_takes_the_umask(self) -> None:
+        """a regular file keeps its mode across a write; a new one gets 0o666 under the umask, left as it was."""
+        folder = self.scratch()
+        kept = folder / "kept.md"
+        kept.write_text("old\n")
+        kept.chmod(0o640)
+        write_text(kept, "new\n")
+        self.assertEqual((kept.read_text(), kept.stat().st_mode & 0o777), ("new\n", 0o640))
+        umask = os.umask(0o077)
+        try:
+            write_text(folder / "made.md", "x\n")
+            self.assertEqual(os.umask(0o077), 0o077)
+        finally:
+            os.umask(umask)
+        self.assertEqual((folder / "made.md").stat().st_mode & 0o777, 0o600)
+
+    def test_the_staged_file_is_made_new_and_one_planted_at_its_name_is_left(self) -> None:
+        """a symlink planted at the staged name refuses the write: nothing is written through it, and it stays."""
+        folder = self.scratch()
+        victim = folder / "victim.md"
+        victim.write_text("kept\n")
+        target = folder / "item.md"
+        target.write_text("old\n")
+        planted = folder / ".item.md.fixed"
+        planted.symlink_to(victim)
+        with mock.patch("secrets.token_hex", return_value="fixed"):
+            try:
+                write_text(target, "new\n")
+            except FileExistsError:
+                refused = True
+            else:
+                refused = False
+        self.assertTrue(refused)
+        self.assertEqual((victim.read_text(), target.read_text(), planted.is_symlink()), ("kept\n", "old\n", True))
 
 
 if __name__ == "__main__":

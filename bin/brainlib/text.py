@@ -16,7 +16,8 @@ from brainlib.vocab import ENCODING, Frontmatter, Kind
 import datetime as dt
 import os
 import re
-import tempfile
+import secrets
+import stat
 from pathlib import Path
 from typing import TypeGuard
 
@@ -27,8 +28,8 @@ from typing import TypeGuard
 FENCE = "---"
 # a whole line that is a fence: the fence alone, trailing blanks and a crlf's carriage return allowed
 FENCE_LINE = re.compile(rf"{re.escape(FENCE)}[ \t]*\r?")
-# a new file's mode before the umask: what any editor's new file gets
-NEW_FILE_MODE = 0o666
+# the random bytes in the name `write_text` stages a file under, beside its target, spelled in hex
+STAGED_NAME_BYTES = 8
 
 
 class Json:
@@ -231,33 +232,41 @@ def read_text(path: Path) -> str:
 def write_text(path: Path, content: str) -> None:
     """write a text file in the repo's encoding, atomically, creating its parents.
 
-    the write lands on a temporary file in the same directory and is renamed
-    over the target, so a reader sees either the whole previous file or the
-    whole new one. a direct write truncates first, and a failure between the
+    the write lands on a new file in the same directory and is renamed over
+    the target, so a reader sees either the whole previous file or the whole
+    new one. a direct write truncates first, and a failure between the
     truncate and the last byte leaves a corpus that cannot be recovered - the
-    ledger's rewriting paths carry records whose sources have expired. the
-    temporary file is made new under a name no one can guess (`mkstemp`, which
-    opens with `O_EXCL`), so a symlink planted beside the target is never
-    followed, and it takes the target's mode, or a new file's under the umask
+    ledger's rewriting paths carry records whose sources have expired. the new
+    file is made under a name no one can guess, by an exclusive create, which
+    refuses any file or symlink already at that name, and the rename replaces a
+    symlink at the target rather than following it. it keeps the mode of a
+    regular file it replaces, set on its handle before a byte is written; any
+    other gets a new file's mode under the umask
 
     # Arguments
 
     * `path` - the file to write
     * `content` - the text to write
     """
+    # --------------------------------------------------
+    # the mode to keep: a regular file's, never a symlink's target's
+    # --------------------------------------------------
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        mode = path.stat().st_mode & 0o777
+        replaced = path.lstat()
     except FileNotFoundError:
-        umask = os.umask(0)
-        os.umask(umask)
-        mode = NEW_FILE_MODE & ~umask
-    handle, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
-    staged = Path(name)
+        replaced = None
+    kept = stat.S_IMODE(replaced.st_mode) if replaced is not None and stat.S_ISREG(replaced.st_mode) else None
+    # --------------------------------------------------
+    # the staged file, made new; removed unless the rename took it
+    # --------------------------------------------------
+    staged = path.with_name(f".{path.name}.{secrets.token_hex(STAGED_NAME_BYTES)}")
+    out = staged.open("x", encoding=ENCODING)
     try:
-        with os.fdopen(handle, "w", encoding=ENCODING) as out:
+        with out:
+            if kept is not None:
+                os.fchmod(out.fileno(), kept)
             out.write(content)
-        staged.chmod(mode)
         staged.replace(path)
     finally:
         staged.unlink(missing_ok=True)

@@ -14,11 +14,13 @@ when `life` is on PATH, each command that changes what the board shows runs
 `life open-item` first
 
     stamp ITEM...  `life open-item ask`, then the footer; prints the watch command when no watch holds the folder
-    status [DIR]   each item as edited | new | parked | unchanged (DIR defaults to plans/open-items)
+    status [DIR]   each item as edited | new | parked | unchanged | unreadable (DIR defaults to plans/open-items);
+                   -j prints one json object instead, each item's name as the folder lists it to its status
     question ITEM  prints the item without `## Your call` and without the footer: what it asks
     answer ITEM    replaces `## Your call` with stdin, which may not be empty; refuses an item that does not exist
     clear ITEM     empties `## Your call`, which answer's empty stdin never does; refuses an item that does not exist
-    new PATH       makes an unstamped item at PATH from stdin, which may not be empty
+    new PATH       makes an unstamped item at PATH from stdin, which may not be empty; with -j, stdin is a json
+                   object holding the item's `question` and its `section`
     resolve ITEM   `life open-item resolve`, then deletes the item, only if that succeeded
     park ITEM      `life open-item park`; with no todo, ends the section with a `Parked.` paragraph
     unpark ITEM    `life open-item unpark`; with no todo, drops that paragraph
@@ -31,11 +33,14 @@ as does a `life` absent from PATH. any other status, 6 (this machine not set up
 for life) among them, a `life` that cannot run and one that does not answer in
 time are a refusal: `resolve`, `park` and `unpark` leave the item as it was,
 life's stderr or a line of this script's saying why, and `stamp` stamps it all
-the same. an item is named to life, and in every line printed here, by its real
-path, as `realpath` spells it. every write here holds the folder's write lock, a
-flock on the folder itself, which life's ask holds too, so no lock is held
-across a `life` call; every other life write lands without it. watch holds a
-lock of its own, under $XDG_RUNTIME_DIR/brain-open-items/, beside what it has
+the same. an item is named to life, and in every line printed here, by its
+folder's real path, as `realpath` spells it, and its own name: an item that is
+itself a symlink is never read or written through. every write here holds the
+folder's write lock, a flock on the folder itself. life's ask holds it too,
+across its lookup and its ask of the todo, running only `question`, which
+takes no lock, while it does; life writes an item only through this script, so
+under that lock. no lock is held here across a `life` call. watch holds a lock
+of its own, under $XDG_RUNTIME_DIR/brain-open-items/, beside what it has
 reported
 
 Author: aav
@@ -54,6 +59,7 @@ from brainlib import ENCODING, Args, Env, Exit, Flag, Json, NoVerdict, Tool, Usa
 # --------------------------------------------------
 # external
 # --------------------------------------------------
+import errno
 import fcntl
 import hashlib
 import json
@@ -62,6 +68,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import time
 from collections.abc import Generator, Iterable, Sequence
@@ -75,6 +82,8 @@ from typing import Self
 # --------------------------------------------------
 # the command this tool runs as, for its messages
 TOOL = Path(__file__).stem
+# every flag it takes, each a subcommand's own (`Command.flags`)
+FLAGS = (Flag.DIR, Flag.EVERY, Flag.JSON)
 # the folder a command reads when it names none
 DEFAULT_DIR = Path("plans/open-items")
 # an item file, matched in its folder
@@ -118,9 +127,13 @@ LIFE_NO_TODO = 5
 LIFE_TIMEOUT = (9 + 1) * 60.0
 # why a watch cannot run, for watch's refusal and stamp's note
 NO_RUNTIME = f"${Env.XDG_RUNTIME_DIR} is no absolute path, so a watch has nowhere to hold its lock"
-# a missing item, and a missing folder
+# a missing item, an item that is a symlink, and a missing folder
 NO_ITEM = "no item at {}"
+LINKED_ITEM = "{} is a symlink, and no item is read or written through one"
 NO_DIR = "no open-items dir at {}"
+# the keys of the json object `new -j` takes on stdin: what the item asks, and its `## Your call` section
+QUESTION_KEY = "question"
+SECTION_KEY = "section"
 
 
 class Command(StrEnum):
@@ -192,6 +205,27 @@ class Command(StrEnum):
             case _:
                 return 1, 1
 
+    @property
+    def flags(self) -> tuple[Flag, ...]:
+        """the flags this subcommand takes.
+
+        # Returns
+
+        -d and -e for watch, -j for status and new, none for the rest
+
+        # Example
+
+            >>> Command.WATCH.flags, Command.NEW.flags, Command.ANSWER.flags
+            ((<Flag.DIR: '--dir'>, <Flag.EVERY: '--every'>), (<Flag.JSON: '--json'>,), ())
+        """
+        match self:
+            case Command.WATCH:
+                return Flag.DIR, Flag.EVERY
+            case Command.STATUS | Command.NEW:
+                return (Flag.JSON,)
+            case _:
+                return ()
+
 
 class Status(StrEnum):
     """where an item stands, declared in the order `status` lists them: the two that wake a watch first."""
@@ -204,6 +238,8 @@ class Status(StrEnum):
     PARKED = "parked"
     # stamped, and as stamped
     UNCHANGED = "unchanged"
+    # `status` could not read it: a symlink, something other than a regular file, or text that does not decode
+    UNREADABLE = "unreadable"
 
     @property
     def wakes(self) -> bool:
@@ -216,7 +252,7 @@ class Status(StrEnum):
         # Example
 
             >>> [status.wakes for status in Status]
-            [True, True, False, False]
+            [True, True, False, False, False]
         """
         return self in (Status.EDITED, Status.NEW)
 
@@ -346,6 +382,42 @@ class ItemText:
             '  - a\n- b'
         """
         return EDGES_RE.sub("", section)
+
+    @classmethod
+    def asking(cls, record: str) -> Self:
+        r"""an item from `new -j`'s stdin: a json object holding what the item asks and its section.
+
+        the question is kept whole, a heading quoted in it among the rest, and the
+        item's own `## Your call` heading follows it, so `question` prints it back
+
+        # Arguments
+
+        * `record` - the object; its QUESTION_KEY a string, not blank, and its SECTION_KEY a string, empty or missing
+          for an empty section
+
+        # Returns
+
+        the item, unstamped
+
+        # Raises
+
+        UsageError when the record does not parse, or holds no question
+
+        # Example
+
+            >>> ItemText.asking('{"question": "# Q: x\\n", "section": "\\nyes\\n"}').text
+            '# Q: x\n\n## Your call\n\nyes\n'
+            >>> ItemText.asking('{"question": "# Q: see\\n\\n## Your call", "section": ""}').question
+            '# Q: see\n\n## Your call'
+        """
+        try:
+            fields = Json.fields(json.loads(record))
+        except json.JSONDecodeError as error:
+            raise UsageError(f"{Command.NEW} {Flag.JSON} takes a json object on stdin: {error}") from None
+        question, section = (Json.text(fields.get(key)) for key in (QUESTION_KEY, SECTION_KEY))
+        if not question.strip():
+            raise UsageError(f"{Command.NEW} {Flag.JSON} takes a json object whose `{QUESTION_KEY}` is not blank")
+        return cls(cls(question.strip() + GAP + HEADING).answered(cls.trimmed(section)))
 
     @property
     def footer(self) -> re.Match[str] | None:
@@ -643,26 +715,40 @@ class Folder:
         return list(dict.fromkeys(map(cls.of, paths)))
 
     def items(self) -> list[Path]:
-        """every item in the folder.
+        """every item in the folder: each regular file or symlink its glob lists, by the name it lists it under.
 
         # Returns
 
-        the item files, sorted
+        the items' paths, sorted, each under the folder's real path, a symlink never resolved
         """
-        return sorted(path.resolve() for path in self.path.glob(ITEM_GLOB) if path.is_file())
+        return sorted(path for path in self.path.glob(ITEM_GLOB) if path.is_symlink() or path.is_file())
 
-    def status(self) -> None:
-        """print each item's status, the ones carrying his input first.
+    def status(self, *, program: bool) -> None:
+        """print each item's status, the ones carrying his input first, and say on stderr why each unreadable one is.
+
+        # Arguments
+
+        * `program` - True for one json object, each item's name to its status, as life reads it
 
         # Raises
 
-        NoVerdict when the folder does not exist, or an item cannot be read
+        NoVerdict when the folder does not exist
         """
         if not self.path.is_dir():
             raise NoVerdict(NO_DIR.format(self.path))
+        rows: list[tuple[Status, str]] = []
+        for path in self.items():
+            try:
+                status = Item(path).read().status
+            except NoVerdict as error:
+                print(f"{TOOL}: {error}", file=sys.stderr)
+                status = Status.UNREADABLE
+            rows.append((status, path.name))
+        rows.sort(key=lambda row: (row[0].rank, row[1]))
+        if program:
+            print(json.dumps({name: status for status, name in rows}))
+            return
         width = max(map(len, Status))
-        rows = sorted(((Item(path).read().status, path.name) for path in self.items()),
-                      key=lambda row: (row[0].rank, row[1]))
         for status, name in rows:
             print(f"{status:<{width}} {name}")
 
@@ -670,11 +756,11 @@ class Folder:
     def locked(self) -> Generator[None]:
         """the folder's write lock: a flock on the folder itself, which no write replaces.
 
-        every write here holds it, and life's `open-item ask` holds it for its
-        whole run, so those two never write an item at once. every other life
-        write lands without it, so a write here can still land between its
-        read and its write. an `answer` checks the item under it, so one that
-        lands after a resolve's delete finds nothing to write
+        every write here holds it, and so does life's `open-item ask`, across
+        its lookup and its ask of the todo; life writes an item only through
+        this script, so no two writes of the brain's or life's land at once. an
+        `answer` checks the item under it, so one that lands after a resolve's
+        delete finds nothing to write
 
         # Raises
 
@@ -742,12 +828,15 @@ class Life:
 class Item:
     """one open-item file, and every command that writes it."""
 
-    # the item's real path
+    # the item's path: its folder's real path, and its own name
     path: Path
 
     @classmethod
     def of(cls, path: Path) -> Self:
         """the item a path names.
+
+        only its folder is resolved: an item that is itself a symlink stays one, which
+        every read refuses, and every write replaces rather than follows
 
         # Arguments
 
@@ -755,9 +844,9 @@ class Item:
 
         # Returns
 
-        the item, by its real path, as `realpath` spells it
+        the item, under its folder's real path, as `realpath` spells it
         """
-        return cls(path.resolve())
+        return cls(path.parent.resolve() / path.name)
 
     @property
     def folder(self) -> Folder:
@@ -769,8 +858,23 @@ class Item:
         """
         return Folder(self.path.parent)
 
+    @staticmethod
+    def opener(path: str, flags: int) -> int:
+        """open an item as `read` does: never through a symlink at it, and never waiting on a fifo there.
+
+        # Arguments
+
+        * `path` - the item's path
+        * `flags` - the flags `open` asks for
+
+        # Returns
+
+        the handle
+        """
+        return os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
+
     def read(self) -> ItemText:
-        """the item's text.
+        """the item's text, read from a regular file and never through a symlink.
 
         # Returns
 
@@ -778,25 +882,31 @@ class Item:
 
         # Raises
 
-        NoVerdict when there is no item, or it cannot be read or decoded
+        NoVerdict when there is no item, it is a symlink or anything but a regular file, or it cannot be read
+        or decoded
         """
         try:
-            return ItemText(read_text(self.path))
+            with open(self.path, encoding=ENCODING, opener=self.opener) as file:
+                if not stat.S_ISREG(os.fstat(file.fileno()).st_mode):
+                    raise NoVerdict(f"{self.path} is no regular file")
+                return ItemText(file.read())
         except FileNotFoundError:
             raise NoVerdict(NO_ITEM.format(self.path)) from None
         except OSError as error:
+            if error.errno == errno.ELOOP:
+                raise NoVerdict(LINKED_ITEM.format(self.path)) from None
             raise NoVerdict(f"{self.path} cannot be read: {error.strerror}") from None
         except UnicodeDecodeError as error:
             raise NoVerdict(f"{self.path} cannot be read: {error.reason} at byte {error.start}") from None
 
     def present(self) -> None:
-        """refuse an item that does not exist.
+        """refuse an item that does not exist; a symlink at it exists, for `read` to refuse.
 
         # Raises
 
         NoVerdict when there is no item
         """
-        if not self.path.is_file():
+        if not os.path.lexists(self.path):
             raise NoVerdict(NO_ITEM.format(self.path))
 
     def write(self, text: ItemText, section: str) -> None:
@@ -886,14 +996,14 @@ class Item:
 
         # Raises
 
-        NoVerdict when the path is taken, or the folder cannot be made or locked
+        NoVerdict when the path is taken, a symlink there among the rest, or the folder cannot be made or locked
         """
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
         except OSError as error:
             raise NoVerdict(f"{self.path.parent} cannot be made: {error.strerror}") from None
         with self.folder.locked():
-            if self.path.exists():
+            if os.path.lexists(self.path):
                 raise NoVerdict(f"{self.path} exists")
             write_text(self.path, text.unstamped())
         print(f"new {self.path}")
@@ -1261,27 +1371,30 @@ def main(args: Args) -> Exit | None:
     # Raises
 
     UsageError for an unknown subcommand, a wrong count of arguments, a flag
-    another subcommand owns, a bad -e, or no text on stdin for `answer` or
-    `new`; NoVerdict for an item or a folder that does not exist, or an item that cannot be read
+    another subcommand owns, a bad -e, no text on stdin for `answer` or
+    `new`, or no question in `new -j`'s; NoVerdict for an item or a folder that does not exist, or an item that
+    cannot be read
     """
     # --------------------------------------------------
-    # the subcommand, and its arguments; -d and -e are watch's alone
+    # the subcommand, its arguments, and only the flags it takes
     # --------------------------------------------------
     command, rest = Command.parse(args.positional())
-    if command is not Command.WATCH and (args.has(Flag.DIR) or args.has(Flag.EVERY)):
-        raise UsageError(f"{Flag.DIR} and {Flag.EVERY} are {Command.WATCH}'s")
+    if stray := [flag for flag in FLAGS if args.has(flag) and flag not in command.flags]:
+        raise UsageError(f"{command} takes no {stray[0]}")
+    program = args.has(Flag.JSON)
     life = Life.discover()
     match command:
         case Command.STAMP:
             Item.stamp_all([Item.of(Path(name)) for name in rest], life)
         case Command.STATUS:
-            Folder.of(Path(rest[0]) if rest else DEFAULT_DIR).status()
+            Folder.of(Path(rest[0]) if rest else DEFAULT_DIR).status(program=program)
         case Command.QUESTION:
             print(Item.of(Path(rest[0])).read().question)
         case Command.ANSWER | Command.CLEAR:
             Item.of(Path(rest[0])).answer(args.stdin_verbatim() if command is Command.ANSWER else "")
         case Command.NEW:
-            Item.of(Path(rest[0])).new(ItemText(args.stdin_verbatim()))
+            stdin = args.stdin_verbatim()
+            Item.of(Path(rest[0])).new(ItemText.asking(stdin) if program else ItemText(stdin))
         case Command.RESOLVE:
             return Item.of(Path(rest[0])).resolve(life)
         case Command.PARK | Command.UNPARK:
@@ -1292,4 +1405,4 @@ def main(args: Args) -> Exit | None:
 
 
 if __name__ == "__main__":
-    Tool(TOOL, __doc__, (Flag.DIR, Flag.EVERY), positionals=(1, None)).run(main)
+    Tool(TOOL, __doc__, FLAGS, positionals=(1, None)).run(main)

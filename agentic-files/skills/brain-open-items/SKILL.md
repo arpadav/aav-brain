@@ -14,7 +14,7 @@ B="$AVB/agentic-files/skills/brain-open-items/brain-open-items.py"   # a shell o
 ## commands
 
 - `python3 "$B" stamp <item>...`: asks life, then writes the footer; prints `no watch: <command>` when no watch holds the folder.
-- `python3 "$B" status [<dir>]`: each item, `edited`, `new`, `parked` or `unchanged`.
+- `python3 "$B" status [<dir>]`: each item, `edited`, `new`, `parked`, `unchanged`, or `unreadable` with why on stderr.
 - `python3 "$B" question <item>`: prints what the item asks, without `## Your call` and the footer.
 - `python3 "$B" answer <item> < section.md`: replaces `## Your call`; refuses an item that does not exist, and empty stdin.
 - `python3 "$B" clear <item>`: empties `## Your call`; refuses an item that does not exist.

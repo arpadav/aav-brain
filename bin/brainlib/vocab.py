@@ -267,6 +267,7 @@ class Flag(StrEnum):
     EXPORT = "--export", "e"
     GATE = "--gate", "g"
     HELP = "--help", "h"
+    JSON = "--json", "j"
     LAST = "--last", "l"
     LEGEND = "--legend", "l"
     LIST = "--list", "l"
