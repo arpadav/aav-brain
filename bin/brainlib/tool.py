@@ -28,7 +28,7 @@ from typing import NoReturn
 # constants
 # --------------------------------------------------
 # how free text reaches a tool, named once for stdin_verbatim's refusal and the positional one
-HEREDOC = "the text goes on stdin through a quoted heredoc: <<'EOF', the text, then EOF"
+HEREDOC = "the text goes on stdin: a quoted heredoc (<<'EOF', the text, then EOF), or a file (< file)"
 # the token past which every token is positional, however it is spelled
 END_OF_FLAGS = "--"
 # every command's flags, keyed by its command (`Layout.command`); -h is every command's and is not listed
@@ -367,7 +367,7 @@ class Args:
 
         # Raises
 
-        UsageError with HEREDOC when stdin is a terminal (no heredoc was given)
+        UsageError with HEREDOC when stdin is closed, is a terminal (no heredoc was given)
         or carries only whitespace
 
         # Example
@@ -377,17 +377,22 @@ class Args:
             >>> with mock.patch.object(sys, "stdin", io.StringIO("  indented\n\nkept\n")):
             ...     Args(()).stdin_verbatim()
             '  indented\n\nkept\n'
-            >>> with mock.patch.object(sys, "stdin", io.StringIO(" \n")):
-            ...     Args(()).stdin_verbatim()
-            Traceback (most recent call last):
-            brainlib.vocab.UsageError: the text goes on stdin through a quoted heredoc: <<'EOF', the text, then EOF
+            >>> def refusal(stdin: object) -> str | None:
+            ...     with mock.patch.object(sys, "stdin", stdin):
+            ...         try:
+            ...             Args(()).stdin_verbatim()
+            ...         except UsageError as error:
+            ...             return str(error)
+            ...     return None
+            >>> refusal(io.StringIO(" \n")) == refusal(None) == HEREDOC
+            True
         """
         # --------------------------------------------------
-        # a terminal has no piped text
+        # a closed stdin, or a terminal, has no piped text
         # --------------------------------------------------
-        text = "" if sys.stdin.isatty() else sys.stdin.read()
+        text = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
         # --------------------------------------------------
-        # no text at all is a usage error that shows the heredoc spelling
+        # no text at all is a usage error that shows how text reaches stdin
         # --------------------------------------------------
         if not text.strip():
             raise UsageError(HEREDOC)
