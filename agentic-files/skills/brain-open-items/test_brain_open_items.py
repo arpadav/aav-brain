@@ -27,7 +27,10 @@ from brainlib import Exit, find_brain
 # external
 # --------------------------------------------------
 import fcntl
+import importlib.util
+import io
 import os
+import select
 import shlex
 import shutil
 import signal
@@ -36,10 +39,12 @@ import tempfile
 import time
 import unittest
 from collections.abc import Callable, Generator, Mapping
-from contextlib import ExitStack, contextmanager
+from contextlib import ExitStack, contextmanager, redirect_stderr
 from dataclasses import dataclass, replace
-from functools import partial
+from functools import cache, partial
+from types import ModuleType
 from typing import Self
+from unittest import mock
 
 # --------------------------------------------------
 # constants
@@ -56,6 +61,8 @@ EVERY = "0.05"
 PATIENCE = 20.0
 # how often a condition is looked at, in seconds
 POLL = 0.02
+# life's longest action in seconds: 9 `todo` calls, each given 60 s by life
+LIFE_LONGEST = 9 * 60
 # the stand-in life's status when it did what it was asked
 DONE = "0"
 # life's status for a refusal
@@ -70,11 +77,14 @@ QUOTED_FOOTER = "<!-- sha256: " + "a" * 64 + " -->"
 PARKED_WITH_COMMENT = "2026-11-03 14:02 arpad: later\n\nParked.\n"
 # how often a resolve and an answer are raced
 RACES = 20
-# the stand-in life: one log line per call, `<args> stamped|bare` by whether the item had a footer then
+# the stand-in life: one log line per call, `<args> stamped|bare` by whether the item had a footer then,
+# and for any status but 0 one line on stderr naming it
 LIFE = """#!/bin/sh
 if grep -q '^<!-- sha256: ' "$3" 2>/dev/null; then footer=stamped; else footer=bare; fi
 echo "$* $footer" >> "$FAKE_LIFE_LOG"
-exit "${FAKE_LIFE_EXIT:-0}"
+status="${FAKE_LIFE_EXIT:-0}"
+[ "$status" = 0 ] || echo "life: stand-in exits $status" >&2
+exit "$status"
 """
 # the stand-in b-find: this checkout's, run as module.nix's wrapper runs it
 B_FIND = f"""#!/bin/sh
@@ -105,6 +115,41 @@ def locks(pid: int, *, waiting: bool) -> bool:
         if blocked == waiting and rest[:1] == ["FLOCK"] and str(pid) in rest:
             return True
     return False
+
+
+def readable(process: subprocess.Popen[str]) -> bool:
+    """whether a process's stdout has something to read, looked at without waiting.
+
+    # Arguments
+
+    * `process` - the process, its stdout a pipe
+
+    # Returns
+
+    True once it has written to it
+    """
+    return process.stdout is not None and bool(select.select([process.stdout], [], [], 0)[0])
+
+
+@cache
+def tool() -> ModuleType:
+    """the script, imported once, so a test reaches its constants and what a run as a process cannot.
+
+    # Returns
+
+    the module
+
+    # Raises
+
+    ImportError when it cannot be loaded
+    """
+    spec = importlib.util.spec_from_file_location(SCRIPT.stem.replace("-", "_"), SCRIPT)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"{SCRIPT} cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def until(condition: Callable[[], bool]) -> bool:
@@ -196,6 +241,20 @@ class Rig:
         the path
         """
         return self.folder.resolve() / name
+
+    def runtime(self, suffix: str) -> Path:
+        """the folder's watch lock or record, where the script keeps it.
+
+        # Arguments
+
+        * `suffix` - the script's LOCK or RECORD
+
+        # Returns
+
+        its path under the rig's $XDG_RUNTIME_DIR
+        """
+        root = Path(self.env["XDG_RUNTIME_DIR"]) / tool().RUNTIME
+        return Path(tool().Watch(root).file(tool().Folder.of(self.folder), suffix))
 
     def without(self, name: str) -> Self:
         """the same rig, its runs never given one environment variable.
@@ -428,6 +487,65 @@ class Watching(unittest.TestCase):
         self.assertEqual(watch.returncode, Exit.FAILED)
         self.assertIn("no open-items dir at", stderr)
 
+    def test_an_answer_parked_then_unparked_is_reported_again(self) -> None:
+        """an answer reported, then parked and seen parked, is reported again once unparked as it was."""
+        rig = Rig.of(self)
+        path = rig.item()
+        rig.run("stamp", str(path), life=NO_TODO)
+        path.write_text(path.read_text().replace("## Your call\n", "## Your call\n\nyes\n"))
+        reported = f"edited {rig.shown()}\n  yes\n"
+        self.assertEqual(rig.watch().stdout, reported)
+        rig.run("park", str(path), life=NO_TODO)
+        rig.item("Q03-other.md")
+        self.assertEqual(rig.watch().stdout, f"new {rig.shown('Q03-other.md')}\n")
+        rig.run("unpark", str(path), life=NO_TODO)
+        self.assertEqual(rig.watch().stdout, reported)
+
+    def test_an_item_reported_then_unreadable_for_a_look_is_not_reported_again(self) -> None:
+        """an item reported, then not read for one look, is not reported again once it reads as it did."""
+        rig = Rig.of(self)
+        path = rig.item()
+        self.assertEqual(rig.watch().stdout, f"new {rig.shown()}\n")
+        path.write_bytes(b"\xff\xfe")
+        rig.item("Q03-other.md")
+        self.assertEqual(rig.watch().stdout, f"new {rig.shown('Q03-other.md')}\n")
+        path.write_text(QUESTION)
+        rig.item("Q04-third.md")
+        self.assertEqual(rig.watch().stdout, f"new {rig.shown('Q04-third.md')}\n")
+
+    def test_a_heading_typed_below_the_footer_leaves_the_item_edited(self) -> None:
+        """a `## Your call` typed below the footer, with an answer under it, reads and reports as an edit."""
+        rig = Rig.of(self)
+        path = rig.item()
+        rig.run("stamp", str(path), life=NO_TODO)
+        path.write_text(path.read_text() + "## Your call\nyes\n")
+        self.assertEqual(rig.run("status").stdout, f"edited    {Q02}\n")
+        self.assertEqual(rig.watch().stdout, f"edited {rig.shown()}\n  yes\n")
+
+    def test_a_report_leaves_the_watch_before_its_record_is_written(self) -> None:
+        """the report is on watch's stdout before the record is written, so a watch killed then loses none of it."""
+        rig = Rig.of(self)
+        watch = rig.watching()
+        # --------------------------------------------------
+        # brainlib's write_text stages the record at `<record>.tmp<pid>`; a fifo there, never read, holds the
+        # watch inside its record write
+        # --------------------------------------------------
+        record = rig.runtime(tool().RECORD)
+        os.mkfifo(record.with_name(f"{record.name}.tmp{watch.pid}"))
+        rig.item()
+        self.assertTrue(until(partial(readable, watch)), "the report never left the watch")
+        watch.kill()
+        stdout, _ = watch.communicate(timeout=PATIENCE)
+        self.assertEqual(stdout, f"new {rig.shown()}\n")
+
+    def test_a_runtime_dir_that_cannot_hold_a_lock_fails_watch_in_one_line(self) -> None:
+        """a watch whose lock cannot be made exits FAILED in one stderr line."""
+        rig = Rig.of(self)
+        rig.runtime(tool().LOCK).parent.write_text("")
+        done = rig.watch()
+        self.assertEqual((done.returncode, len(done.stderr.splitlines())), (Exit.FAILED, 1), done.stderr)
+        self.assertIn("cannot be taken", done.stderr)
+
     def test_an_answer_racing_a_resolve_never_brings_the_file_back(self) -> None:
         """an `answer` racing a `resolve` never brings the file back."""
         rig = Rig.of(self)
@@ -484,7 +602,7 @@ class Stamping(unittest.TestCase):
         rig = Rig.of(self)
         path = rig.item()
         self.assertEqual(rig.run("stamp", str(path), life=REFUSED).returncode, Exit.OK)
-        self.assertEqual(rig.life_calls(), [f"open-item ask {path} bare"])
+        self.assertEqual(rig.life_calls(), [f"open-item ask {rig.shown()} bare"])
         self.assertEqual(rig.run("status").stdout, f"unchanged {Q02}\n")
 
     def test_stamp_prints_the_watch_command_only_when_no_watch_runs(self) -> None:
@@ -492,12 +610,12 @@ class Stamping(unittest.TestCase):
         rig = Rig.of(self)
         path = rig.item()
         alone = rig.run("stamp", str(path)).stdout.splitlines()
-        self.assertEqual(alone[0], f"stamped {path}")
+        self.assertEqual(alone[0], f"stamped {rig.shown()}")
         command = alone[1].removeprefix("no watch: ")
         self.assertEqual(shlex.split(command), ["python3", str(SCRIPT), "watch", "--dir", str(rig.folder.resolve())])
         watch = rig.start(*shlex.split(command)[2:])
         self.assertTrue(until(partial(locks, watch.pid, waiting=False)), "the printed watch never took its lock")
-        self.assertEqual(rig.run("stamp", str(path)).stdout, f"stamped {path}\n")
+        self.assertEqual(rig.run("stamp", str(path)).stdout, f"stamped {rig.shown()}\n")
 
     def test_stamp_names_a_folder_named_twice_once(self) -> None:
         """two items in one folder, named relative and absolute, print one `--dir`, the folder's real path."""
@@ -513,7 +631,7 @@ class Stamping(unittest.TestCase):
         rig = Rig.of(self)
         path = rig.item()
         done = rig.without("XDG_RUNTIME_DIR").run("stamp", str(path))
-        self.assertEqual((done.returncode, done.stdout), (Exit.OK, f"stamped {path}\n"))
+        self.assertEqual((done.returncode, done.stdout), (Exit.OK, f"stamped {rig.shown()}\n"))
         self.assertIn("$XDG_RUNTIME_DIR is no absolute path", done.stderr)
 
     def test_stamp_touches_nothing_when_an_item_is_missing(self) -> None:
@@ -542,12 +660,39 @@ class Stamping(unittest.TestCase):
         rig.run("stamp", str(path))
         self.assertEqual(path.stat().st_ino, inode)
 
+    def test_a_stamp_failing_partway_prints_the_watch_command_for_the_items_stamped(self) -> None:
+        """an item that does not read fails `stamp` after life was asked, and the ones stamped before it get a watch."""
+        rig = Rig.of(self)
+        path = rig.item()
+        other = rig.repo / "other" / FOLDER
+        other.mkdir(parents=True)
+        binary = other / "Q01-binary.md"
+        binary.write_bytes(b"\xff\xfe")
+        done = rig.run("stamp", str(path), str(binary))
+        self.assertEqual(done.returncode, Exit.FAILED)
+        self.assertIn("cannot be read", done.stderr)
+        stamped, advice = done.stdout.splitlines()
+        self.assertEqual(stamped, f"stamped {rig.shown()}")
+        self.assertEqual(shlex.split(advice.removeprefix("no watch: "))[3:], ["--dir", str(rig.folder.resolve())])
+        self.assertEqual([call.split()[2] for call in rig.life_calls()], [str(rig.shown()), str(binary.resolve())])
+
+    def test_a_watch_lock_that_cannot_be_opened_still_gets_the_watch_command(self) -> None:
+        """a watch lock `stamp` cannot open holds no watch: it prints the command, and no traceback."""
+        rig = Rig.of(self)
+        path = rig.item()
+        lock = rig.runtime(tool().LOCK)
+        lock.parent.mkdir()
+        lock.touch(mode=0)
+        done = rig.run("stamp", str(path))
+        self.assertEqual((done.returncode, done.stderr), (Exit.OK, ""))
+        self.assertTrue(done.stdout.splitlines()[1].startswith("no watch: "), done.stdout)
+
 
 class Commands(unittest.TestCase):
     """the commands that write an item but `stamp`, `status`, and the skill's own spelling of them."""
 
-    def test_every_command_in_the_skill_runs_as_written(self) -> None:
-        """every command runs as SKILL.md spells it, its `B=` line first."""
+    def test_the_skills_b_line_finds_the_script_and_its_commands_run(self) -> None:
+        """the skill's own `B=` line finds this script, and a session of its commands, copied here, runs."""
         rig = Rig.of(self)
         rig.item()
         (rig.repo / "section.md").write_text("backlog\n")
@@ -572,11 +717,10 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
                               cwd=rig.repo, text=True, capture_output=True, env=dict(rig.env),
                               timeout=PATIENCE, check=False)
         self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertIn(f"new {FOLDER}/U-the-visuals-are-bad.md\n", done.stdout)
-        item = rig.folder / Q02
+        self.assertIn(f"new {rig.shown('U-the-visuals-are-bad.md')}\n", done.stdout)
         self.assertEqual([call.split()[:3] for call in rig.life_calls()],
-                         [["open-item", action, str(item)] for action in ("ask", "park", "unpark", "resolve")])
-        self.assertFalse(item.exists())
+                         [["open-item", action, str(rig.shown())] for action in ("ask", "park", "unpark", "resolve")])
+        self.assertFalse(rig.shown().exists())
 
     def test_brain_lint_passes(self) -> None:
         """`brain-lint.py` passes on the skill's python."""
@@ -599,15 +743,16 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
                          "edited    A-edited.md\nnew       D-new.md\nparked    C-parked.md\nunchanged B-unchanged.md\n")
 
     def test_an_unreadable_item_fails_status_and_answer_on_one_line(self) -> None:
-        """an item that does not decode fails `status`, a folder named as an item fails `answer`, each in one line."""
+        """an item that does not decode fails `status` and `answer`, each in one line, and is left as it was."""
         rig = Rig.of(self)
-        (rig.folder / "Q01-binary.md").write_bytes(b"\xff\xfe")
+        binary = rig.folder / "Q01-binary.md"
+        binary.write_bytes(b"\xff\xfe")
         status = rig.run("status")
-        answer = rig.run("answer", str(rig.folder), stdin="x\n")
+        answer = rig.run("answer", str(binary), stdin="x\n")
         for done in (status, answer):
             self.assertEqual((done.returncode, len(done.stderr.splitlines())), (Exit.FAILED, 1), done.stderr)
-        self.assertIn("cannot be read", status.stderr)
-        self.assertIn("no item at", answer.stderr)
+            self.assertIn("cannot be read", done.stderr)
+        self.assertEqual(binary.read_bytes(), b"\xff\xfe")
 
     def test_answer_replaces_the_section_and_refuses_a_missing_item(self) -> None:
         """`answer` replaces `## Your call` whole and keeps the footer; it refuses an item that does not exist."""
@@ -627,10 +772,19 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         path = rig.item(text=QUESTION + "\nhis answer\n")
         for stdin in ("", " \n\n"):
             with self.subTest(stdin=stdin):
-                self.assertEqual(rig.run("answer", str(path), stdin=stdin).returncode, Exit.USAGE)
+                answer = rig.run("answer", str(path), stdin=stdin)
+                self.assertEqual(answer.returncode, Exit.USAGE)
+                self.assertIn("< file", answer.stderr)
                 self.assertEqual(path.read_text(), QUESTION + "\nhis answer\n")
                 self.assertEqual(rig.run("new", str(rig.folder / "U-x.md"), stdin=stdin).returncode, Exit.USAGE)
                 self.assertFalse((rig.folder / "U-x.md").exists())
+        # the script under test, its stdin closed by the shell; no other input (S603)
+        closed = subprocess.run([shutil.which("bash") or "bash", "-c", 'exec "$@" <&-', "bash",  # noqa: S603
+                                 sys.executable, str(SCRIPT), "answer", str(path)],
+                                cwd=rig.repo, text=True, capture_output=True, env=dict(rig.env),
+                                timeout=PATIENCE, check=False)
+        self.assertEqual((closed.returncode, len(closed.stderr.splitlines())), (Exit.USAGE, 1), closed.stderr)
+        self.assertEqual(path.read_text(), QUESTION + "\nhis answer\n")
 
     def test_new_makes_an_unstamped_item_and_refuses_a_taken_path(self) -> None:
         """`new` makes an unstamped item, its folder too, and never writes over one."""
@@ -644,13 +798,35 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
     def test_resolve_deletes_only_when_life_succeeded(self) -> None:
         """`resolve` keeps the item when life refuses, and deletes it when life resolved it or no todo backs it."""
         rig = Rig.of(self)
-        for no_todo in (NO_TODO, NOT_SET_UP):
-            with self.subTest(life=no_todo):
+        for done in (DONE, NO_TODO):
+            with self.subTest(life=done):
                 path = rig.item()
                 self.assertEqual(rig.run("resolve", str(path), life=REFUSED).returncode, Exit.FAILED)
                 self.assertTrue(path.exists())
-                self.assertEqual(rig.run("resolve", str(path), life=no_todo).returncode, Exit.OK)
+                self.assertEqual(rig.run("resolve", str(path), life=done).returncode, Exit.OK)
                 self.assertFalse(path.exists())
+
+    def test_a_machine_not_set_up_refuses_resolve_park_and_unpark_under_lifes_stderr(self) -> None:
+        """life's 6 refuses `resolve`, `park` and `unpark`: the item stays as it was, and life's own line is shown."""
+        rig = Rig.of(self)
+        for command, text in (("resolve", QUESTION), ("park", QUESTION), ("unpark", QUESTION + "\nParked.\n")):
+            with self.subTest(command=command):
+                path = rig.item(text=text)
+                done = rig.run(command, str(path), life=NOT_SET_UP)
+                self.assertEqual((done.returncode, done.stderr), (Exit.FAILED, f"life: stand-in exits {NOT_SET_UP}\n"))
+                self.assertEqual(path.read_text(), text)
+
+    def test_an_item_reaches_life_and_every_line_by_its_real_path(self) -> None:
+        """an item named through a symlinked folder is named to life, and printed, by its real path."""
+        rig = Rig.of(self)
+        rig.item()
+        link = rig.repo / "linked"
+        link.symlink_to(rig.folder, target_is_directory=True)
+        for command in ("stamp", "park", "resolve"):
+            with self.subTest(command=command):
+                done = rig.run(command, str(link / Q02))
+                self.assertEqual(done.stdout.splitlines()[0].split(" ", 1)[1], str(rig.shown()))
+        self.assertEqual([call.split()[2] for call in rig.life_calls()], [str(rig.shown())] * 3)
 
     def test_a_life_that_cannot_run_is_a_refusal_in_one_line(self) -> None:
         """a `life` on PATH that cannot run refuses `resolve` in one stderr line, and the item stays."""
@@ -661,6 +837,31 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         self.assertEqual((done.returncode, len(done.stderr.splitlines())), (Exit.FAILED, 1), done.stderr)
         self.assertIn("cannot run", done.stderr)
         self.assertTrue(path.exists())
+
+    def test_a_life_that_never_answers_is_a_refusal_in_one_line(self) -> None:
+        """a `life` silent past the timeout is a refusal in one line; the timeout outlasts life's longest action."""
+        rig = Rig.of(self)
+        sleeper = rig.bin / "life"
+        sleeper.write_text("#!/bin/sh\nexec sleep 30\n")
+        said = io.StringIO()
+        with mock.patch.object(tool(), "LIFE_TIMEOUT", POLL), redirect_stderr(said):
+            reply = tool().Life(str(sleeper)).open_item(tool().LifeAction.RESOLVE, rig.item())
+        self.assertIs(reply, tool().Reply.REFUSED)
+        self.assertEqual(said.getvalue(), f"brain-open-items: `life open-item resolve` gave no answer in {POLL:g} s\n")
+        self.assertGreater(tool().LIFE_TIMEOUT, LIFE_LONGEST)
+
+    def test_unpark_restamps_an_item_stamped_parked_and_never_one_he_answered(self) -> None:
+        """with no todo, an item stamped parked reads unchanged once unparked; an answer of his it held stays edited."""
+        rig = Rig.of(self)
+        path = rig.item(text=QUESTION + "\nParked.\n")
+        rig.run("stamp", str(path), life=NO_TODO)
+        self.assertEqual(rig.run("unpark", str(path), life=NO_TODO).returncode, Exit.OK)
+        self.assertEqual((rig.run("status").stdout, path.read_text()),
+                         (f"unchanged {Q02}\n", tool().ItemText(QUESTION).stamped()))
+        path.write_text(path.read_text().replace("## Your call\n", "## Your call\n\nyes\n"))
+        rig.run("park", str(path), life=NO_TODO)
+        rig.run("unpark", str(path), life=NO_TODO)
+        self.assertEqual(rig.run("status").stdout, f"edited    {Q02}\n")
 
     def test_park_keeps_his_answer_and_unpark_drops_only_parked(self) -> None:
         """`park` keeps his answer above a `Parked.` paragraph, and `unpark` drops only that paragraph.
@@ -674,7 +875,7 @@ python3 "$B" resolve plans/open-items/Q02-default-status.md
         self.assertEqual(path.read_text(), answered)
         self.assertEqual(rig.run("unpark", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual(path.read_text(), answered)
-        self.assertEqual(rig.run("park", str(path), life=NOT_SET_UP).returncode, Exit.OK)
+        self.assertEqual(rig.run("park", str(path), life=NO_TODO).returncode, Exit.OK)
         self.assertEqual(path.read_text(), QUESTION + "\nhis answer\n\nParked.\n")
         self.assertEqual(rig.run("status").stdout, f"parked    {Q02}\n")
         self.assertEqual(rig.run("unpark", str(path), life=NO_TODO).returncode, Exit.OK)
