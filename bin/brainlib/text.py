@@ -16,6 +16,7 @@ from brainlib.vocab import ENCODING, Frontmatter, Kind
 import datetime as dt
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import TypeGuard
 
@@ -26,6 +27,8 @@ from typing import TypeGuard
 FENCE = "---"
 # a whole line that is a fence: the fence alone, trailing blanks and a crlf's carriage return allowed
 FENCE_LINE = re.compile(rf"{re.escape(FENCE)}[ \t]*\r?")
+# a new file's mode before the umask: what any editor's new file gets
+NEW_FILE_MODE = 0o666
 
 
 class Json:
@@ -232,7 +235,10 @@ def write_text(path: Path, content: str) -> None:
     over the target, so a reader sees either the whole previous file or the
     whole new one. a direct write truncates first, and a failure between the
     truncate and the last byte leaves a corpus that cannot be recovered - the
-    ledger's rewriting paths carry records whose sources have expired
+    ledger's rewriting paths carry records whose sources have expired. the
+    temporary file is made new under a name no one can guess (`mkstemp`, which
+    opens with `O_EXCL`), so a symlink planted beside the target is never
+    followed, and it takes the target's mode, or a new file's under the umask
 
     # Arguments
 
@@ -240,9 +246,18 @@ def write_text(path: Path, content: str) -> None:
     * `content` - the text to write
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    staged = path.with_name(f"{path.name}.tmp{os.getpid()}")
     try:
-        staged.write_text(content, encoding=ENCODING)
+        mode = path.stat().st_mode & 0o777
+    except FileNotFoundError:
+        umask = os.umask(0)
+        os.umask(umask)
+        mode = NEW_FILE_MODE & ~umask
+    handle, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    staged = Path(name)
+    try:
+        with os.fdopen(handle, "w", encoding=ENCODING) as out:
+            out.write(content)
+        staged.chmod(mode)
         staged.replace(path)
     finally:
         staged.unlink(missing_ok=True)
