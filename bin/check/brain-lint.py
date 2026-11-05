@@ -436,7 +436,7 @@ CHECKERS = (
     # that exists, so unlike ty's it cannot be re-resolved into a path that does not
     Checker(name="basedpyright", config="pyrightconfig.json", args=("--project", "."),
             total_re=r"(\d+) errors?,"),
-    # the doctests carried by the pure helpers (aav-style-items §12); the tests verify.toml names run under b-verify
+    # the doctests carried by the pure helpers (aav-style-items §12)
     Checker(name="doctest", config="(inline)", args=(), total_re=r"\*\*\* (\d+) failures",
             module="doctest", expands_dirs=True),
 )

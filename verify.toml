@@ -2,5 +2,6 @@
 # by the paths they cover. brain-verify.py reads it; `*` crosses directories
 [[check]]
 name = "open-items tests"
-when = ["agentic-files/skills/brain-open-items/*", "bin/brainlib/*", "bin/brain-find.py"]
+when = ["agentic-files/skills/brain-open-items/*", "bin/brainlib/*", "bin/brain-find.py", "bin/check/brain-lint.py",
+        "ruff.toml", "mypy.ini", "pyrightconfig.json", "ty.toml"]
 run = "python3 agentic-files/skills/brain-open-items/test_brain_open_items.py"
