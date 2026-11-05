@@ -21,8 +21,9 @@ what he didn't intend).
 ## sweep lens (the CLEANUP state, before the commit is drafted)
 the commit can only be "the fix and nothing else" if the residue is gone first (P56). sweep, then
 draft. what goes:
-- the open item that was answered: its decision lands in the docs it affects, then the file is
-  deleted, with the todo bullet that pointed at it and any reference to it (grep the ID and the path).
+- the open item that was answered: its decision lands in the docs it affects, then it is resolved
+  with the brain-open-items skill's `resolve`, never a bare delete, and the todo bullet that pointed
+  at it and any reference to it go (grep the ID and the path).
 - the executed plan, one-off scripts, commit scripts already run, the run's caches and scratchpads.
 - the worktree: bring its changes into the main tree uncommitted (`git diff <base>..<branch> | git
   apply`, or `git checkout <branch> -- <paths>`), then `git worktree remove` and `git branch -D` it.
