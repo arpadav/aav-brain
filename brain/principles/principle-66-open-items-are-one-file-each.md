@@ -44,10 +44,10 @@ Every file ends with:
 
 ## how to apply
 
-- Write, then stamp the sha256 footer with the brain-open-items skill (`stamp <file>`), and run the `watch` command it prints in the background, as the skill says. At plan or execute start, run its `status`: an `edited` item carries his answer, and a `new` `U-` item is one he made on the board. Both are input to the plan, and a `parked` one waits.
+- Stamp, watch, read and resolve items with the brain-open-items skill (`$AVB/agentic-files/skills/brain-open-items/SKILL.md`). Its loop says which items carry his input and how to wait on his answer.
 - Executing with items still open is his call, and he has made it ("execute the plan, keeping open items open, and designing/executing around them to be filled later. unless there is a huge blocker, then ask"). Build each item's recommended option behind one seam (a config value, an enum variant, one function) so his answer swaps that seam and nothing else. The item stays open and its file says what the build chose. Ask only when no recommended option can be built at all.
 - At plan time he can sanction assumptions outright ("make initial plan, make assumptions and open items in a folder"). The assumption is not asked first; it becomes an item with a recommended option and the plan is written around it. Questions about how the thing feels to use are still asked ([[principle-01-no-assumptions]]).
-- A resolved item is not archived. Fold the decision into the docs it affects, then `resolve` it, which deletes the file, and drop its index line ([[principle-56-close-out-housekeeping]]).
+- A resolved item is not archived. Fold the decision into the docs it affects, `resolve` it with the skill, and drop its index line ([[principle-56-close-out-housekeeping]]).
 - The register is [[principle-57-user-docs-are-an-icd]]. Options follow [[principle-65-numbered-recommendations-get-one-word-replies]].
 
 ## anti-pattern
