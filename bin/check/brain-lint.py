@@ -64,8 +64,9 @@ TOOL = Layout.command(Path(__file__))
 LAYOUT = Layout.discover()
 # what gets checked when no path is given on the command line
 # every tree of this repo's own python. eval/ is here because a tool that is not
-# linted is a tool held to a different bar than the one it measures
-DEFAULT_PATHS = ("bin", "eval")
+# linted is a tool held to a different bar than the one it measures, and
+# agentic-files/ because a skill's script is a brain tool like any in bin/
+DEFAULT_PATHS = ("bin", "eval", "agentic-files")
 # the PEP-723 inline metadata block, and the requirement strings inside its
 # `dependencies` list - a script declares here what it needs to import, and a
 # checker that never installs them reports every one of those imports unresolved
@@ -121,9 +122,11 @@ class Target:
         never from a relative entry in a config that a foreign script
         re-resolves against itself
 
-        a script under the brain's bin/ inserts bin/ itself, however deep it
-        sits (`bin/run/brain-walk.py` reaches brainlib that way), so bin/ is a
-        search root whenever a checked file lies under it
+        a script anywhere in the brain inserts bin/ itself, however deep it
+        sits (`bin/run/brain-walk.py`, `eval/brain-eval.py` and a skill's script
+        reach brainlib that way), so bin/ is a search root whenever a checked
+        file lies in the brain, and never for a file outside it, which a run
+        names by its absolute path
 
         a directory holding an `__init__.py` IS a package and is deliberately
         excluded: its modules are reached through their parent as `pkg.module`,
@@ -133,17 +136,21 @@ class Target:
 
         # Returns
 
-        one absolute directory per distinct parent, plus bin/ for a file under
-        it, sorted, packages excluded
+        one absolute directory per distinct parent, plus bin/ for a file in the
+        brain, sorted, packages excluded
 
         # Example
 
             >>> Target(paths=("bin/run/brain-walk.py",), root=Path("/r")).search_paths
             ('/r/bin', '/r/bin/run')
+            >>> Target(paths=("eval/brain-eval.py",), root=Path("/r")).search_paths
+            ('/r/bin', '/r/eval')
+            >>> Target(paths=("/elsewhere/x.py",), root=Path("/r")).search_paths
+            ('/elsewhere',)
         """
         brain_bin = Layout(self.root).bin
         parents = {path.parent for path in self.files}
-        parents |= {brain_bin} if any(path.is_relative_to(brain_bin) for path in self.files) else set()
+        parents |= {brain_bin} if any(path.is_relative_to(self.root) for path in self.files) else set()
         return tuple(sorted(str(parent) for parent in parents
                             if not (parent / "__init__.py").is_file()))
 
@@ -429,7 +436,7 @@ CHECKERS = (
     # that exists, so unlike ty's it cannot be re-resolved into a path that does not
     Checker(name="basedpyright", config="pyrightconfig.json", args=("--project", "."),
             total_re=r"(\d+) errors?,"),
-    # the repo's only tests: the doctests carried by the pure helpers (aav-style-items §12)
+    # the doctests carried by the pure helpers (aav-style-items §12)
     Checker(name="doctest", config="(inline)", args=(), total_re=r"\*\*\* (\d+) failures",
             module="doctest", expands_dirs=True),
 )

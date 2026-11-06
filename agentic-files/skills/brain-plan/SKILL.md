@@ -77,10 +77,11 @@ dialogue at the start, not a delivery.
 6. open decisions. anything ambiguous, as a question with options + a rec - and err toward MORE
    questions, stated verbosely, not fewer (P24, P01). a decision that outlives this session (he
    wants to think, or it waits on someone) becomes an open-item file instead, per P66:
-   `plans/open-items/<ID>-<slug>.md`, stamped with `b-open-items stamp`. at RECON, recall with
-   `-b plans` and run `b-open-items status`: an `edited` item carries his answer and is input to this plan. include the would-arpad fidelity questions for
-   the artifacts the plan introduces: "would arpad write this file / folder / function like this?"
-   (P29), each with the alternative and your lean, for him to settle.
+   `plans/open-items/<ID>-<slug>.md`, written, stamped and watched as the brain-open-items skill's
+   loop says. at RECON, recall with `-b plans` and read the items as that loop's first step says:
+   the ones carrying his input are input to this plan. include the would-arpad fidelity questions
+   for the artifacts the plan introduces: "would arpad write this file / folder / function like
+   this?" (P29), each with the alternative and your lean, for him to settle.
 
 ## the hard rule: never assume
 under any ambiguity in spec or detail, stop and ask before finalizing. 2-3 options + a rec, let him

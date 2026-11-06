@@ -244,8 +244,8 @@ class Layout:
 
         # Example
 
-            >>> Layout.command(Path("bin/run/brain-walk.py")), Layout.command(Path("bin/run/brain-open-items.py"))
-            ('b-walk', 'b-open-items')
+            >>> Layout.command(Path("bin/run/brain-walk.py")), Layout.command(Path("bin/check/brain-lint.py"))
+            ('b-walk', 'b-lint')
         """
         return f"b-{script.stem.removeprefix('brain-')}"
 
