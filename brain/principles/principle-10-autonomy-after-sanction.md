@@ -5,8 +5,8 @@ tier: conditional
 rule: Once a plan is blessed, run phases back-to-back with no needless pauses or summaries. Report only at gates.
 interest: [intent-efficiency, intent-trust]
 confidence: very-high
-evidence_count: 17
-tells: ["continue i never said to stop", "phases should run back to back", "without a summary", "dont pause again", "continue where left off", "still stuff to fix? if so, why arent you doing brain walk to fix until done", "if its fixed, simply say its done", "why is this taking a long time? like everything is timing out. just move on and fix later", "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context", "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete", "you should not have stopped, since under brain-execute skill youd still be walking the brain and you havent reached a blocker or your DONE state yet", "can you please not be as hardstuck as previous agents about \"two users one bank account\" or whatever? its trying to think of every edge case possible but i just want this damn thing finished already", "the plan could be out of date, so investigate", "walk the brain until DONE, dont be blocked. this isnt difficult", "you need to finish this by morning"]
+evidence_count: 18
+tells: ["continue i never said to stop", "phases should run back to back", "without a summary", "dont pause again", "continue where left off", "still stuff to fix? if so, why arent you doing brain walk to fix until done", "if its fixed, simply say its done", "why is this taking a long time? like everything is timing out. just move on and fix later", "talk to the amd/intel scout. i think its hanging and hallucinating, do NOT kill it since it has valuable context", "dispatch some additional scouts for this task? fill the gaps. i dont want this data to be incomplete", "you should not have stopped, since under brain-execute skill youd still be walking the brain and you havent reached a blocker or your DONE state yet", "can you please not be as hardstuck as previous agents about \"two users one bank account\" or whatever? its trying to think of every edge case possible but i just want this damn thing finished already", "the plan could be out of date, so investigate", "walk the brain until DONE, dont be blocked. this isnt difficult", "you need to finish this by morning", "dude can you stop stopping, and just continue? /brain-execute says if you have questions, put them into open items, and if you truly have a blocker, only stop then, but you already have the plan", "im logged in, and yes the mlflow tracking token is there"]
 tension: [principle-24-the-ask-is-the-scope]
 ---
 
@@ -95,6 +95,16 @@ formatted, style-checked and reviewer-checked, the recap has zero information he
 the artifact. Walk to the flow's terminal, then say the one line. See [[voice/VOICE]]. What that
 line actually contains, beyond just its length, is
 [[principle-43-report-state-not-changelog]].
+
+**A written plan under /brain-execute IS the sanction (the 2026-11-05 heat).** The run asked questions,
+wrote the plan, then STOPPED to ask "say go" and to ask him to log in. He: *"dude can you stop
+stopping, and just continue? /brain-execute says if you have questions, put them into open items,
+and if you truly have a blocker, only stop then, but you already have the plan. so just continue
+until the DONE state. im logged in, and yes the mlflow tracking token is there."* Three rules: (1)
+invoking brain-execute on a plan with its questions answered is the go - never ask for one; (2) a
+question that does not block the next step becomes an open item in the plan and the run continues;
+only a true blocker stops it; (3) credentials, logins and tokens are CHECKED by the run (env, config,
+a cheap auth call) before he is asked to log in - asking for something checkable is a pause too.
 
 **Anti-pattern.** "Phase 1 done, here's a summary, shall I continue?" after the work was
 already sanctioned. Stopping between phases for approval he already gave. Ending a gate report

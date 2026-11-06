@@ -102,5 +102,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 
 ## how retrieval works
 see `bin/brainlib/recall.py`
-- [[principles/principle-70-config-is-a-file-not-a-build]] : a tunable value is a file shipped inside the artifact, read at run time - changing it is an edit or a FROM-patch, never a rebuild, and nothing is mounted
+- [[principles/principle-70-config-is-a-file-not-a-build]] : editable values live in ONE always-mounted runtime_config.yaml (edit+restart, never a rebuild); fixed model/build facts are baked with a don't-edit manifest/ copy
 - [[principles/principle-71-check-every-requirement-then-list-all-missing]] : a tool checks every prerequisite first and stops once with the whole list of what is missing and how to get each - never one per run
+- [[principles/principle-72-capabilities-are-declared-per-unit-and-refused-up-front]] : per-unit capability flags, a build-script flag, refuse at the start saying how to lift it
+- [[principles/principle-73-pr-writeup-sorted-by-why]] : plans/PR.md sorts a grown diff by core / needed / review-added

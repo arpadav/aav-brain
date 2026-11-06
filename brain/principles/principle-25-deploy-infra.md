@@ -5,8 +5,8 @@ tier: narrow
 rule: deploy the simplest way onto my own infra. worlds-simplest docker, expose on 0.0.0.0, LOCAL on my truenas and reached over my own network, axum for tiny services. no heavy orchestration, and no cloudflared tunnel.
 interest: [intent-craft]
 confidence: high
-evidence_count: 120
-tells: ["worlds simplest docker image", "0.0.0.0", "i host local", "truenas", "tailnet", "mount a volume", "expose it to 0.0.0.0", "axum", "docker"]
+evidence_count: 121
+tells: ["worlds simplest docker image", "0.0.0.0", "i host local", "truenas", "tailnet", "mount a volume", "expose it to 0.0.0.0", "axum", "docker", "why tf is it 20 gb when the other container, much more advanced, is only 1.3? like this should just be runtime man"]
 ---
 
 # P25 - deploy to my own infra, simply
@@ -34,6 +34,12 @@ minimal code ([[principle-14-minimal-surface]]).
   a tunnel that used to carry the identity check takes the identity check with it when it goes. ask
   which door, dont assume the lan is the answer.
 - a tiny service -> axum, custom cli, no framework ceremony.
+- a delivered container is RUNTIME ONLY: build in the full toolchain image, copy just what ldd needs
+  onto a plain base (the repo's serving.Dockerfile pattern), never ship the devel image. compare its
+  size to the sibling image before reporting; a multiple of the sibling is a defect raised unprompted.
+  heat 2026-11-05: *"why tf is it 20 gb when the other container, much more advanced, is only 1.3?
+  like this should just be runtime man whats going on?"*. it is also no-IP: the recipient runs the
+  baked container, not source plus a model path.
 - dont add logging/observability/infra i didnt ask for; add the one thing that lets me see hits if i
   ask ("more logging similar to python -m http.server so i can see hits").
 

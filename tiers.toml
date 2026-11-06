@@ -129,3 +129,5 @@ measured_on = "2026-09-05"
 "principle-69-reap-what-you-spawn" = { tier = "conditional", measured = false }
 "principle-70-config-is-a-file-not-a-build" = { tier = "conditional", measured = false }
 "principle-71-check-every-requirement-then-list-all-missing" = { tier = "conditional", measured = false }
+"principle-72-capabilities-are-declared-per-unit-and-refused-up-front" = { tier = "conditional", measured = false }
+"principle-73-pr-writeup-sorted-by-why" = { tier = "conditional", measured = false }
