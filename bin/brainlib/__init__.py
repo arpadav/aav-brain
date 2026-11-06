@@ -14,9 +14,13 @@ from brainlib.flow import Entry, Flow
 from brainlib.graph import Graph
 from brainlib.model import Artifact, Edge, Node, State, Transition
 from brainlib.paths import (
+    COMMAND_PREFIX,
+    ISOLATED,
     DataLayout,
+    EditCopyMissing,
     EvidenceLayout,
     Layout,
+    LocalLayout,
     XdgLayout,
     find_brain,
     find_repo,
@@ -90,16 +94,16 @@ from brainlib.vocab import (
 # --------------------------------------------------
 # the public surface, named once so a reader sees it without chasing modules
 __all__ = [
-    "BEST_SHARE", "ENCODING", "EXPLAIN_FLOOR", "GIT_TIMEOUT", "INLINE_BYTES", "INLINE_PRINCIPLES",
-    "LONG_GIT_TIMEOUT", "MAX_N", "MAX_REFERENCES", "NO_REPLACE", "PLANS", "PYTHON_VERSION", "REFERENCE_FLOOR",
-    "UNTRACKED",
+    "BEST_SHARE", "COMMAND_PREFIX", "ENCODING", "EXPLAIN_FLOOR", "GIT_TIMEOUT", "INLINE_BYTES",
+    "INLINE_PRINCIPLES", "ISOLATED", "LONG_GIT_TIMEOUT", "MAX_N", "MAX_REFERENCES", "NO_REPLACE", "PLANS",
+    "PYTHON_VERSION", "REFERENCE_FLOOR", "UNTRACKED",
     "Args", "Artifact", "Change", "Claude", "Confidence", "DataLayout", "Decision", "Denied", "Driven", "Edge",
-    "Ending", "Entry", "Env", "Event", "EvidenceLayout", "Excerpt", "Exit", "Flag", "Flow", "Frontmatter", "GitRun",
-    "Graph", "Harness", "Harnesses", "Interrupted", "Json", "Kind", "Layout", "Ledger", "Mark", "MergeCount",
-    "NoVerdict", "Node", "Origin", "Outgoing", "Patch", "PrivateScan", "PrunePolicy", "Recall", "RecallError",
-    "RecallIndex", "Record", "Rel", "Replied", "RepoError", "RepoTree", "ScanScope", "Scores", "SessionLog",
-    "SessionRecord", "ShapePolicy", "Spoke", "State", "Tier", "Tool", "Transcript", "TranscriptError", "Transition",
-    "UsageError", "XdgLayout",
+    "EditCopyMissing", "Ending", "Entry", "Env", "Event", "EvidenceLayout", "Excerpt", "Exit", "Flag", "Flow",
+    "Frontmatter", "GitRun", "Graph", "Harness", "Harnesses", "Interrupted", "Json", "Kind", "Layout", "Ledger",
+    "LocalLayout", "Mark", "MergeCount", "NoVerdict", "Node", "Origin", "Outgoing", "Patch", "PrivateScan",
+    "PrunePolicy", "Recall", "RecallError", "RecallIndex", "Record", "Rel", "Replied", "RepoError", "RepoTree",
+    "ScanScope", "Scores", "SessionLog", "SessionRecord", "ShapePolicy", "Spoke", "State", "Tier", "Tool",
+    "Transcript", "TranscriptError", "Transition", "UsageError", "XdgLayout",
     "clip", "find_brain", "find_repo", "find_repo_root",
     "git", "iso_now", "kind_rank", "parse_frontmatter", "parse_iso", "plain_name",
     "read_text", "split_frontmatter", "write_text",

@@ -19,9 +19,9 @@ before then is gone from every source forever. run this first, always:
 ```bash
 b-extract -a   # cold-store raw transcripts, then merge + re-stamp
 ```
-`-a` gzips any unseen transcript into `$XDG_DATA_HOME/aav-brain-archive`
-(deliberately OUTSIDE the logs submodule - raw transcripts are bulk, not
-versioned knowledge) so a better classifier can always be re-run over old
+`-a` gzips any unseen transcript into the edit copy's `brain/logs/local/archive`
+(git-ignored, never committed - raw transcripts are bulk, not versioned
+knowledge) so a better classifier can always be re-run over old
 material. the extract itself is a MERGE keyed on a content hash: it only ever
 adds, it re-stamps `corpus-stats.json` with a fresh `generated_at`, and running
 it twice is a no-op. it is safe to run unconditionally.

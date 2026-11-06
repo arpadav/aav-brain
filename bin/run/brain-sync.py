@@ -3,13 +3,16 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""b-sync: push the brain's repos to main, innermost first.
+"""b-sync: push the edit copy's repos to main, innermost first, then bring them into the install copy.
 
-the repos are discovered, never hardcoded (P32): the brain's own checked-out
-submodules (e.g. logs), the brain store, then the superproject that holds it
-(the home-manager repo). inner goes first so the outer one commits the inner
-one's new pointer. a submodule this clone never checked out is not synced -
-git run there answers for the store - and is named in a warning instead.
+the repos are those of the edit copy's brain (`XdgLayout.edit_brain()`),
+whichever copy this script runs from, discovered, never hardcoded (P32): its
+checked-out submodules (e.g. logs), the brain store, then the superproject
+that holds it (the home repo). inner goes first so the outer one commits the
+inner one's new pointer. a submodule this clone never checked out is not
+synced - git run there answers for the store - and is named in a warning
+instead. once every repo is pushed, `sy` pulls origin into the install copy
+and switches it.
 
 b-private's scan guards both ends (P61), run in this process with the
 values probed once per run, at the first scan: before anything in a repo is
@@ -26,13 +29,21 @@ nothing there is committed even in a repo whose .gitignore lacks the rule:
 
     1. check origin fetches from one url and pushes to that url, fetch
        origin's main into a ref only b-sync writes, and resolve it to BASE
-    2. on main, nothing staged or to stage, at BASE and no `brain-sync`
-       branch: nothing to carry, so nothing is scanned
-    3. scan the work tree, as `b-private REPO` does
+    2. on main, nothing staged or to stage, at BASE, no `brain-sync` branch
+       and no learner worktree: nothing to carry, so nothing is scanned
+    3. every learner worktree - one other than the main worktree, checked
+       out on a `learn/*` branch (brain-learner) - must be unlocked, since a
+       learner locks its worktree while it runs, and hold nothing
+       uncommitted; one whose directory was deleted holds nothing, and its
+       branch is folded all the same; then scan the work tree, as
+       `b-private REPO` does
     4. a merge resolved on `brain-sync`: stage everything, as step 3 scanned
        it, and commit
     5. cut `brain-sync` from HEAD - main, a detached submodule checkout,
-       anything - and commit everything on it
+       anything - and commit everything on it; then merge each learner's
+       branch into it, remove its worktree - or prune the record of one
+       whose directory was deleted - and delete the branch, so main holds
+       the learner's commits at step 9
     6. merge BASE, then local main when there is one, into it, and resolve
        its tip to TIP
     7. scan the commits TIP reaches and BASE does not
@@ -46,13 +57,16 @@ every commit and merge commit is made as arpadav, message `brain-sync`. main
 moves only at step 9, once origin accepted TIP, and no `brain-sync` branch is
 ever made on origin. a repo that cannot go on is a stop, listed below; once
 its cause is dealt with, running b-sync again resumes. apart from a stop,
-a wrong command line exits 2, and a crash, or no brain found, exits 1.
+a wrong command line exits 2, and a crash, or no edit copy, exits 1.
+
+after the last repo, b-sync prints `Running: sy` and runs it; sy missing or
+failing is the `apply` stop, every push already made.
 
 the warnings - no private.toml, a submodule not checked out - are the first
 lines printed and the last, after a stop too; the exit is unchanged by them.
 
     b-sync     # sync all
-    b-sync -c  # print each repo's state, change nothing
+    b-sync -c  # print each repo's state and learner worktrees, change nothing
 
 Author: aav
 """
@@ -82,13 +96,14 @@ from brainlib import (
     ScanScope,
     Tool,
     XdgLayout,
-    find_brain,
 )
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import shlex
+import shutil
+import subprocess
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -118,6 +133,8 @@ MAIN = "main"
 MAIN_REF = f"refs/heads/{MAIN}"
 # local only: cut at step 5, deleted at step 9 once local main holds what origin accepted
 SYNC_BRANCH = "brain-sync"
+# the branches a learner's worktree is cut on (brain-learner), each merged into SYNC_BRANCH and deleted at step 5
+LEARNER_PREFIX = "refs/heads/learn/"
 # rounds of merge-and-push before a repo whose origin keeps moving is given up on
 PUSH_ATTEMPTS = 3
 # where each fetch force-writes origin's main, resolved to BASE once per fetch: no other fetch
@@ -129,6 +146,8 @@ FETCH = ("fetch", "--no-tags", "--no-recurse-submodules", "--no-write-fetch-head
 PUSH = ("push", "--porcelain", "--no-follow-tags", "--no-recurse-submodules", REMOTE)
 # the seconds a fetch or push may run
 NETWORK_TIMEOUT = 300
+# the home repo's command, on PATH, that pulls origin into the install copy and switches it
+APPLY_COMMAND = "sy"
 
 
 class Stop(StrEnum):
@@ -136,6 +155,9 @@ class Stop(StrEnum):
 
     REMOTE = "origin fetches from more than one url, or pushes somewhere other than the one url it fetches from"
     FETCH = f"origin's {MAIN_REF} could not be fetched into {BASE_REF}, or {BASE_REF} names no commit"
+    LEARNER = (f"a learner worktree is locked, its learner still running: run {TOOL} again after it finishes; "
+               "or, if it died, `git -C <brain> worktree unlock <path>`; or it holds uncommitted changes: "
+               "commit them on its learn/* branch, or discard them by hand")
     STAGED = "the scan of the work tree before its commit did not pass, or could not run"
     MERGING = "a merge is in progress on a branch other than brain-sync"
     CONFLICT = "a merge stopped on conflicting files; it is left in progress on brain-sync to resolve"
@@ -146,6 +168,8 @@ class Stop(StrEnum):
     PUSH = ("the push failed for a reason other than origin moving, or ran past its timeout "
             f"(origin may then hold the tip; running {TOOL} again resumes)")
     FOLLOW = "origin holds the tip, but local main would not follow it or brain-sync would not delete"
+    APPLY = (f"every repo is pushed, but {APPLY_COMMAND} is not on PATH or failed, so the install copy lacks "
+             f"the push: deal with the cause and run {APPLY_COMMAND}")
 
     @property
     def exit(self) -> Exit:
@@ -167,7 +191,7 @@ class Stop(StrEnum):
 
         # Example
 
-            >>> print("\n".join(Stop.legend().splitlines()[3:5]))
+            >>> print("\n".join(Stop.legend().splitlines()[4:6]))
               merging (exit 5): a merge is in progress on a branch other than brain-sync
               conflict (exit 3): a merge stopped on conflicting files; it is left in progress on brain-sync to resolve
         """
@@ -411,7 +435,7 @@ class Repo:
 
         # Arguments
 
-        * `ref` - BASE's id, or MAIN_REF
+        * `ref` - BASE's id, MAIN_REF, or a learner's branch by its full ref
 
         # Raises
 
@@ -424,6 +448,156 @@ class Repo:
         if merged.ending is Ending.FAILED and self.merging() and (unmerged := self.conflicts()):
             raise SyncError(self.path, Stop.CONFLICT, f"unmerged: {', '.join(unmerged)}")
         raise SyncError.of(self.path, Stop.GIT, merged)
+
+    def learners(self) -> list["Learner"]:
+        """step 3: every linked worktree of this repo checked out on a learner's branch, under LEARNER_PREFIX.
+
+        git lists the main worktree first, and it is never a learner, even
+        checked out on a `learn/*` branch: folding it would remove the repo
+        being synced
+
+        # Returns
+
+        one Learner per such worktree, in git's order, each in the state git
+        reports it in; none for a repo no learner worked in
+
+        # Raises
+
+        SyncError with GIT when git cannot list the worktrees
+
+        # Example
+
+            >>> import shutil, tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     repo = Repo(Path(tmp, "brain").resolve())
+            ...     repo.path.mkdir()
+            ...     repo.write(Stop.GIT, "init", "-q", "-b", "learn/main")
+            ...     repo.write(Stop.GIT, "commit", "-q", "--allow-empty", "-m", MESSAGE)
+            ...     for name in ("learn/live", "learn/running", "learn/gone", "other"):
+            ...         repo.write(Stop.GIT, "worktree", "add", "-q", "-b", name, str(Path(tmp, name)))
+            ...     repo.write(Stop.GIT, "worktree", "lock", "--reason", "running", str(Path(tmp, "learn/running")))
+            ...     shutil.rmtree(Path(tmp, "learn/gone"))
+            ...     [(learner.ref.removeprefix(LEARNER_PREFIX), learner.state.value) for learner in repo.learners()]
+            [('gone', 'gone'), ('live', 'live'), ('running', 'running')]
+        """
+        # `-z`: each field ends in a NUL and each worktree in one more, so a path holding a newline comes back whole
+        _main, *linked = self.read("worktree", "list", "--porcelain", "-z").split("\0\0")
+        listed = ({key: value for key, _, value in (field.partition(" ") for field in record.split("\0"))}
+                  for record in linked)
+        return [Learner(Repo(Path(fields["worktree"])), ref, LearnerState.of(fields)) for fields in listed
+                if (ref := fields.get("branch", "")).startswith(LEARNER_PREFIX)]
+
+    def admit(self, learners: Iterable["Learner"]) -> None:
+        """step 3: every learner may be folded - none still running, none holding uncommitted work.
+
+        # Arguments
+
+        * `learners` - the worktrees `learners` listed
+
+        # Raises
+
+        SyncError with LEARNER naming each learner that may not be folded yet;
+        GIT when git cannot read a live worktree's status
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     repo = Repo(Path(tmp, "brain").resolve())
+            ...     repo.path.mkdir()
+            ...     repo.write(Stop.GIT, "init", "-q", "-b", MAIN)
+            ...     repo.write(Stop.GIT, "commit", "-q", "--allow-empty", "-m", MESSAGE)
+            ...     tree = Path(tmp, "learn")
+            ...     repo.write(Stop.GIT, "worktree", "add", "-q", "-b", "learn/s", str(tree))
+            ...     repo.write(Stop.GIT, "worktree", "lock", "--reason", "running", str(tree))
+            ...     try:
+            ...         repo.admit(repo.learners())
+            ...     except SyncError as stopped:
+            ...         print(stopped.stop.name, str(tree) in str(stopped))
+            ...     repo.write(Stop.GIT, "worktree", "unlock", str(tree))
+            ...     repo.admit(repo.learners())
+            LEARNER True
+        """
+        if held := [why for learner in learners if (why := learner.hold())]:
+            raise SyncError(self.path, Stop.LEARNER, "; ".join(held))
+
+    def fold(self, learner: "Learner") -> None:
+        """step 5: merge a learner's branch into HEAD, then remove its worktree and delete the branch.
+
+        its state is read again first and put through `admit` once more: a
+        learner of the same session may have locked the worktree again after
+        the run's `admit`. a learner whose directory was deleted has nothing
+        to remove: the worktree records git keeps for deleted directories are
+        pruned instead, which frees its branch to delete
+
+        # Arguments
+
+        * `learner` - a worktree `learners` listed, `admit` let through
+
+        # Raises
+
+        SyncError: LEARNER when the worktree is locked or holds uncommitted
+        work again; CONFLICT when the merge stopped on unmerged files, left in
+        progress; GIT when the merge, the removal or the deletion fails
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     repo = Repo(Path(tmp, "brain").resolve())
+            ...     repo.path.mkdir()
+            ...     repo.write(Stop.GIT, "init", "-q", "-b", MAIN)
+            ...     repo.write(Stop.GIT, "commit", "-q", "--allow-empty", "-m", MESSAGE)
+            ...     repo.write(Stop.GIT, "worktree", "add", "-q", "-b", "learn/s", str(Path(tmp, "learn")))
+            ...     [learner] = repo.learners()
+            ...     _ = (learner.tree.path / "P99.md").write_text("learned")
+            ...     idle = learner.idle()
+            ...     learner.tree.write(Stop.GIT, "add", "P99.md")
+            ...     learner.tree.write(Stop.GIT, "commit", "-q", "-m", MESSAGE)
+            ...     repo.write(Stop.GIT, "switch", "-q", "-c", SYNC_BRANCH)
+            ...     repo.write(Stop.GIT, "worktree", "lock", "--reason", "running", str(learner.tree.path))
+            ...     try:
+            ...         repo.fold(learner)
+            ...     except SyncError as stopped:
+            ...         print(stopped.stop.name)
+            ...     repo.write(Stop.GIT, "worktree", "unlock", str(learner.tree.path))
+            ...     repo.fold(learner)
+            ...     idle, (repo.path / "P99.md").read_text(), repo.learners(), repo.has_branch("learn/s")
+            LEARNER
+            (False, 'learned', [], False)
+
+        a learner whose directory was deleted after its commit:
+
+            >>> import shutil, tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     repo = Repo(Path(tmp, "brain").resolve())
+            ...     repo.path.mkdir()
+            ...     repo.write(Stop.GIT, "init", "-q", "-b", MAIN)
+            ...     repo.write(Stop.GIT, "commit", "-q", "--allow-empty", "-m", MESSAGE)
+            ...     tree = Repo(Path(tmp, "learn"))
+            ...     repo.write(Stop.GIT, "worktree", "add", "-q", "-b", "learn/s", str(tree.path))
+            ...     _ = (tree.path / "P99.md").write_text("learned")
+            ...     tree.write(Stop.GIT, "add", "P99.md")
+            ...     tree.write(Stop.GIT, "commit", "-q", "-m", MESSAGE)
+            ...     shutil.rmtree(tree.path)
+            ...     repo.write(Stop.GIT, "switch", "-q", "-c", SYNC_BRANCH)
+            ...     [learner] = repo.learners()
+            ...     repo.fold(learner)
+            ...     (repo.path / "P99.md").read_text(), repo.learners(), repo.has_branch("learn/s")
+            ('learned', [], False)
+        """
+        # --------------------------------------------------
+        # its state re-read: a learner may have locked it again since `admit`;
+        # one git no longer lists keeps the state it was listed in
+        # --------------------------------------------------
+        learner = next((now for now in self.learners() if now.ref == learner.ref), learner)
+        self.admit([learner])
+        self.merge(learner.ref)
+        if learner.state is LearnerState.GONE:
+            self.write(Stop.GIT, "worktree", "prune")
+        else:
+            self.write(Stop.GIT, "worktree", "remove", str(learner.tree.path))
+        self.write(Stop.GIT, "branch", "-d", learner.ref.removeprefix("refs/heads/"))
 
     def tip(self) -> str:
         """HEAD, resolved once to a commit id: step 2 compares it to BASE, step 6 takes it as TIP.
@@ -491,17 +665,24 @@ class Repo:
         # --------------------------------------------------
         self.verify_remote()
         base = self.fetch()
-        if self.even(base):
+        learners = self.learners()
+        if not learners and self.even(base):
             return
+        # --------------------------------------------------
+        # no learner still running, none with work left behind uncommitted
+        # --------------------------------------------------
+        self.admit(learners)
         # --------------------------------------------------
         # nothing private goes into a commit, then a merge he resolved
         # --------------------------------------------------
         guard.scan(self.path, Stop.STAGED)
         self.resume()
         # --------------------------------------------------
-        # the work, committed on its own branch
+        # the work, committed on its own branch, then every learner's merged into it
         # --------------------------------------------------
         self.cut()
+        for learner in learners:
+            self.fold(learner)
         for attempt in range(1, PUSH_ATTEMPTS + 1):
             # --------------------------------------------------
             # BASE, then local main, into the branch; its tip, once
@@ -530,6 +711,84 @@ class Repo:
                     base = self.fetch()
                 case Ending.REJECTED:
                     raise SyncError.of(self.path, Stop.MOVED, pushed)
+
+
+class LearnerState(StrEnum):
+    """where a learner's worktree stands, as `git worktree list` reports it."""
+
+    # its directory is there and unlocked: folded once nothing in it is uncommitted
+    LIVE = "live"
+    # locked: brain-learner holds the lock from `worktree add` to its commit, so it is never folded
+    RUNNING = "running"
+    # prunable: its directory was deleted; its branch is folded and the stale record pruned
+    GONE = "gone"
+
+    @classmethod
+    def of(cls, fields: dict[str, str]) -> "LearnerState":
+        """the state one record of `git worktree list --porcelain` reports.
+
+        # Arguments
+
+        * `fields` - the record's fields, each by its label; `locked` and
+          `prunable` are present, reason or none, only when they hold
+
+        # Returns
+
+        RUNNING when locked, git never reporting a locked worktree prunable;
+        else GONE when prunable; else LIVE
+
+        # Example
+
+            >>> [LearnerState.of(fields).value for fields in ({"locked": ""}, {"prunable": "gone"}, {})]
+            ['running', 'gone', 'live']
+        """
+        if "locked" in fields:
+            return cls.RUNNING
+        return cls.GONE if "prunable" in fields else cls.LIVE
+
+
+@dataclass(frozen=True)
+class Learner:
+    """one learner's worktree of a repo, checked out on its own branch under LEARNER_PREFIX (brain-learner)."""
+
+    tree: Repo
+    # the branch, by its full ref, which no tag can shadow
+    ref: str
+    # where the worktree stands, which decides whether and how it is folded
+    state: LearnerState
+
+    def idle(self) -> bool:
+        """whether the worktree holds nothing uncommitted, untracked files included; folding never discards.
+
+        # Returns
+
+        True when `git status` there lists nothing
+
+        # Raises
+
+        SyncError with GIT when git cannot read the worktree's status
+        """
+        return not self.tree.read("status", "--porcelain")
+
+    def hold(self) -> str:
+        """why this learner may not be folded yet.
+
+        # Returns
+
+        the reason, naming the worktree, for one still running or holding
+        uncommitted work; "" for one that may be folded
+
+        # Raises
+
+        SyncError with GIT when git cannot read a live worktree's status
+        """
+        match self.state:
+            case LearnerState.RUNNING:
+                return f"{self.tree.path} is locked, its learner still running"
+            case LearnerState.LIVE if not self.idle():
+                return f"uncommitted in {self.tree.path}"
+            case _:
+                return ""
 
 
 @dataclass(frozen=True)
@@ -594,7 +853,41 @@ class Sync:
     unopened: tuple[Path, ...]
 
     @classmethod
-    def discover(cls, brain: Path) -> "Sync":
+    def discover(cls) -> "Sync":
+        """the repos around the edit copy's brain, whichever copy this script runs from.
+
+        # Returns
+
+        `Sync.of` the brain `XdgLayout.edit_brain()` names
+
+        # Raises
+
+        EditCopyMissing, a NoVerdict, when this machine has no edit copy;
+        NoVerdict when repos.toml cannot be read or is not of its shape;
+        SyncError with GIT when git cannot list its repos
+
+        # Example
+
+            >>> import os, tempfile
+            >>> from unittest import mock
+            >>> from brainlib import EditCopyMissing, Env
+            >>> with (tempfile.TemporaryDirectory() as tmp,
+            ...       mock.patch.dict(os.environ, {"HOME": tmp, Env.XDG_CONFIG_HOME: ""})):
+            ...     try:
+            ...         _ = Sync.discover()
+            ...     except EditCopyMissing as missing:
+            ...         print(missing)
+            ...     brain = Repo(Path(tmp, "repos", "personal", "home", "brain").resolve())
+            ...     (brain.path / "bin").mkdir(parents=True)
+            ...     brain.write(Stop.GIT, "init", "-q")
+            ...     Sync.discover().repos == (brain,)
+            no edit copy - run /home-setup
+            True
+        """
+        return cls.of(XdgLayout.edit_brain())
+
+    @classmethod
+    def of(cls, brain: Path) -> "Sync":
         """the repos around one brain store.
 
         the submodules are read off the store's index, so a path holding a
@@ -624,7 +917,7 @@ class Sync:
             ...         (store.path / name).mkdir()
             ...         store.write(Stop.GIT, "update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},{name}")
             ...     Repo(store.path / "my sub").write(Stop.GIT, "init", "-q")
-            ...     sync = Sync.discover(store.path)
+            ...     sync = Sync.of(store.path)
             ...     synced = [repo.path.relative_to(store.path).as_posix() for repo in sync.repos]
             ...     synced, [path.name for path in sync.unopened]
             (['my sub', '.'], ['logs'])
@@ -652,24 +945,52 @@ class Sync:
         SyncError with GIT when git cannot read a repo's status
         """
         for repo in self.repos:
-            print(f"{repo.path}\n{repo.read('status', '-sb')}\n")
+            learned = "".join(f"\nlearner {learner.ref} at {learner.tree.path}: {learner.state}"
+                              for learner in repo.learners())
+            print(f"{repo.path}\n{repo.read('status', '-sb')}{learned}\n")
         return Exit.OK
 
     def push(self) -> Exit:
-        """sync every repo innermost first; the first stop ends the run.
+        """sync every repo innermost first, then apply them to the install copy; the first stop ends the run.
 
         # Returns
 
-        `Exit.OK` when every repo synced
+        `Exit.OK` when every repo synced and `apply` ran
 
         # Raises
 
-        SyncError at the first repo that stops
+        SyncError at the first repo that stops, or with APPLY
         """
         guard = Guard()
         for repo in self.repos:
             repo.sync(guard)
             print(f"{TOOL}: {repo.path} synced to {REMOTE}/{MAIN}", flush=True)
+        return self.apply()
+
+    @staticmethod
+    def apply() -> Exit:
+        """run APPLY_COMMAND, which pulls origin into the install copy and switches it, echoing it first (P59).
+
+        # Returns
+
+        `Exit.OK` when it exited 0
+
+        # Raises
+
+        SyncError with APPLY, against the install copy, when it is not on
+        PATH, cannot start or exits non-zero
+        """
+        install = XdgLayout.install_home()
+        if (found := shutil.which(APPLY_COMMAND)) is None:
+            raise SyncError(install, Stop.APPLY, f"{APPLY_COMMAND} is not on PATH")
+        print(f"Running: {APPLY_COMMAND}", flush=True)
+        # the home repo's own command, found on PATH, no arguments, no shell (S603)
+        try:
+            code = subprocess.run([found], check=False).returncode  # noqa: S603
+        except OSError as broken:
+            raise SyncError(install, Stop.APPLY, f"{APPLY_COMMAND} cannot start: {broken}") from broken
+        if code:
+            raise SyncError(install, Stop.APPLY, f"{APPLY_COMMAND} exited {code}")
         return Exit.OK
 
     def warnings(self) -> list[str]:
@@ -716,14 +1037,19 @@ def main(args: Args) -> Exit:
 
     # Returns
 
-    `Exit.OK` when every repo reached origin main (or `--check` ran), else the
-    stop's exit: `Exit.CONFLICT` or `Exit.BLOCKED`
+    `Exit.OK` when every repo reached origin main and the install copy took
+    it (or `--check` ran), else the stop's exit: `Exit.CONFLICT` or `Exit.BLOCKED`
+
+    # Raises
+
+    NoVerdict - EditCopyMissing among them - when this machine has no edit
+    copy or repos.toml cannot be read, which `Tool.run` turns into exit 1
     """
     PrivateScan.name_safe_stdout()
     warned = Sync.undeclared()
     try:
         Sync.warn(warned)
-        sync = Sync.discover(find_brain())
+        sync = Sync.discover()
         Sync.warn(unopened := sync.warnings())
         warned += unopened
         return sync.check() if args.has(Flag.CHECK) else sync.push()

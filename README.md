@@ -45,8 +45,9 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
                        version change how the work comes out, measured paired (on vs off)
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
-                       lives in a separate private repo, never here; the scripts write to it via
-                       the XDG symlink ~/.local/share/aav-brain -> logs/ (brainlib.XdgLayout.data).
+                       lives in a separate private repo, never here; the scripts write to the edit
+                       copy's logs/ (brainlib.DataLayout), per-machine files in its git-ignored
+                       logs/local/ (brainlib.LocalLayout).
   docs/                INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
   schema/              the principle / flow / trace schemas
 ```

@@ -44,8 +44,10 @@ TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with `b-ext
   <data>/evidence/corpus-stats.json   tone %, class counts, sequencing histogram, opening verbs
   <data>/evidence/*.jsonl         back-compat views (rejections, interruptions, approvals, directives, denials)
 
-  (data = `XdgLayout.data` = $XDG_DATA_HOME/aav-brain, i.e. ~/.local/share/aav-brain -> the logs/ submodule. the raw
-   trace + prompts live in a SEPARATE private repo (aav-brain-logs), never in this repo's history.)
+  (data = `DataLayout` = the edit copy's brain/logs/ submodule, found by `XdgLayout.edit_brain()`. the raw
+   trace + prompts live in a SEPARATE private repo (aav-brain-logs), never in this repo's history. per-machine
+   files - raw transcripts (archive/), gate state (gate/), each tool's session logs (sessions/<tool>/) - sit
+   in its self-ignoring local/ (`LocalLayout`).)
 ```
 
 the GRAPH and the FLOW are two distinct deterministic artifacts, never conflated (P30). the graph is
@@ -86,12 +88,14 @@ prints the legend of every command's flags, and `b-walk -l` reprints it. `b-find
 the ENTRIES (call these) are the `[[entries]]` rows of flow.toml - each names its skill, the node it
 enters the unified flow at, and the mode it walks in; docs/DEV_FLOWCHART.md lists them.
 
-three more skills sit OUTSIDE the flow: `brain-measure`, user-callable, runs the 25 eval tasks with the
+four more skills sit OUTSIDE the flow: `brain-measure`, user-callable, runs the 25 eval tasks with the
 brain's principles and without, and hands him one file to grade (`eval/brain-eval.py`); `brain-open-items`
 writes, stamps and watches the P66 open items, its script beside its SKILL.md, keeping each in step
-with its todo when `life` is on PATH; `brain-sync`, user-callable, pushes the brain's submodules,
-the brain and the home-manager repo that holds it to GitHub main with `b-sync`, then applies them with
-`home-manager switch`.
+with its todo when `life` is on PATH; `brain-sync`, user-callable, merges and pushes the edit copy's brain
+submodules, the brain and the home repo that holds it to GitHub main with `b-sync`, which then runs `sy`
+to pull them into the install copy and switch; `brain-try`, user-callable, runs a skill off the edit
+copy (`$AVE`) with every command under it as `b-try <name>`, so a brain change is tried before any
+other project sees it.
 
 the ENGINE + the MACHINERY (loaded BY an entry or the flow, never called directly):
 | brain-meta-* | role |

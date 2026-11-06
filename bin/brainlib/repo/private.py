@@ -2,11 +2,12 @@
 
 a PrivateScan holds the values: this machine's and its tailnet's, probed with
 `ip` and `tailscale`, and the ones he declares in private.toml. a ScanScope
-names the repos a scan covers, less the brain's private-data submodule, and
-the source it reads from them: a WorkTree's files or the commits an Outgoing
-push sends. b-private runs one scan per process; b-sync gathers the values
-once per run and scans every repo it carries with them. what a scan reads and
-what it leaves unread is b-private's to say: `b-private -h`
+names the repos a scan covers, less the private-data submodule of any brain
+among them, and the source it reads from them: a WorkTree's files or the
+commits an Outgoing push sends. b-private runs one scan per process; b-sync
+gathers the values once per run and scans every repo it carries with them.
+what a scan reads and what it leaves unread is b-private's to say:
+`b-private -h`
 
 Author: aav
 """
@@ -65,18 +66,21 @@ class PrivateScanError(NoVerdict):
 
 @dataclass(frozen=True)
 class ScanScope:
-    """the repos a scan covers: every repo of a tree but those at or under the brain's private-data submodule."""
+    """the repos a scan covers: every repo of a tree but those at or under a brain's private-data submodule."""
 
     tree: RepoTree
     scanned: RepoTree
 
     @classmethod
     def of(cls, tree: RepoTree) -> "ScanScope":
-        """a tree's scope, less the brain's private-data submodule.
+        r"""a tree's scope, less the private-data submodule of each brain its repos are or sit in.
 
-        a tree wholly inside that submodule is a scope with no repo to scan,
-        since P61 puts the values there: its scan reads nothing, and fails
-        only as every scan does when no source gives a value to look for
+        each submodule is read off its own brain's `.gitmodules`, never the
+        running brain's, so a scan of the edit copy leaves out the edit copy's
+        logs whichever copy runs it. a tree wholly inside such a submodule is a
+        scope with no repo to scan, since P61 puts the values there: its scan
+        reads nothing, and fails only as every scan does when no source gives
+        a value to look for
 
         # Arguments
 
@@ -89,6 +93,23 @@ class ScanScope:
         # Raises
 
         PrivateScanError when the tree holds no repo
+
+        # Example
+
+            >>> import tempfile
+            >>> from brainlib import git
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     brain = Path(tmp).resolve()
+            ...     _ = (brain / ".gitmodules").write_text('[submodule "logs"]\n\tpath = logs\n')
+            ...     for repo in (brain, brain / "logs"):
+            ...         (repo / "brain").mkdir(parents=True)
+            ...         _ = git(repo, "init", "-q")
+            ...     _ = (brain / "brain" / "CONSTITUTION.md").write_text("x")
+            ...     _ = git(brain, "update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},logs")
+            ...     around = ScanScope.of(RepoTree.around(brain)).scanned.repos
+            ...     alone = ScanScope.of(RepoTree.containing(brain / "logs")).scanned.repos
+            ...     [repo.relative_to(brain).as_posix() for repo in around], alone
+            (['.'], ())
         """
         # --------------------------------------------------
         # no repo means nothing to scan, which must not read as a clean scan
@@ -96,10 +117,41 @@ class ScanScope:
         if not tree.repos:
             raise PrivateScanError("not inside a git repo; nothing is scanned")
         # --------------------------------------------------
-        # the brain's private memory is left out of the scanned set
+        # each scanned brain's private memory is left out of the scanned set
         # --------------------------------------------------
-        data = Layout.discover().data_submodule
-        return cls(tree, tree if data is None else tree.without(data))
+        scanned = tree
+        for data in {data for repo in tree.repos if (data := cls.private_data(repo)) is not None}:
+            scanned = scanned.without(data)
+        return cls(tree, scanned)
+
+    @staticmethod
+    def private_data(repo: Path) -> Path | None:
+        r"""the private-data submodule of the brain a repo is, or sits inside.
+
+        # Arguments
+
+        * `repo` - a repo of the tree, as git names its top
+
+        # Returns
+
+        that brain's `Layout.data_submodule`; None when the repo is in no brain
+        or the brain declares no such submodule
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     brain = Path(tmp).resolve()
+            ...     (brain / "brain").mkdir()
+            ...     _ = (brain / "brain" / "CONSTITUTION.md").write_text("x")
+            ...     _ = (brain / ".gitmodules").write_text('[submodule "logs"]\n\tpath = logs\n')
+            ...     [ScanScope.private_data(path) == brain / "logs" for path in (brain, brain / "logs")]
+            [True, True]
+            >>> ScanScope.private_data(Path("/")) is None
+            True
+        """
+        root = repo if Layout(repo).constitution.exists() else Layout.root_of(repo)
+        return None if root is None else Layout(root).data_submodule
 
     def skipped(self) -> list[str]:
         """one line per repo of the tree the scope leaves out.

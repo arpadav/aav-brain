@@ -3,7 +3,7 @@
 each call a tool records appends one Mark to its session's SessionLog, and
 a reader reads the logs back: the record of a run comes from the one process that knows
 it ran, never from a guess at a shell command's text. each tool's logs live in
-their own dir (`XdgLayout.session_log`), outside every repo. a SessionRecord
+their own dir (`LocalLayout.session_log`), never committed. a SessionRecord
 reads one session's log back, minus what a compaction erased
 
 Author: aav
@@ -11,7 +11,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.paths import XdgLayout, plain_name
+from brainlib.paths import LocalLayout, plain_name
 from brainlib.text import parse_iso
 from brainlib.transcript import Harness, Record, TranscriptError
 from brainlib.vocab import ENCODING
@@ -174,7 +174,7 @@ class SessionLog:
         # Arguments
 
         * `session` - the session id
-        * `directory` - the tool's log dir, `XdgLayout.session_log`
+        * `directory` - the tool's log dir, `LocalLayout.session_log`
 
         # Returns
 
@@ -261,7 +261,7 @@ class SessionLog:
 
         # Arguments
 
-        * `directory` - one tool's log dir, `XdgLayout.session_log`
+        * `directory` - one tool's log dir, `LocalLayout.session_log`
 
         # Returns
 
@@ -311,12 +311,12 @@ class SessionRecord:
         >>> import tempfile
         >>> from brainlib import Claude
         >>> with tempfile.TemporaryDirectory() as tmp:
-        ...     running, xdg = (Claude(Path(tmp), Path(tmp)), "s1"), XdgLayout(Path(tmp))
-        ...     first, parallel = (SessionRecord.load("b-recall", running, xdg) for _ in range(2))
+        ...     running, local = (Claude(Path(tmp), Path(tmp)), "s1"), LocalLayout(Path(tmp))
+        ...     first, parallel = (SessionRecord.load("b-recall", running, local) for _ in range(2))
         ...     first.mark(["p1"])
         ...     parallel.mark(["p3"])
-        ...     after = SessionRecord.load("b-recall", running, xdg)
-        ...     unkeyed = SessionRecord.load("b-recall", None, xdg)
+        ...     after = SessionRecord.load("b-recall", running, local)
+        ...     unkeyed = SessionRecord.load("b-recall", None, local)
         ...     [after.seen(nid) for nid in ("p1", "p2", "p3")], unkeyed.seen("p1")
         ([True, False, True], False)
     """
@@ -334,14 +334,14 @@ class SessionRecord:
     at: int = 0
 
     @classmethod
-    def load(cls, tool: str, running: tuple[Harness, str] | None, xdg: XdgLayout) -> Self:
+    def load(cls, tool: str, running: tuple[Harness, str] | None, local: LocalLayout) -> Self:
         r"""read one session's record, minus every mark a compaction has erased.
 
         # Arguments
 
         * `tool` - the calling tool's command, which names its log dir and opens each stderr message
         * `running` - the harness and session this call runs in, `Harnesses.running()`
-        * `xdg` - the data root holding the tool's log dir, `XdgLayout.discover()`
+        * `local` - the per-machine dir holding the tool's log dir, `DataLayout.local`
 
         # Returns
 
@@ -354,21 +354,21 @@ class SessionRecord:
             >>> import tempfile
             >>> from brainlib import Claude
             >>> with tempfile.TemporaryDirectory() as tmp:
-            ...     running, xdg = (Claude(Path(tmp), Path(tmp)), "s1"), XdgLayout(Path(tmp))
+            ...     running, local = (Claude(Path(tmp), Path(tmp)), "s1"), LocalLayout(Path(tmp))
             ...     log = Path(tmp) / ".claude" / "projects" / "p" / "s1.jsonl"
             ...     log.parent.mkdir(parents=True)
             ...     _ = log.write_text('{"type": "user"}\n')
-            ...     SessionRecord.load("b-recall", running, xdg).mark(["p1"])
-            ...     kept = SessionRecord.load("b-recall", running, xdg).seen("p1")
+            ...     SessionRecord.load("b-recall", running, local).mark(["p1"])
+            ...     kept = SessionRecord.load("b-recall", running, local).seen("p1")
             ...     with log.open("a") as appended:
             ...         _ = appended.write('{"type": "user", "isCompactSummary": true}\n')
-            ...     kept, SessionRecord.load("b-recall", running, xdg).seen("p1")
+            ...     kept, SessionRecord.load("b-recall", running, local).seen("p1")
             (True, False)
         """
         # --------------------------------------------------
         # no session, or one whose id is no file name, remembers nothing
         # --------------------------------------------------
-        if running is None or (log := SessionLog.of(running[1], xdg.session_log(tool))) is None:
+        if running is None or (log := SessionLog.of(running[1], local.session_log(tool))) is None:
             return cls(tool)
         harness, session = running
         # --------------------------------------------------

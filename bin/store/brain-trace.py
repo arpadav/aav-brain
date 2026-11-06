@@ -5,11 +5,12 @@
 # ///
 r"""b-trace: append to and read the brain's decision-trace log.
 
-the trace (the private data dir's trace/decisions.jsonl, OUTSIDE the repo - see
-brainlib.XdgLayout.data) is append-only reasoning history. the
-point is the decided-AGAINST entries: when a later session disagrees with a
-past call, the trace shows WHERE it was made (the `affects` pointer) so it can
-be reversed precisely. brain-meta-curate and brain-self-refine read it
+the trace (trace/decisions.jsonl in the edit brain's private data submodule,
+outside the public repo's history - see brainlib.DataLayout) is append-only
+reasoning history. the point is the decided-AGAINST entries: when a later
+session disagrees with a past call, the trace shows WHERE it was made (the
+`affects` pointer) so it can be reversed precisely. brain-meta-curate and
+brain-self-refine read it
 
 an entry about an architecture the brain has since left is noise in every one
 of those reads, so the trace can FORGET - but only by marking, never by

@@ -57,6 +57,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # --------------------------------------------------
 from brainlib import (
     Args,
+    DataLayout,
     Flag,
     Flow,
     Harnesses,
@@ -67,7 +68,6 @@ from brainlib import (
     Tool,
     Transition,
     UsageError,
-    XdgLayout,
 )
 
 # --------------------------------------------------
@@ -333,7 +333,7 @@ def main(args: Args) -> None:
     # --------------------------------------------------
     # the legend alone, on request, marked shown like the one a first walk prints
     # --------------------------------------------------
-    record = SessionRecord.load(TOOL, Harnesses.discover().running(), XdgLayout.discover())
+    record = SessionRecord.load(TOOL, Harnesses.discover().running(), DataLayout.discover().local.writable())
     if args.has(Flag.LEGEND):
         print(Tool.legend())
         record.mark([LEGEND])

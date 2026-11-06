@@ -44,14 +44,15 @@ from brainlib import (
     UNTRACKED,
     Args,
     Change,
+    DataLayout,
     Flag,
     Layout,
+    LocalLayout,
     NoVerdict,
     RepoTree,
     ShapePolicy,
     Tool,
     UsageError,
-    XdgLayout,
 )
 
 # --------------------------------------------------
@@ -60,6 +61,7 @@ from brainlib import (
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
+from enum import StrEnum
 
 # --------------------------------------------------
 # constants
@@ -90,12 +92,27 @@ BINARY_WEIGHT = 10.0
 EVENT_WEIGHT = {"A": ADDED_WEIGHT, UNTRACKED: ADDED_WEIGHT, "D": DELETED_WEIGHT, "R": RENAMED_WEIGHT}
 
 
+class Command(StrEnum):
+    """b-gate's subcommands, as typed.
+
+    # Example
+
+        >>> [str(command) for command in Command]
+        ['phase', 'round', 'design', 'reset']
+    """
+
+    PHASE = "phase"
+    ROUND = "round"
+    DESIGN = "design"
+    RESET = "reset"
+
+
 @dataclass
 class GateState:
     """the pending work and round history for one repo checkout.
 
-    lives in the private data dir, never in the repo, so a finished run leaves
-    nothing behind in the tree
+    lives in the private data dir's per-machine local/, never in the repo
+    under review, so a finished run leaves nothing behind in the tree
     """
 
     # sum of plan tags since the last gate
@@ -151,19 +168,28 @@ def checkout() -> RepoTree:
     return tree
 
 
-def state_path() -> Path:
-    """the gate-state file for the current checkout.
+def state_path(local: LocalLayout, top: Path) -> Path:
+    """the gate-state file for one checkout.
 
     keyed by the checkout's top-level path, hashed, so a worktree and its main
     tree keep separate totals; the name prefix keeps it readable
 
+    # Arguments
+
+    * `local` - the data dir's per-machine layout; `writable()` when the state will be saved
+    * `top` - the checkout's top-level path, `checkout().repos[0]`
+
     # Returns
 
-    `<XdgLayout.gate_state>/<repo>-<hash8>.json`
+    `<LocalLayout.gate>/<repo>-<hash8>.json`
+
+    # Example
+
+        >>> str(state_path(LocalLayout(Path("/d/local")), Path("/r/home")))
+        '/d/local/gate/home-888329a7.json'
     """
-    top = checkout().repos[0]
     digest = hashlib.sha256(str(top).encode()).hexdigest()[:8]
-    return XdgLayout.discover().gate_state / f"{top.name}-{digest}.json"
+    return local.gate / f"{top.name}-{digest}.json"
 
 
 def score(change: Change) -> float:
@@ -271,8 +297,9 @@ def main(args: Args) -> None:
 
     `phase` accumulates the pending score and prints `gate N` or `defer`; `round`
     records a review round and prints the event it implies; `design` marks that a
-    redesign was tried; `reset` deletes the state file. the state is persisted
-    after every subcommand but `reset`
+    redesign was tried; `reset` deletes the state file. the whole command line
+    is checked before local/ is touched, and the state is persisted after every
+    subcommand but `reset`
 
     # Arguments
 
@@ -282,54 +309,66 @@ def main(args: Args) -> None:
 
     # Raises
 
-    UsageError for an unknown or incomplete subcommand, or a `--tag` that is not
-    one of the plan tags
+    UsageError for an unknown subcommand, a `round` without two counts, or a
+    `--tag` that is not one of the plan tags; EditCopyMissing when this machine
+    has no edit copy; NoVerdict when its data submodule is not checked out
     """
-    command, *rest = args.positional()
-    path = state_path()
+    name, *rest = args.positional()
+    # --------------------------------------------------
+    # the command line, refused before anything is read or written
+    # --------------------------------------------------
+    try:
+        command = Command(name)
+    except ValueError:
+        raise UsageError(f"unknown command {name!r}; one of {', '.join(Command)}") from None
+    tag = args.value(Flag.TAG).upper()
+    if command is Command.PHASE and tag and tag not in TAG_SCORE:
+        raise UsageError(f"{Flag.TAG.spelling} is one of {', '.join(TAG_SCORE)}")
+    if command is Command.ROUND and not (len(rest) == ROUND_ARGS and all(n.isdigit() for n in rest)):
+        raise UsageError(f"{command} takes VALID SERIOUS, two counts")
+    # --------------------------------------------------
+    # the checkout first, so a run outside one writes nothing; every command but reset saves the state,
+    # so only reset leaves local/ as it is
+    # --------------------------------------------------
+    top = checkout().repos[0]
+    local = DataLayout.discover().local
+    path = state_path(local if command is Command.RESET else local.writable(), top)
     state = GateState.load(path)
-    # --------------------------------------------------
-    # phase: accumulate, then gate or defer
-    # --------------------------------------------------
-    if command == "phase":
-        tag = args.value(Flag.TAG).upper()
-        if tag and tag not in TAG_SCORE:
-            raise UsageError(f"{Flag.TAG.spelling} is one of {', '.join(TAG_SCORE)}")
-        state.tagged += TAG_SCORE.get(tag, 0.0)
-        measured = measure(args.value(Flag.SINCE, "HEAD"))
-        pending = max(state.tagged, measured - state.gated_at)
-        if pending >= THRESHOLD or (args.has(Flag.LAST) and pending > 0):
-            print(f"gate {reviewers(pending)}  (pending score {pending:.0f})")
-            state = GateState(gated_at=measured)
-        else:
-            print(f"defer  (pending score {pending:.0f} < {THRESHOLD:.0f})")
-        state.save(path)
-        return
-    # --------------------------------------------------
-    # round: record, then name the event
-    # --------------------------------------------------
-    if command == "round" and len(rest) == ROUND_ARGS and all(n.isdigit() for n in rest):
-        state.rounds.append([int(rest[0]), int(rest[1])])
-        print(round_event(state.rounds, design_tried=state.design_tried))
-        state.save(path)
-        return
-    # --------------------------------------------------
-    # design: the next round is the acceptance test against the last count
-    # --------------------------------------------------
-    if command == "design":
-        state.design_tried = True
-        state.rounds = state.rounds[-1:]
-        state.save(path)
-        print("design marked; the next round must show a net decrease")
-        return
-    # --------------------------------------------------
-    # reset: leave nothing behind
-    # --------------------------------------------------
-    if command == "reset":
-        path.unlink(missing_ok=True)
-        print(f"reset {path.name}")
-        return
-    raise UsageError(f"unknown or incomplete command {command!r}")
+    match command:
+        # --------------------------------------------------
+        # phase: accumulate, then gate or defer
+        # --------------------------------------------------
+        case Command.PHASE:
+            state.tagged += TAG_SCORE.get(tag, 0.0)
+            measured = measure(args.value(Flag.SINCE, "HEAD"))
+            pending = max(state.tagged, measured - state.gated_at)
+            if pending >= THRESHOLD or (args.has(Flag.LAST) and pending > 0):
+                print(f"gate {reviewers(pending)}  (pending score {pending:.0f})")
+                state = GateState(gated_at=measured)
+            else:
+                print(f"defer  (pending score {pending:.0f} < {THRESHOLD:.0f})")
+            state.save(path)
+        # --------------------------------------------------
+        # round: record, then name the event
+        # --------------------------------------------------
+        case Command.ROUND:
+            state.rounds.append([int(rest[0]), int(rest[1])])
+            print(round_event(state.rounds, design_tried=state.design_tried))
+            state.save(path)
+        # --------------------------------------------------
+        # design: the next round is the acceptance test against the last count
+        # --------------------------------------------------
+        case Command.DESIGN:
+            state.design_tried = True
+            state.rounds = state.rounds[-1:]
+            state.save(path)
+            print("design marked; the next round must show a net decrease")
+        # --------------------------------------------------
+        # reset: leave nothing behind
+        # --------------------------------------------------
+        case Command.RESET:
+            path.unlink(missing_ok=True)
+            print(f"reset {path.name}")
 
 
 if __name__ == "__main__":

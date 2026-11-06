@@ -51,6 +51,7 @@ COMMANDS: Mapping[str, tuple[Flag, ...]] = MappingProxyType({
     "b-sync": (Flag.CHECK,),
     "b-trace": (Flag.SKILL, Flag.DECISION, Flag.CHOSEN, Flag.REJECT, Flag.AFFECTS, Flag.PRINCIPLE, Flag.SUPERSEDES,
                 Flag.SESSION, Flag.AGAINST, Flag.STALE_CANDIDATES, Flag.PRUNE, Flag.RESTORE, Flag.PRUNED),
+    "b-try": (),
     "b-verify": (Flag.RUN,),
     "b-walk": (Flag.STATE, Flag.MODE, Flag.ON, Flag.DOC, Flag.LEGEND),
 })
@@ -559,7 +560,7 @@ class Tool:
         """
         return Args(tuple(argv), self.flags)
 
-    def run(self, body: Callable[[Args], Exit | None]) -> NoReturn:
+    def run(self, body: Callable[[Args], Exit | None], argv: Iterable[str] | None = None) -> NoReturn:
         """parse argv, answer -h, admit the command line, run the body, and exit with its verdict.
 
         nothing beyond the two refusals is caught: a crash keeps python's
@@ -568,16 +569,33 @@ class Tool:
         # Arguments
 
         * `body` - the tool's main; None from it is Exit.OK
+        * `argv` - the tool's own arguments; `sys.argv[1:]` when None. a tool
+          that hands the rest of its command line on unparsed (b-try) passes
+          only its own leading part
 
         # Returns
 
         never returns: the process exits with the body's `Exit`, or with the
         refusal's exit when argv or the command line is not admitted
+
+        # Example
+
+            >>> for argv in ((), ("-h",)):
+            ...     try:
+            ...         Tool("t", "t: a tool.").run(lambda _: Exit.FINDINGS, argv)
+            ...     except SystemExit as end:
+            ...         print(end.code)
+            4
+            t
+            t: a tool.
+            <BLANKLINE>
+            exit: 0 OK, 1 FAILED, 2 USAGE, 3 CONFLICT, 4 FINDINGS, 5 BLOCKED
+            0
         """
         # --------------------------------------------------
         # read the command line
         # --------------------------------------------------
-        args = self.parse(sys.argv[1:])
+        args = self.parse(sys.argv[1:] if argv is None else argv)
         try:
             # --------------------------------------------------
             # help answers before any validation, so it works with otherwise-invalid arguments

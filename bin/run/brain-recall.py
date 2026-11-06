@@ -44,6 +44,7 @@ from brainlib import (
     INLINE_BYTES,
     INLINE_PRINCIPLES,
     Args,
+    DataLayout,
     Flag,
     Harnesses,
     Layout,
@@ -51,7 +52,6 @@ from brainlib import (
     SessionRecord,
     Tool,
     UsageError,
-    XdgLayout,
 )
 
 # --------------------------------------------------
@@ -132,14 +132,14 @@ class InlinePlan:
         # Example
 
             >>> import tempfile
-            >>> from brainlib import Claude
+            >>> from brainlib import Claude, LocalLayout
             >>> principles = {"p1": "a" * 10, "p2": "b" * 30, "p3": "c" * 5}
             >>> InlinePlan.choose(SessionRecord(TOOL), ["p1", "p2", "p3"], principles.get, budget=20).bodies
             {'p1': 'aaaaaaaaaa', 'p3': 'ccccc'}
             >>> with tempfile.TemporaryDirectory() as tmp:
             ...     running = (Claude(Path(tmp), Path(tmp)), "s1")
-            ...     SessionRecord.load(TOOL, running, XdgLayout(Path(tmp))).mark(["p1"])
-            ...     record = SessionRecord.load(TOOL, running, XdgLayout(Path(tmp)))
+            ...     SessionRecord.load(TOOL, running, LocalLayout(Path(tmp))).mark(["p1"])
+            ...     record = SessionRecord.load(TOOL, running, LocalLayout(Path(tmp)))
             ...     InlinePlan.choose(record, ["p1", "p2", "p3"], principles.get, limit=1)
             InlinePlan(bodies={'p2': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'}, earlier=frozenset({'p1'}))
         """
@@ -268,7 +268,7 @@ def main(args: Args) -> None:
     # --------------------------------------------------
     recall = index.recall(args.stdin_text(), window_size(args), contexts(args, index))
     pulled = sum(1 for nid in recall.window if nid in recall.required)
-    record = SessionRecord.load(TOOL, Harnesses.discover().running(), XdgLayout.discover())
+    record = SessionRecord.load(TOOL, Harnesses.discover().running(), DataLayout.discover().local.writable())
     plan = InlinePlan.choose(record, recall.featured, index.body)
     # --------------------------------------------------
     # the index, one line per principle, then the full text, then the follow-up

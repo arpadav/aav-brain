@@ -11,8 +11,8 @@ distilled from raw agent transcripts, stdlib only, safe to run any time
     b-extract -o DIR  the evidence dir; default: the evidence dir of the
                       brain's private data dir
     b-extract -a      also cold-store the raw transcripts first
-    b-extract -d D    the cold-storage root; default: XdgLayout.archive,
-                      OUTSIDE git
+    b-extract -d D    the cold-storage root; default: the private data
+                      dir's local/archive, never committed
 
 every human turn is captured into prompts.jsonl with a primary bucket and
 a multi-label class set - nothing is dropped. sources are both my codex
@@ -56,7 +56,6 @@ from brainlib import (
     Tool,
     Transcript,
     TranscriptError,
-    XdgLayout,
     clip,
     iso_now,
     write_text,
@@ -727,10 +726,26 @@ def main(args: Args) -> None:
 
     * `args` - the parsed command line; `--out` overrides the evidence directory
       and `--archive-dir` the cold archive
+
+    # Raises
+
+    EditCopyMissing when either directory is left to the data dir and this
+    machine has no edit copy; NoVerdict when its data submodule is not checked out
     """
     out, cold = args.value(Flag.OUT), args.value(Flag.ARCHIVE_DIR)
-    evidence = EvidenceLayout((Path(out) if out else DataLayout.discover().evidence.root).resolve())
-    archive = (Path(cold) if cold else XdgLayout.discover().archive).resolve()
+    # --------------------------------------------------
+    # the evidence dir: --out, else the data dir's. the cold store: --archive-dir,
+    # else local/archive, made writable only when this run archives into it. the
+    # data dir is found once, and only when a flag leaves one of them to it
+    # --------------------------------------------------
+    if out and cold:
+        evidence_dir, archive = Path(out), Path(cold)
+    else:
+        data = DataLayout.discover()
+        local = data.local
+        evidence_dir = Path(out) if out else data.evidence.root
+        archive = Path(cold) if cold else (local.writable() if args.has(Flag.ARCHIVE) else local).archive
+    evidence, archive = EvidenceLayout(evidence_dir.resolve()), archive.resolve()
     harnesses = Harnesses.discover(archive)
     # --------------------------------------------------
     # archive first: the source must be preserved BEFORE anything reads it

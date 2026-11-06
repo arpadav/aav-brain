@@ -50,8 +50,8 @@ if args.has(Flag.CHECK): ...           # after
 
 **3. an environment variable is named once, never at the read site**
 ```python
-os.environ.get("XDG_DATA_HOME", "")    # before
-Env.XDG_DATA_HOME.read()               # after
+os.environ.get("XDG_CONFIG_HOME", "")  # before
+Env.XDG_CONFIG_HOME.read()             # after
 ```
 
 **4. a status code carries its meaning**

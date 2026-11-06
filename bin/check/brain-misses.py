@@ -48,7 +48,6 @@ from brainlib import (
     Tool,
     TranscriptError,
     UsageError,
-    XdgLayout,
     clip,
     parse_iso,
 )
@@ -204,7 +203,7 @@ class MissReport:
     # the distinct texts in the whole corpus no row places: no readable ts or no known harness
     skipped: int
     index: RecallIndex
-    # recall's session logs, `XdgLayout.session_log`
+    # recall's session logs, `LocalLayout.session_log`
     served: Path
     # when recording began on this machine, SessionLog.since; None when nothing is recorded yet
     recorded: dt.datetime | None
@@ -256,7 +255,7 @@ class MissReport:
         * `data` - the private data dir holding the evidence corpus
         * `index` - the recall index to rank each turn with
         * `harnesses` - the harnesses a row's `src` may name
-        * `served` - recall's session logs, `XdgLayout.session_log`
+        * `served` - recall's session logs, `LocalLayout.session_log`
 
         # Returns
 
@@ -467,7 +466,7 @@ def main(args: Args) -> Exit:
     # collect, list, and fail when any turn is listed
     # --------------------------------------------------
     report = MissReport.collect(since, data, RecallIndex.build(LAYOUT), Harnesses.discover(),
-                               XdgLayout.discover().session_log(Layout.command(Layout.RECALL)))
+                               data.local.session_log(Layout.command(Layout.RECALL)))
     report.show(since)
     return Exit.FINDINGS if report.misses else Exit.OK
 

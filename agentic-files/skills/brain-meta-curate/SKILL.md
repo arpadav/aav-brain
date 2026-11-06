@@ -13,8 +13,8 @@ store: `$AVB/brain/` (markdown principles); the evidence jsonl is private data i
 by `b-extract`, never in the repo. schema: `$AVB/schema/principle.md`.
 
 ## consult the decision trace BEFORE editing (P29, knowledge trace)
-the brain logs its reasoning to the PRIVATE data dir (`$XDG_DATA_HOME/aav-brain/trace/decisions.jsonl`,
-outside the repo). before you re-open a topic, EXECUTE the
+the brain logs its reasoning to the PRIVATE data dir (`$AVE/logs/trace/decisions.jsonl`,
+outside the public repo). before you re-open a topic, EXECUTE the
 trace reader and check whether the brain already decided something here:
 ```bash
 b-trace -g          # decisions that rejected an option

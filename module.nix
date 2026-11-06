@@ -12,6 +12,7 @@ let
   # script needs one to become a command
   # --------------------------------------------------
   root = config.aav.brain.root;
+  edit = config.aav.brain.edit;
   agentsRoot = "${root}/agentic-files/agents";
   skillsRoot = "${root}/agentic-files/skills";
   codexAgents = "${root}/.generated/codex/agents";
@@ -69,6 +70,35 @@ let
         '';
       };
     }) scripts);
+  # --------------------------------------------------
+  # the per-machine data dirs under the data home
+  # (`$XDG_DATA_HOME`, else ~/.local/share, the rule
+  # the tools that wrote them used) and their place
+  # under the edit brain's `logs/local`, which ignores
+  # itself so none of it is ever staged. the dirs and
+  # the .gitignore's bytes match the local layout and
+  # LOCAL_GITIGNORE in bin/brainlib/paths.py
+  # --------------------------------------------------
+  local = "${edit}/logs/local";
+  localData = {
+    aav-brain-archive = "archive";
+    aav-brain-gate = "gate";
+    aav-brain-served = "sessions/recall";
+    aav-brain-walked = "sessions/walk";
+  };
+  ignoreAll = pkgs.writeText "gitignore" "# self-ignoring: per-machine brain data, never committed\n*\n";
+  moveData = lib.concatStrings (lib.mapAttrsToList (from: to: let
+    target = "${local}/${to}";
+  in ''
+    if [ -e "$brainShared"/${lib.escapeShellArg from} ]; then
+      if [ ! -e ${lib.escapeShellArg target} ]; then
+        run mkdir -p ${lib.escapeShellArg (dirOf target)}
+        run mv "$brainShared"/${lib.escapeShellArg from} ${lib.escapeShellArg target}
+      else
+        warnEcho "$brainShared"/${lib.escapeShellArg "${from} and ${target} both exist - merge them by hand"}
+      fi
+    fi
+  '') localData);
 in
 {
   # --------------------------------------------------
@@ -80,6 +110,11 @@ in
     type = lib.types.str;
     default = toString ./.;
     description = "absolute path of the live brain checkout every link points into";
+  };
+  options.aav.brain.edit = lib.mkOption {
+    type = lib.types.nullOr lib.types.str;
+    default = null;
+    description = "absolute path of the edit copy's brain, where all brain data lives; null when there is none";
   };
 
   # --------------------------------------------------
@@ -98,20 +133,52 @@ in
         ".claude/agents/rust".source = live "${agentsRoot}/lang/rust";
         ".claude/agents/style".source = live "${agentsRoot}/style";
         ".codex/agents".source = live codexAgents;
-        ".local/share/aav-brain".source = live "${root}/logs";
       }
       // commands
     );
     # --------------------------------------------------
-    # the root: his shells and the skills' and agents'
-    # text read a brain file off `$AVB`; the flake reads
-    # `AAV_BRAIN` at switch time. no script reads either,
-    # each finds the root from its own location
+    # his shells and the skills' and agents' text read a
+    # brain file off these; the flake reads `AAV_BRAIN`
+    # at switch time. no script reads any of them
+    #   AVB  the brain everything runs from
+    #   AVE  the brain you edit
     # --------------------------------------------------
     home.sessionVariables = {
       AAV_BRAIN = root;
       AVB = root;
+    } // lib.optionalAttrs (edit != null) {
+      AVE = edit;
     };
+    warnings = lib.optional (edit == null)
+      "no edit copy - run /home-setup (or set edit in $XDG_CONFIG_HOME/aav/repos.toml, else ~/.config/aav/repos.toml)";
+    # --------------------------------------------------
+    # before any link is written, each per-machine data
+    # dir moves under the edit brain's logs when its
+    # target does not exist yet, so a second run moves
+    # nothing; with both present it warns and moves
+    # neither. home-manager's own cleanup of links an
+    # older generation made removes the old
+    # `.local/share/aav-brain` link
+    # --------------------------------------------------
+    home.activation.brainData = lib.mkIf (edit != null) (lib.hm.dag.entryBefore [ "writeBoundary" ] ''
+      brainShared=''${XDG_DATA_HOME:-}
+      brainShared=''${brainShared/#\~/$HOME}
+      case $brainShared in
+        /*) ;;
+        *) brainShared=$HOME/.local/share ;;
+      esac
+      if [ -e ${lib.escapeShellArg "${edit}/logs/.git"} ]; then
+        if [ ! -d ${lib.escapeShellArg local} ]; then
+          run mkdir -p ${lib.escapeShellArg local}
+        fi
+        if ! cmp -s ${ignoreAll} ${lib.escapeShellArg "${local}/.gitignore"}; then
+          run install -m 644 ${ignoreAll} ${lib.escapeShellArg "${local}/.gitignore"}
+        fi
+        ${moveData}
+      else
+        warnEcho ${lib.escapeShellArg "${edit}/logs is not a checkout of the logs submodule - brain data left under "}"$brainShared"
+      fi
+    '');
     # --------------------------------------------------
     # compile codex TOML agents on every switch, under
     # the `-I` every command runs with

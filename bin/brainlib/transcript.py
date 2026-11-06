@@ -21,7 +21,7 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.paths import XdgLayout, plain_name
+from brainlib.paths import DataLayout, plain_name
 from brainlib.text import parse_iso
 from brainlib.vocab import ENCODING, Env
 
@@ -346,7 +346,7 @@ class Harness(ABC):
 
     # the user's home, under which the harness writes
     home: Path
-    # the brain's cold store root, `XdgLayout.archive`
+    # the brain's cold store root, `LocalLayout.archive`
     archive: Path
 
     # the evidence rows' `src`, and the harness's folder in the archive
@@ -368,9 +368,14 @@ class Harness(ABC):
 
         # Returns
 
-        the harness over `Path.home()` and `XdgLayout.archive`
+        the harness over `Path.home()` and `LocalLayout.archive`
+
+        # Raises
+
+        EditCopyMissing when this machine has no edit copy; NoVerdict when its
+        data submodule is not checked out
         """
-        return cls(Path.home(), XdgLayout.discover().archive)
+        return cls(Path.home(), DataLayout.discover().local.archive)
 
     def running(self) -> str | None:
         """this process's session id, when it runs under this harness.
@@ -810,13 +815,19 @@ class Harnesses:
 
         # Arguments
 
-        * `archive` - the cold store root; `XdgLayout.archive` when omitted
+        * `archive` - the cold store root; `LocalLayout.archive` when omitted
 
         # Returns
 
         claude then codex, the order their sessions are listed in
+
+        # Raises
+
+        EditCopyMissing when `archive` is omitted and this machine has no edit
+        copy; NoVerdict when `archive` is omitted and its data submodule is not
+        checked out
         """
-        home, cold = Path.home(), archive or XdgLayout.discover().archive
+        home, cold = Path.home(), archive or DataLayout.discover().local.archive
         return cls((Claude(home, cold), Codex(home, cold)))
 
     def named(self, name: str) -> Harness | None:

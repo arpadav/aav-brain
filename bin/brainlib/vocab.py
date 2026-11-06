@@ -131,9 +131,7 @@ class Env(StrEnum):
     AAV_BRAIN = "AAV_BRAIN"
     # its short alias, for his shell and the skills' and agents' text
     AVB = "AVB"
-    # the data root the brain's private state sits under
-    XDG_DATA_HOME = "XDG_DATA_HOME"
-    # the config root his private.toml sits under
+    # the config root his private.toml, repos.toml and install copy sit under
     XDG_CONFIG_HOME = "XDG_CONFIG_HOME"
     # the per-login runtime root a watch of open items keeps its lock and its reports under
     XDG_RUNTIME_DIR = "XDG_RUNTIME_DIR"
@@ -155,12 +153,12 @@ class Env(StrEnum):
 
             >>> import os
             >>> from unittest import mock
-            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: ""}, clear=True):
-            ...     Env.XDG_DATA_HOME.read("unset")
-            ...     os.environ[Env.XDG_DATA_HOME] = "/srv/data"
-            ...     Env.XDG_DATA_HOME.read("unset")
+            >>> with mock.patch.dict(os.environ, {Env.XDG_CONFIG_HOME: ""}, clear=True):
+            ...     Env.XDG_CONFIG_HOME.read("unset")
+            ...     os.environ[Env.XDG_CONFIG_HOME] = "/srv/config"
+            ...     Env.XDG_CONFIG_HOME.read("unset")
             'unset'
-            '/srv/data'
+            '/srv/config'
         """
         return os.environ.get(self.value, "") or default
 
@@ -190,7 +188,7 @@ class Env(StrEnum):
         """this variable as a directory, `~` expanded; the fallback when it is unset or relative.
 
         the XDG base-directory spec says a relative value is invalid and is
-        ignored, so a stray `XDG_DATA_HOME=data` never lands a file under the cwd
+        ignored, so a stray `XDG_CONFIG_HOME=config` never lands a file under the cwd
 
         # Arguments
 
@@ -204,12 +202,12 @@ class Env(StrEnum):
 
             >>> import os
             >>> from unittest import mock
-            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "relative/data"}):
-            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
+            >>> with mock.patch.dict(os.environ, {Env.XDG_CONFIG_HOME: "relative/config"}):
+            ...     Env.XDG_CONFIG_HOME.directory(Path("/fallback"))
             PosixPath('/fallback')
-            >>> with mock.patch.dict(os.environ, {Env.XDG_DATA_HOME: "/srv/data"}):
-            ...     Env.XDG_DATA_HOME.directory(Path("/fallback"))
-            PosixPath('/srv/data')
+            >>> with mock.patch.dict(os.environ, {Env.XDG_CONFIG_HOME: "/srv/config"}):
+            ...     Env.XDG_CONFIG_HOME.directory(Path("/fallback"))
+            PosixPath('/srv/config')
         """
         # --------------------------------------------------
         # an unset variable reads as empty, which resolves to the current directory and is not absolute

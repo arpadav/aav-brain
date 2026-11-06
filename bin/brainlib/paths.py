@@ -3,8 +3,11 @@
 a directory name re-spelled at each call site is a rename that has to be
 found by grep and is silently wrong wherever the grep missed. here each name
 appears once, as a property, so a move is one edit and every tool follows.
-Layout holds the paths inside the brain repo, XdgLayout and DataLayout those
-under his XDG dirs, outside every public repo's history
+Layout holds the paths inside a brain repo. XdgLayout holds those in his
+per-machine config folder, the install copy, and the edit copy's brain that
+the folder's repos.toml leads to, which every tool keeps its data in.
+DataLayout holds the paths of that data: the edit brain's private-data
+submodule, with LocalLayout its never-committed per-machine `local/`
 
 Author: aav
 """
@@ -12,27 +15,65 @@ Author: aav
 # local
 # --------------------------------------------------
 from brainlib.repo.tree import git
-from brainlib.vocab import Env
+from brainlib.text import Json, read_text, write_text
+from brainlib.vocab import Env, NoVerdict
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import sys
-from collections.abc import Mapping
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from types import MappingProxyType
-from typing import ClassVar
+from typing import ClassVar, Self
 
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# the name the brain's `.gitmodules` gives its private-data submodule
+# the name the brain's `.gitmodules` gives its private-data submodule; its path is read from that entry
 DATA_SUBMODULE = "logs"
 # the file his declared private values live in, under his config folder
 PRIVATE_TOML = "private.toml"
+# the file naming where his checkouts live, under his config folder; repos.nix reads it too
+REPOS_TOML = "repos.toml"
+# the roots searched when repos.toml sets no `roots`; repos.nix spells the same default
+DEFAULT_ROOTS = ("~/repos/personal",)
+# the home repo's directory: under a root for the edit copy, under his config folder for the install copy
+HOME_REPO = "home"
+# the legacy install copy location under $HOME, which sy migrates from; repos.nix spells the same
+HM_HOME = Path(".config", "home-manager")
+# the install copy under $HOME, the value install-copy.nix holds
+INSTALL_HOME = Path(".config", "aav", HOME_REPO)
+# the brain's folder inside a home checkout
+HOME_BRAIN = "brain"
+# the per-machine folder inside the data dir
+LOCAL = "local"
+# the folder inside LOCAL holding one dir of session logs per tool
+SESSIONS = "sessions"
+# the self-ignoring .gitignore every writer of LOCAL puts in it first, as a tool cache does
+LOCAL_GITIGNORE = "# self-ignoring: per-machine brain data, never committed\n*\n"
+# the prefix every brain command carries, before its script's stem past `brain-`
+COMMAND_PREFIX = "b-"
+# the interpreter flag every brain command runs under: no PYTHON* variables, no user site, no script dir on sys.path
+ISOLATED = "-I"
 # the folders under bin/ that hold no script: the shared library, and python's bytecode cache
 NOT_SCRIPT_DIRS = ("brainlib", "__pycache__")
+
+
+class EditCopyMissing(NoVerdict):
+    """no edit copy on this machine, so no brain to keep data in: the tool refuses rather than guess a path.
+
+    a NoVerdict, so `Tool.run` prints the message and exits Exit.FAILED
+
+    # Example
+
+        >>> str(EditCopyMissing())
+        'no edit copy - run /home-setup'
+    """
+
+    def __init__(self) -> None:
+        """the one message: what is missing, and the skill that makes it."""
+        super().__init__("no edit copy - run /home-setup")
 
 
 @dataclass(frozen=True)
@@ -247,7 +288,7 @@ class Layout:
             >>> Layout.command(Path("bin/run/brain-walk.py")), Layout.command(Path("bin/check/brain-lint.py"))
             ('b-walk', 'b-lint')
         """
-        return f"b-{script.stem.removeprefix('brain-')}"
+        return f"{COMMAND_PREFIX}{script.stem.removeprefix('brain-')}"
 
     @property
     def scripts(self) -> list[Path]:
@@ -271,6 +312,29 @@ class Layout:
                             if d.is_dir() and not d.is_symlink() and d.name not in NOT_SCRIPT_DIRS)]
         return sorted(script for d in dirs for script in d.glob("brain-?*.py")
                       if script.is_file() and not script.is_symlink())
+
+    def script_for(self, command: str) -> Path | None:
+        """the script this brain runs as `command`, found among `scripts` by `command`'s rule.
+
+        # Arguments
+
+        * `command` - the command, COMMAND_PREFIX included (`b-walk`)
+
+        # Returns
+
+        the script, or None when no script of this brain runs as `command`
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     layout = Layout(Path(tmp))
+            ...     (layout.bin / "run").mkdir(parents=True)
+            ...     (layout.bin / "run" / "brain-walk.py").touch()
+            ...     layout.script_for("b-walk").relative_to(layout.bin).as_posix(), layout.script_for("walk")
+            ('run/brain-walk.py', None)
+        """
+        return next((script for script in self.scripts if self.command(script) == command), None)
 
     @property
     def recall_script(self) -> Path:
@@ -296,7 +360,7 @@ class Layout:
     def private_command(self) -> tuple[str, ...]:
         """how a brain tool runs b-private as a process of its own (b-verify): this interpreter, isolated.
 
-        `-I` drops every PYTHON* variable, the user site with its `.pth`
+        ISOLATED drops every PYTHON* variable, the user site with its `.pth`
         files, and the script's own dir from `sys.path`. module.nix, which
         cannot call this, spells the flag again twice: in the wrapper every
         command runs through, and in the activation that compiles the codex
@@ -306,14 +370,14 @@ class Layout:
 
         the argv prefix; the scan's own flags and paths follow it
         """
-        return (sys.executable, "-I", str(self.private_script))
+        return (sys.executable, ISOLATED, str(self.private_script))
 
     @property
     def data_submodule(self) -> Path | None:
         r"""where the private-data submodule is checked out: its path in the brain's own `.gitmodules`.
 
-        read from the brain repo, never from where XDG points, so the answer
-        names the gitlink whatever `$XDG_DATA_HOME` says
+        read from the brain repo's own `.gitmodules`, so the answer names the
+        gitlink of this checkout, whichever copy it is
 
         # Returns
 
@@ -394,101 +458,30 @@ class Layout:
         return self.generated / "codex" / "agents"
 
 
-@dataclass(frozen=True)
 class XdgLayout:
-    """every path the brain keeps under his XDG dirs: per machine, outside every public repo's history.
+    """every path in his per-machine config folder, the install copy, and the edit copy's brain.
 
-    the root is the data root, `$XDG_DATA_HOME`, else `~/.local/share`; his
-    config sits under the config root instead. a relative XDG variable is
-    ignored, per the XDG spec. no dir is created here, each one by its writer
-    on demand
+    the folder holds his private values and repos.toml. the install copy, a
+    home checkout, is always `~/.config/aav/home`, whatever XDG_CONFIG_HOME
+    says; the edit copy is a home checkout outside both, found through
+    repos.toml
+
+    the folder is `$XDG_CONFIG_HOME/aav`, else `~/.config/aav`; a relative XDG
+    variable is ignored, per the XDG spec. each path is read at call time, so a
+    shell opened before a switch never holds a stale one. no dir is created here
 
     # Example
 
-        >>> xdg = XdgLayout(Path("/d"))
-        >>> xdg.data, xdg.session_log("b-walk"), xdg.session_log("b-recall")
-        (PosixPath('/d/aav-brain'), PosixPath('/d/aav-brain-walked'), PosixPath('/d/aav-brain-served'))
-        >>> xdg.session_log("b-x")
-        PosixPath('/d/aav-b-x-log')
+        >>> import os
+        >>> from unittest import mock
+        >>> with mock.patch.dict(os.environ, {"HOME": "/h", Env.XDG_CONFIG_HOME: ""}):
+        ...     [str(path) for path in (XdgLayout.private_toml(), XdgLayout.repos_toml(), XdgLayout.install_home())]
+        ['/h/.config/aav/private.toml', '/h/.config/aav/repos.toml', '/h/.config/aav/home']
     """
-
-    root: Path
-
-    # the tools whose session-log dir is named apart from `aav-<tool>-log`
-    SESSION_LOG_ALIASES: ClassVar[Mapping[str, str]] = MappingProxyType({
-        Layout.command(Layout.RECALL): "aav-brain-served",
-        Layout.command(Layout.WALK): "aav-brain-walked",
-    })
-
-    @classmethod
-    def discover(cls) -> "XdgLayout":
-        """the layout rooted at this machine's XDG data root.
-
-        # Returns
-
-        an XdgLayout over `$XDG_DATA_HOME`, else `~/.local/share`
-        """
-        return cls(Env.XDG_DATA_HOME.directory(Path.home() / ".local" / "share"))
-
-    @property
-    def data(self) -> Path:
-        """the brain's PRIVATE memory dir: the decision trace and the evidence corpus (DataLayout).
-
-        private data never lives in the public brain's git objects. home-manager
-        symlinks this dir to the `aav-brain-logs` submodule (gitlinked at `logs/`;
-        its content lives in a SEPARATE private repo)
-
-        # Returns
-
-        `<root>/aav-brain`
-        """
-        return self.root / "aav-brain"
-
-    @property
-    def archive(self) -> Path:
-        """the cold store for RAW transcripts, a sibling of `data`, never inside it.
-
-        curated evidence is versioned knowledge and belongs in `data`; raw
-        transcripts are bulk cache (hundreds of MB, growing forever) and must
-        stay out of that git history
-
-        # Returns
-
-        `<root>/aav-brain-archive`
-        """
-        return self.root / "aav-brain-archive"
-
-    @property
-    def gate_state(self) -> Path:
-        """the per-checkout review-gate state.
-
-        private run state, never versioned and never in the repo under review,
-        so a finished run leaves nothing in the tree (CLEANUP deletes its file)
-
-        # Returns
-
-        `<root>/aav-brain-gate`
-        """
-        return self.root / "aav-brain-gate"
-
-    def session_log(self, tool: str) -> Path:
-        """the dir of one tool's session logs (brainlib.session): durable, unversioned, per machine; nothing prunes it.
-
-        one dir per tool, so one tool's call is never read as another's
-
-        # Arguments
-
-        * `tool` - the tool's command (`Layout.command`)
-
-        # Returns
-
-        `<root>/aav-<tool>-log`, or the tool's dir in SESSION_LOG_ALIASES
-        """
-        return self.root / self.SESSION_LOG_ALIASES.get(tool, f"aav-{tool}-log")
 
     @staticmethod
     def config() -> Path:
-        """his per-machine config folder, never in a repo.
+        """his per-machine config folder.
 
         # Returns
 
@@ -506,13 +499,142 @@ class XdgLayout:
         """
         return cls.config() / PRIVATE_TOML
 
+    @classmethod
+    def repos_toml(cls) -> Path:
+        """the file naming the roots his checkouts live under, and the edit copy when it is under none.
+
+        # Returns
+
+        REPOS_TOML under `config()`
+        """
+        return cls.config() / REPOS_TOML
+
+    @classmethod
+    def install_home(cls) -> Path:
+        """the install copy: the home checkout every skill, agent and command runs from, never edited.
+
+        always under `$HOME`, never `XDG_CONFIG_HOME`: the home repo's
+        `install-copy.nix` names it relative to `$HOME`, and nix and python
+        must name the same directory
+
+        # Returns
+
+        `$HOME/.config/aav/home`
+        """
+        return Path.home() / INSTALL_HOME
+
+    @classmethod
+    def edit_brain(cls) -> Path:
+        r"""the edit copy's brain: where the brain is edited, and where every tool keeps its data.
+
+        the candidates are repos.toml's `edit` when set and not empty, else
+        `<root>/home` for every one of its `roots` in order (DEFAULT_ROOTS
+        when it sets none), `~` expanded in each. the first candidate that
+        holds a brain and does not resolve to an install copy,
+        `install_home()` or the older HM_HOME, is the edit copy; a declared
+        `edit` that does not qualify is refused, never passed over. repos.nix
+        resolves `AVE` from the same candidates in the same order, but matches
+        an install copy by its path string, unresolved, and refuses nothing.
+        the file is read on every call
+
+        # Returns
+
+        `<edit copy>/brain`, symlinks resolved
+
+        # Raises
+
+        EditCopyMissing when no root's home qualifies; NoVerdict, naming the
+        value and repos.toml, when a declared `edit` holds no brain or is an
+        install copy, and when repos.toml cannot be read, is not of that shape,
+        or names a relative path
+
+        # Example
+
+            >>> import os, tempfile
+            >>> from unittest import mock
+            >>> with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"HOME": tmp}):
+            ...     os.environ[Env.XDG_CONFIG_HOME] = ""
+            ...     home = Path(tmp).resolve()
+            ...     def brain(at: str) -> None:
+            ...         Layout(home / at / HOME_BRAIN).bin.mkdir(parents=True)
+            ...     def edit(toml: str) -> str:
+            ...         _ = XdgLayout.repos_toml().write_text(toml)
+            ...         try:
+            ...             return XdgLayout.edit_brain().relative_to(home).as_posix()
+            ...         except NoVerdict as refused:
+            ...             return str(refused).replace(tmp, "~")
+            ...     brain(".config/aav/home")
+            ...     brain(".config/home-manager")
+            ...     (home / "half" / HOME_REPO / HOME_BRAIN).mkdir(parents=True)
+            ...     absent = edit("")
+            ...     brain("repos/personal/home")
+            ...     brain("else/home")
+            ...     edit(""), edit('roots = ["~/.config/aav", "~/half", "~/repos/personal"]\n'), edit('edit = ""\n')
+            ...     edit('edit = "~/else/home"\n'), absent
+            ...     edit('edit = "~/.config/home-manager"\n')
+            ...     edit('edit = "~/half/home"\n')
+            ...     edit('roots = "~"\n')
+            ...     edit('edit = "else/home"\n')
+            ('repos/personal/home/brain', 'repos/personal/home/brain', 'repos/personal/home/brain')
+            ('else/home/brain', 'no edit copy - run /home-setup')
+            '~/.config/aav/repos.toml: `edit` = ~/.config/home-manager is an install copy, never the edit copy'
+            '~/.config/aav/repos.toml: `edit` = ~/half/home holds no brain'
+            '~/.config/aav/repos.toml: `roots` takes a list of paths and `edit` one path'
+            '~/.config/aav/repos.toml: `roots` and `edit` take absolute paths, `~` expanded; else/home is not'
+        """
+        # --------------------------------------------------
+        # the declared roots and edit copy; an absent file declares neither
+        # --------------------------------------------------
+        repos = cls.repos_toml()
+        declared: dict[str, object]
+        try:
+            declared = tomllib.loads(read_text(repos))
+        except FileNotFoundError:
+            declared = {}
+        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as broken:
+            raise NoVerdict(f"{repos} unreadable ({broken})") from broken
+        # --------------------------------------------------
+        # each root must be a path, as must the edit copy, an empty one unset; another shape is refused, never skipped
+        # --------------------------------------------------
+        roots, edit = declared.get("roots", list(DEFAULT_ROOTS)), declared.get("edit")
+        edit = None if edit == "" else edit
+        named = [root for root in Json.members(roots) if isinstance(root, str)]
+        if not isinstance(edit, str | None) or not Json.is_array(roots) or len(named) != len(roots):
+            raise NoVerdict(f"{repos}: `roots` takes a list of paths and `edit` one path")
+        # --------------------------------------------------
+        # every declared path absolute once `~` is expanded: a relative one would resolve against the cwd
+        # --------------------------------------------------
+        edits = [] if edit is None else [edit]
+        if relative := [path for path in (*named, *edits) if not Path(path).expanduser().is_absolute()]:
+            raise NoVerdict(f"{repos}: `roots` and `edit` take absolute paths, `~` expanded; "
+                            f"{', '.join(relative)} is not")
+        # --------------------------------------------------
+        # the declared edit copy alone, else every root's home; the first holding a brain that no install copy is
+        # --------------------------------------------------
+        candidates = [Path(edit)] if edit is not None else [Path(root) / HOME_REPO for root in named]
+        installs = {cls.install_home().resolve(), (Path.home() / HM_HOME).resolve()}
+        found = next((home for candidate in candidates
+                      if (home := candidate.expanduser().resolve()) not in installs
+                      and Layout(home / HOME_BRAIN).bin.is_dir()), None)
+        if found is not None:
+            return found / HOME_BRAIN
+        # --------------------------------------------------
+        # no root's home qualifying is no edit copy; a declared one not qualifying is a mistake in the file
+        # --------------------------------------------------
+        if edit is None:
+            raise EditCopyMissing
+        why = ("is an install copy, never the edit copy" if Path(edit).expanduser().resolve() in installs
+               else "holds no brain")
+        raise NoVerdict(f"{repos}: `edit` = {edit} {why}")
+
 
 @dataclass(frozen=True)
 class DataLayout:
-    """every path inside the brain's private data dir.
+    """every path inside the brain's private data dir: the edit brain's `logs/` submodule.
 
     the same rule as Layout, for the half that is never committed to the public
-    repo: the decision trace and the extracted evidence corpus
+    repo: the decision trace and the extracted evidence corpus, versioned in
+    the private submodule, and LocalLayout's per-machine files beside them
 
     # Example
 
@@ -524,13 +646,25 @@ class DataLayout:
 
     @classmethod
     def discover(cls) -> "DataLayout":
-        """the layout rooted at the private data dir.
+        """the layout rooted at the edit brain's private data dir.
 
         # Returns
 
-        a DataLayout over `XdgLayout.data`
+        a DataLayout over the edit brain's `Layout.data_submodule`
+
+        # Raises
+
+        EditCopyMissing when this machine has no edit copy; NoVerdict when its
+        `.gitmodules` names no DATA_SUBMODULE, or that submodule is not checked
+        out, since a file written into the bare dir would block its init
         """
-        return cls(XdgLayout.discover().data)
+        brain = XdgLayout.edit_brain()
+        if (root := Layout(brain).data_submodule) is None:
+            raise NoVerdict(f"{brain}/.gitmodules names no `{DATA_SUBMODULE}` submodule")
+        if not (root / ".git").exists():
+            raise NoVerdict(f"{root} is not checked out; run "
+                            f"`git -C {brain} submodule update --init {root.relative_to(brain)}`")
+        return cls(root)
 
     @property
     def trace(self) -> Path:
@@ -561,6 +695,117 @@ class DataLayout:
         the EvidenceLayout over `<data>/evidence`
         """
         return EvidenceLayout(self.root / "evidence")
+
+    @property
+    def local(self) -> "LocalLayout":
+        """the per-machine files: never committed, never pushed.
+
+        # Returns
+
+        the LocalLayout over `<data>/local`
+        """
+        return LocalLayout(self.root / LOCAL)
+
+
+@dataclass(frozen=True)
+class LocalLayout:
+    """every per-machine path inside the data dir: raw transcripts, gate state, session logs.
+
+    bulk or per-run, so none of it is versioned. the dir ignores itself: a
+    writer takes its paths off `writable()`, which writes LOCAL_GITIGNORE into
+    the dir when absent, so nothing a tool writes here can be staged, even
+    when the data checkout's own ignore rules are behind. a reader takes them
+    off the layout as it is and creates nothing; a dir not yet written reads
+    as empty. `archive` cannot be rebuilt once the harnesses prune their
+    transcripts, so the dir is never cleaned
+
+    # Example
+
+        >>> import tempfile
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     local = DataLayout(Path(tmp)).local
+        ...     paths = (local.archive, local.gate, local.session_log("b-recall"), local.session_log("b-gate"))
+        ...     [path.relative_to(tmp).as_posix() for path in paths]
+        ...     read = local.root.exists()
+        ...     read, (local.writable().root / ".gitignore").read_text() == LOCAL_GITIGNORE
+        ['local/archive', 'local/gate', 'local/sessions/recall', 'local/sessions/gate']
+        (False, True)
+    """
+
+    root: Path
+
+    def writable(self) -> Self:
+        """this layout, its dir made and its self-ignoring .gitignore written when absent: the step every writer takes.
+
+        # Returns
+
+        this layout, `<local>` holding LOCAL_GITIGNORE as `.gitignore`
+
+        # Raises
+
+        OSError when the .gitignore cannot be written
+        """
+        gitignore = self.root / ".gitignore"
+        if not gitignore.is_file():
+            write_text(gitignore, LOCAL_GITIGNORE)
+        return self
+
+    @property
+    def archive(self) -> Path:
+        """the cold store for RAW transcripts, gzipped by `b-extract --archive`.
+
+        curated evidence is versioned knowledge and belongs in the data dir's
+        `evidence`; raw transcripts are bulk cache (hundreds of MB, growing
+        forever) and stay out of that git history
+
+        # Returns
+
+        `<local>/archive`
+        """
+        return self.root / "archive"
+
+    @property
+    def gate(self) -> Path:
+        """the review-gate state, one file per checkout under review.
+
+        never in the repo under review, so a finished run leaves nothing in
+        the tree (CLEANUP deletes its file)
+
+        # Returns
+
+        `<local>/gate`
+        """
+        return self.root / "gate"
+
+    @property
+    def sessions(self) -> Path:
+        """every tool's session logs, one dir per tool, apart from `archive` and `gate` so no tool's name collides.
+
+        # Returns
+
+        `<local>/sessions`
+        """
+        return self.root / SESSIONS
+
+    def session_log(self, tool: str) -> Path:
+        """the dir of one tool's session logs (brainlib.session); nothing prunes it.
+
+        one dir per tool, so one tool's call is never read as another's
+
+        # Arguments
+
+        * `tool` - the tool's command (`Layout.command`)
+
+        # Returns
+
+        `<local>/sessions/<tool past COMMAND_PREFIX>`
+
+        # Example
+
+            >>> LocalLayout(Path("/d")).session_log("b-x")
+            PosixPath('/d/sessions/x')
+        """
+        return self.sessions / tool.removeprefix(COMMAND_PREFIX)
 
 
 @dataclass(frozen=True)
