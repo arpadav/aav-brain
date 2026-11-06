@@ -27,8 +27,8 @@ from typing import NoReturn
 # --------------------------------------------------
 # constants
 # --------------------------------------------------
-# how free text reaches a tool, named once for stdin_text's refusal and the positional one
-HEREDOC = "the text goes on stdin through a quoted heredoc: <<'EOF', the text, then EOF"
+# how free text reaches a tool, named once for stdin_verbatim's refusal and the positional one
+HEREDOC = "the text goes on stdin: a quoted heredoc (<<'EOF', the text, then EOF), or a file (< file)"
 # the token past which every token is positional, however it is spelled
 END_OF_FLAGS = "--"
 # every command's flags, keyed by its command (`Layout.command`); -h is every command's and is not listed
@@ -43,7 +43,6 @@ COMMANDS: Mapping[str, tuple[Flag, ...]] = MappingProxyType({
     "b-graph": (Flag.CHECK,),
     "b-lint": (Flag.LIST, Flag.VERBOSE),
     "b-misses": (Flag.SINCE,),
-    "b-open-items": (),
     "b-principles": (Flag.CHECK,),
     "b-private": (Flag.SINCE, Flag.TIP),
     "b-recall": (Flag.COUNT, Flag.BINDS, Flag.TELLS, Flag.NEIGHBORS, Flag.ALL),
@@ -343,8 +342,7 @@ class Args:
 
         # Raises
 
-        UsageError with HEREDOC when stdin is a terminal (no heredoc was given)
-        or carries only whitespace
+        UsageError with HEREDOC as `stdin_verbatim` raises it
 
         # Example
 
@@ -354,14 +352,49 @@ class Args:
             ...     Args(()).stdin_text()
             'rust review, dont commit'
         """
+        return " ".join(self.stdin_verbatim().split())
+
+    def stdin_verbatim(self) -> str:
+        r"""the text a tool takes on stdin, as piped: every line, and its indentation, kept.
+
+        a command an agent runs gets no terminal, so a forgotten redirect reads
+        as empty stdin, never as a terminal; empty is refused as a terminal is,
+        so a forgotten heredoc never lands as an empty text
+
+        # Returns
+
+        the text
+
+        # Raises
+
+        UsageError with HEREDOC when stdin is closed, is a terminal (no heredoc was given)
+        or carries only whitespace
+
+        # Example
+
+            >>> import io
+            >>> from unittest import mock
+            >>> with mock.patch.object(sys, "stdin", io.StringIO("  indented\n\nkept\n")):
+            ...     Args(()).stdin_verbatim()
+            '  indented\n\nkept\n'
+            >>> def refusal(stdin: object) -> str | None:
+            ...     with mock.patch.object(sys, "stdin", stdin):
+            ...         try:
+            ...             Args(()).stdin_verbatim()
+            ...         except UsageError as error:
+            ...             return str(error)
+            ...     return None
+            >>> refusal(io.StringIO(" \n")) == refusal(None) == HEREDOC
+            True
+        """
         # --------------------------------------------------
-        # a terminal has no piped text; otherwise collapse the whitespace to one line
+        # a closed stdin, or a terminal, has no piped text
         # --------------------------------------------------
-        text = "" if sys.stdin.isatty() else " ".join(sys.stdin.read().split())
+        text = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
         # --------------------------------------------------
-        # no text at all is a usage error that shows the heredoc spelling
+        # no text at all is a usage error that shows how text reaches stdin
         # --------------------------------------------------
-        if not text:
+        if not text.strip():
             raise UsageError(HEREDOC)
         return text
 

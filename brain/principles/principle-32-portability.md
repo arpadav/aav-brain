@@ -5,8 +5,8 @@ tier: narrow
 rule: be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (b-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.
 interest: [intent-craft]
 confidence: high
-evidence_count: 5
-tells: ["i want all options combinations to work", "is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT..."]
+evidence_count: 6
+tells: ["i want all options combinations to work", "is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT...", "why are you hard-coding x86? why cant you just do a multiarch build say \"get the architecture of current machine?\""]
 ---
 
 # P32 - be portable: discover paths, never hardcode them
@@ -59,3 +59,6 @@ this principle was created by brain-self-refine: two skills (brain-self-refine, 
 hardcoded-path scan step all cited a principle "P-portability" that had no file, and the decision
 trace had flagged the per-skill `scripts/` symlink as "not portable (one-computer assumption)". the
 value was load-bearing in executable scan logic without a home; this principle is that home.
+
+## verbatim tells
+- "why are you hard-coding x86? why cant you just do a multiarch build say "get the architecture of current machine?"" (the build takes the architecture of the machine it runs on; no hardcoded x86 (2026-11-03, the coworker on an arm mac))

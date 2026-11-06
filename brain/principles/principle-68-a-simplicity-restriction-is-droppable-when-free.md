@@ -5,8 +5,8 @@ tier: conditional
 rule: a restriction he states "for now" or to keep the build simple is a cost-limiter, not a requirement - when the feature in front of you needs it lifted and lifting is about as cheap as honouring it, lift it (only as far as that feature needs); when the cost is unknown, ask once whether to drop it, with a recommendation.
 interest: [intent-efficiency, intent-control]
 confidence: medium
-evidence_count: 1
-tells: ["i only gave the non-murating \"restriction\" to make it simple to implement, but if its just as easy to make it mutate then drop that restriction. just allow the ressurrect stuff", "i mean just a view, api call, no mutating interactions (for now)"]
+evidence_count: 2
+tells: ["i only gave the non-murating \"restriction\" to make it simple to implement, but if its just as easy to make it mutate then drop that restriction. just allow the ressurrect stuff", "dont make it required? this is a weird constraint", "remove those tests/checks then?", "i mean just a view, api call, no mutating interactions (for now)"]
 ---
 
 # P68 - a simplicity restriction is droppable when free

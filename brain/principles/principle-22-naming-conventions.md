@@ -5,8 +5,8 @@ tier: narrow
 rule: names and layout are deliberate. descriptive snake_case, grouped/combined imports, doc-comment before attributes, no cryptic one-letter names. the lexical layer matters as much as the logic.
 interest: [intent-craft]
 confidence: high
-evidence_count: 104
-tells: ["combined imports", "snake_case", "better names for crate", "i dont want fast itoa", "rename", "doc comment first", "find me 10-20 alternatives, but dont just write them out, search web, accumulate a bunch, then cut them down", "i dont want to use the term skip", ".of makes no sense as a function", "rename them all"]
+evidence_count: 105
+tells: ["combined imports", "snake_case", "better names for crate", "i dont want fast itoa", "rename", "doc comment first", "find me 10-20 alternatives, but dont just write them out, search web, accumulate a bunch, then cut them down", "i dont want to use the term skip", ".of makes no sense as a function", "rename them all", "can you describe what the \"fence\" is? i dont like that term. it means nothing."]
 ---
 
 # P22 - naming and micro-conventions
@@ -45,3 +45,6 @@ cryptic name forever.
 ## anti-pattern
 `L = len(text)` style cryptic locals; scattered/un-merged imports; attribute-before-doc; a name that
 describes the caller instead of the thing; `X::of(...)` / `def of` / `static of`.
+
+## verbatim tells
+- "can you describe what the "fence" is? i dont like that term. it means nothing." (a name says what the thing does ("kept unfused", "marked as debug tensors"), never a metaphor that needs explaining ("fence") (2026-11-03, the TensorRT value-map fix))

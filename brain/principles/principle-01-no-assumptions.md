@@ -5,8 +5,8 @@ tier: conditional
 rule: Under ANY ambiguity in spec or implementation detail, stop and ask. Never guess.
 interest: [intent-control, intent-comprehension]
 confidence: very-high
-evidence_count: 46
-tells: ["do NOT assume anything", "always ask under any ambiguity", "talk to me and iterate"]
+evidence_count: 47
+tells: ["do NOT assume anything", "always ask under any ambiguity", "talk to me and iterate", "the trt question is stupid. make it the same as build.sh which defaults to trt"]
 tension: [principle-10-autonomy-after-sanction]
 ---
 

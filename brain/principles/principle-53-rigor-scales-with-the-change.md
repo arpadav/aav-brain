@@ -5,7 +5,7 @@ tier: conditional
 rule: how much review a change buys is set by what the CHANGE did, not by a phase ending. a patchwork fix is proved by the mechanical check and its own acceptance clause; the cold multi-lens review is for architectural change and a lot of moved code. measure the change and take the exit the measurement names.
 interest: [intent-efficiency, intent-trust]
 confidence: high
-evidence_count: 3
+evidence_count: 4
 tells: ["no review gates here on documentstion dude, just on code", "do NOT do a full cold review gate on something which is clearly just a patchwork fix", "this is ONLY when architectural changes are required and a lot of code has been changed", "adding a single flag to some struct can just be checked with built test lint etc", "no... thats not necessary"]
 ---
 
@@ -72,3 +72,5 @@ review for a one-line fix. [[principle-03-review-gate]] is what the review does 
 a full cold review commissioned for a stale number in a doc comment. and its mirror, which is worse:
 reading this principle as permission to skip the review on a change that moved a type or touched money
 because the diff looked small.
+
+**Counter-pressure (2026-11-04).** the gate loop's findings are not the scope: four rounds of review-added structure grew an if/else ask to ~1900 lines. each gate report states the net size against his ask ([[principle-14-minimal-surface]]) before the next round starts.

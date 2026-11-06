@@ -72,7 +72,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-63-brainstorming-does-not-change-the-plan]] : an exploratory question gets an answer only; the live plan is untouched until he says change it
 - [[principles/principle-64-resume-after-interruption-verifies-then-redispatches]] : after a restart verify each worker, recover its output or re-dispatch; never assume done
 - [[principles/principle-65-numbered-recommendations-get-one-word-replies]] : numbered items with a recommended default so he can answer "affirm"; overrules are about extensibility or configurability
-- [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (b-open-items)
+- [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (the brain-open-items skill)
 - [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
 - [[principles/principle-68-a-simplicity-restriction-is-droppable-when-free]] : a "(for now)" / "to keep it simple" restriction is a cost-limiter - lift it, scoped to the one feature that needs it, when lifting is as cheap; ask once if the cost is unknown
 - [[principles/principle-69-reap-what-you-spawn]] : every process the run starts is the run's to stop - kill it when its output is in hand or superseded, budget heavy jobs to the machine, leave nothing running at the end
@@ -102,3 +102,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 
 ## how retrieval works
 see `bin/brainlib/recall.py`
+- [[principles/principle-70-config-is-a-file-not-a-build]] : editable values live in ONE always-mounted runtime_config.yaml (edit+restart, never a rebuild); fixed model/build facts are baked with a don't-edit manifest/ copy
+- [[principles/principle-71-check-every-requirement-then-list-all-missing]] : a tool checks every prerequisite first and stops once with the whole list of what is missing and how to get each - never one per run
+- [[principles/principle-72-capabilities-are-declared-per-unit-and-refused-up-front]] : per-unit capability flags, a build-script flag, refuse at the start saying how to lift it
+- [[principles/principle-73-pr-writeup-sorted-by-why]] : plans/PR.md sorts a grown diff by core / needed / review-added

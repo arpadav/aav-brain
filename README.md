@@ -29,9 +29,9 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
     flow/  graph/      the deterministic flow + the graph derived from the principles
     INDEX.md           the store manifest
   agentic-files/       the acting suite (home-manager links it into claude + codex)
-    skills/            the 13 skills (universal SKILL.md across claude / codex / ~/.agents)
+    skills/            the 14 skills (universal SKILL.md across claude / codex / ~/.agents)
     agents/            categorized: brain/  general/  lang/rust/  style/
-  bin/                 all tooling: brainlib (the shared lib), and the brain scripts, each a command
+  bin/                 brainlib (the shared lib) and the brain scripts, each a command
                        `b-<name>` (`Layout.scripts` says which file is one); each answers -h, and
                        ARCHITECTURE.md says how they reach PATH
     store/             build and keep the knowledge
@@ -40,6 +40,7 @@ aav-brain/             the one transferable brain (a `brain` submodule of home)
   prune.toml           how old a trace entry must be before it is eligible to be judged
   shape.toml           the numbers behind P27 and P28
   tiers.toml           which principles always load, which are scored, and the measurement behind it
+  verify.toml          the checks b-verify runs for a change here
   eval/                brain-eval.py + 25 tasks and their principle-derived rubrics: does a brain
                        version change how the work comes out, measured paired (on vs off)
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)

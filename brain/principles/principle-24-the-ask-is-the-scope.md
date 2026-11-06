@@ -6,8 +6,8 @@ rule: an ask gets what was asked and stops. a question - often me checking my mo
 interest: [intent-comprehension, intent-control, intent-efficiency]
 tension: [principle-10-autonomy-after-sanction, principle-50-the-standing-mission]
 confidence: very-high
-evidence_count: 409
-tells: ["am i mistaken?", "isnt X supposed to be optional?", "can you confirm??", "why on earth", "how are the builtin sizes determined?", "i asked you to clarify on the size renames with me, you just clarified and moved on", "this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?", "fix all things in scope to my request, all things out of scope just document into plans dir as a todos", "i didnt ask about 13-15. i didnt ask you to run anything", "the agent is running tests, i never asked for that, bruh", "it doesnt 'need' some tailnet login. you are simply wrong. the way you made the project might 'need' it, but you can literally do python3 -m 0.0.0.0 and nothing bad happens"]
+evidence_count: 410
+tells: ["am i mistaken?", "isnt X supposed to be optional?", "can you confirm??", "why on earth", "how are the builtin sizes determined?", "i asked you to clarify on the size renames with me, you just clarified and moved on", "this should have just been moving main fn's so i dont see the big confusion", "what was my original ask again?", "how much more is left?", "fix all things in scope to my request, all things out of scope just document into plans dir as a todos", "i didnt ask about 13-15. i didnt ask you to run anything", "the agent is running tests, i never asked for that, bruh", "it doesnt 'need' some tailnet login. you are simply wrong. the way you made the project might 'need' it, but you can literally do python3 -m 0.0.0.0 and nothing bad happens", "why do you care about the brainlib tool stuff? that has nothing to do with you"]
 ---
 
 # P24 - the ask is the scope
@@ -91,3 +91,6 @@ as a command to build; "while I was in there I also..." on work i did not sancti
 a reformat and a convention change stapled to a two-line fix, then presenting the gate's findings
 about that extra surface as if they were findings about my request; telling me a choice the code made
 is a requirement.
+
+## verbatim tells
+- "why do you care about the brainlib tool stuff? that has nothing to do with you" (a lint finding in a tool outside the task is not raised (2026-11-03))

@@ -227,7 +227,7 @@ id = "CLEANUP"
 kind = "work"
 owner = "brain-meta-commit:sweep"
 recall = true
-doc = "the run's residue goes BEFORE the commit is drafted (P56), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects, delete the open-item file, the todo bullet that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `b-gate reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally"
+doc = "the run's residue goes BEFORE the commit is drafted (P56), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects and `resolve` it with the brain-open-items skill, never a bare delete (a refused resolve keeps the item open: report why and leave it), then delete the plan's index line that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `b-gate reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally"
 
 [[states]]
 id = "BLOCKED"
