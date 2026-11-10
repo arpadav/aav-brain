@@ -55,6 +55,7 @@ from brainlib import Args, Exit, Flag, Layout, Patch, Tool, UsageError, git, rea
 # --------------------------------------------------
 # external
 # --------------------------------------------------
+import ast
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -113,6 +114,14 @@ WEAK_NARRATION = [re.compile(p, re.IGNORECASE) for p in (
     r"\bis used here\b",
     r"\bnow (?:uses|takes|returns|accepts|holds|expects)\b",
 )]
+# the name a rust fn/struct/enum/trait declares, behind any of rust's qualifiers
+ITEM_NAME_RE = re.compile(
+    r'^\s*(?:(?:pub(?:\([^)]*\))?|async|const|unsafe|extern\s+"[^"]*")\s+)*'
+    r"(?:fn|struct|enum|trait)\s+([A-Za-z_]\w*)",
+    re.MULTILINE,
+)
+# a whole name that is only one of these says nothing about the item (P22)
+PREPOSITIONS = frozenset({"of", "on", "at", "to", "by", "as", "via", "into"})
 
 
 @dataclass(frozen=True)
@@ -320,9 +329,80 @@ class StyleGate:
             return "//"
         return None
 
+    @staticmethod
+    def name_breach(name: str) -> str | None:
+        """why an item name breaks the naming rule (P22), or None when it holds.
+
+        # Arguments
+        * `name` - the name a def/class/fn/struct/enum/trait declares
+
+        # Returns
+        the reason, or None for a descriptive name, a `from_<source>`
+        constructor, a dunder, or the discard `_`
+
+        # Example
+
+            >>> names = ("of", "of_boxes", "_resolve", "__init__", "for_device", "_")
+            >>> [StyleGate.name_breach(name) for name in names]
+            ['a bare preposition', 'an of_ constructor, not from_<source>', 'a leading underscore', None, None, None]
+        """
+        if name in PREPOSITIONS:
+            return "a bare preposition"
+        if name.startswith("of_"):
+            return "an of_ constructor, not from_<source>"
+        if name.startswith("_") and name != "_" and not (name.startswith("__") and name.endswith("__")):
+            return "a leading underscore"
+        return None
+
+    @classmethod
+    def bland_names(cls, path: Path, text: str) -> list[Finding]:
+        """every defined name in a python or rust file that breaks the naming rule.
+
+        python is walked as a syntax tree, so a `def` inside a string is not
+        code. rust is matched line by line with its block comments blanked; a
+        `fn` inside a multi-line string literal still matches
+
+        # Arguments
+        * `path` - the source file, whose suffix picks the parser
+        * `text` - its full text
+
+        # Returns
+        one Finding per breach, in line order; none for another language or
+        python that does not parse
+
+        # Example
+
+            >>> source = "def of(): pass"
+            >>> [finding.detail for finding in StyleGate.bland_names(Path("a.py"), source)]
+            ["'of' is a bare preposition"]
+            >>> StyleGate.bland_names(Path("a.md"), source)
+            []
+        """
+        # --------------------------------------------------
+        # every (line, name) the file defines
+        # --------------------------------------------------
+        if path.suffix == ".py":
+            try:
+                tree = ast.parse(text)
+            except SyntaxError:
+                return []
+            named = [(node.lineno, node.name) for node in ast.walk(tree)
+                     if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)]
+        elif path.suffix == ".rs":
+            code = re.sub(r"/\*.*?\*/", lambda block: re.sub(r"[^\n]", " ", block.group(0)), text, flags=re.DOTALL)
+            named = [(code.count("\n", 0, match.start(1)) + 1, match.group(1))
+                     for match in ITEM_NAME_RE.finditer(code)]
+        else:
+            return []
+        # --------------------------------------------------
+        # keep the names that say nothing about the item
+        # --------------------------------------------------
+        return [Finding(str(path), lineno, "bland-name", f"'{name}' is {reason}")
+                for lineno, name in sorted(named) if (reason := cls.name_breach(name))]
+
     @classmethod
     def audit(cls, path: Path) -> list[Finding]:
-        """count the three violations a script can see.
+        """count the four violations a script can see.
 
         # Arguments
         * `path` - the source file to audit
@@ -385,6 +465,11 @@ class StyleGate:
         if bodies and not local:
             out.append(Finding(str(path), 1, "no-local-separators",
                                f"{bodies} function bodies, 0 local separators"))
+
+        # --------------------------------------------------
+        # a defined name says what the item does
+        # --------------------------------------------------
+        out.extend(cls.bland_names(path, "\n".join(lines)))
         return out
 
     @classmethod

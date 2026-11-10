@@ -5,9 +5,9 @@ tier: conditional
 rule: a pdf, chart, page or app is not done until its rendered output has been looked at - rasterise / screenshot and read it - and a programmatic audit of the things an eye misses (chart kind vs caption, embed width, label density, overfull lines, table overflow) sits in the build gate. a page or app built across sessions is also checked against his original prompt, and he is asked whether it matches, before done.
 interest: [intent-craft, intent-trust]
 confidence: very-high
-evidence_count: 4
+evidence_count: 5
 binds: [code]
-tells: ["ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong", "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up", "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm", "this is visually so confusing. middle is a blank screen, no styling", "i love the layout and look of the example, and this one is still way way way too crowded for the eyes", "this looks really good now, keep it going", "the 'how it executes' another mermaid diagram, vertical, its not very legible", "ok this is awful. i said, put my todos for THIS landing page ONTO the todos of the landing page, where are they? ... you should be proactive and ask me questions about whether or not this matches the origina prompt and original vision"]
+tells: ["ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong", "so please be hyper aware of these issues going forward, and talk to appropriate agents if they are working on them to bring these up", "but even a programmatic one, like looking through the tex and how the charts are embedded... some charts which are clearly not meant to be line graphs (like the intention was some surface?)... so look at chart types too and confirm", "this is visually so confusing. middle is a blank screen, no styling", "i love the layout and look of the example, and this one is still way way way too crowded for the eyes", "this looks really good now, keep it going", "the 'how it executes' another mermaid diagram, vertical, its not very legible", "ok this is awful. i said, put my todos for THIS landing page ONTO the todos of the landing page, where are they? ... you should be proactive and ask me questions about whether or not this matches the origina prompt and original vision", "these are all so similar, i cant even tell a difference", "the charts dont say anything about opacity or whatever. i literally just need rows/columns labeled", "why cant there be TWO DIMENSIONS one is the HEIGHT OF THE FOG and the second is the OPACITY", "STOPPPP dude holy fuckkk stop stop stop DONT make it pink"]
 ---
 
 # P48 - look at the rendered output
@@ -30,6 +30,13 @@ a diagram in a PR or doc is rendered output too: a wide left-to-right mermaid fl
 narrow column is a fail by its own look. he asked for the same flow redrawn top-down ("another mermaid diagram,
 vertical, its not very legible"). default a many-step flow to `flowchart TD`, and read it rendered at the width
 it will be shown at.
+
+a picture he picks a value from varies ONE plain variable per axis, labelled with its name and values, and shows the
+raw thing (boxes as given), never the answer he is choosing (kept/dropped colours, overlays, counts, coined words).
+four fog grids were rejected in a row with rising heat - columns that were the cutoff itself (so a row never changed),
+rows that moved fog extent and opacity together, per-panel stats, a pink "hidden" overlay - before rows = how far the
+fog reaches, columns = opacity, raw boxes, got "make the cutoff 0.925" at once. look at it before showing him: every
+axis must change the image.
 
 ## verbatim tells
 - "ok, and for the paper + charts, some stuff is very wrong. you should read the python chart outputs and even take screenshots to see what is wrong"

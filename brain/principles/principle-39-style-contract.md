@@ -5,9 +5,9 @@ tier: conditional
 rule: every language written gets its style resolved from the aav-style spec BEFORE code exists, and the STYLE gate is always required - it proves the result with b-fmt -g rather than asserting it. the contract lives here, not in a plan, so a plan from any source inherits it.
 interest: [intent-craft]
 confidence: very-high
-evidence_count: 5
+evidence_count: 6
 binds: [code]
-tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it", "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE", "please do a style pass on the git diff compared to main (+4.7k -200 lines). shell and python and all", "for phase 1's style pass in havoc-ml, which rule wins? -> My style, touched lines"]
+tells: ["they do not follow my style guide", "adhering to my style should be baked into the brain", "i always have to manually do it afterwards", "it should ALWAYS be required, unless i explicitly ask against it", "and you will do a style pass at the end? seeing a lot of issues on the rust side that dont adhere to my style. note that this should be at the END once its ALL DONE", "please do a style pass on the git diff compared to main (+4.7k -200 lines). shell and python and all", "for phase 1's style pass in havoc-ml, which rule wins? -> My style, touched lines", "stop the collapse. if the ruff counteracts it then the ruff is canonical and takes precidence over the custom style guide"]
 ---
 
 # P39 - the style contract, and the gate that proves it
@@ -44,6 +44,7 @@ it now emits `unstyled` and loops. `b-fmt -g` supplies the countable half:
 - function bodies with zero local separators (§11, the spec's own "most important part")
 - a blank line following a separator (the spec says never)
 - a global separator label outside the closed whitelist
+- a bare-preposition, `of_` or leading-underscore def/class name in python or rust ([[principle-22-naming-conventions]])
 - the language's formatter clean, run LAST
 
 what a script cannot judge - whether a local separator is NAMED well - stays with the lenses.
@@ -61,6 +62,10 @@ and the reason the end-of-build pass did not catch it: `b-fmt`'s rewriting path 
 to `#`, so it silently skipped every `.cu` and `.cpp` handed to it. it reported "10 file(s) rewritten"
 having touched only the python. **a style tool that cannot see the language reports success by
 saying nothing.**
+
+the repo's own canonical rules outrank the aav-style spec where they conflict: its ruff config (D200 folded every
+one-line docstring after the POC lines went) and its AGENTS.md ("keep comments minimal" over step-label separators that
+restate one line). the custom spec fills what the repo leaves open; it never fights the repo.
 
 ## how to apply
 - resolve the language row at INTENT, before the plan, not at STYLE.

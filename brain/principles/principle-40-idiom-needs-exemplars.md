@@ -99,6 +99,18 @@ Tool(TOOL, __doc__, flags=(Flag.CHECK,)).run(main)
 PYTHON_VERSION = "3.12"   # after: named once, referenced
 ```
 
+**11. a name says what it does: no bare preposition, no leading underscore ([[principle-22-naming-conventions]])**
+```python
+BoxEdits.of(boxes)               # before: the only constructor
+BoxEdits(boxes)                  # after: __init__
+ContentRegion.of_boxes(boxes)    # before: one of several constructors
+ContentRegion.from_boxes(boxes)  # after: from_<source>
+pools.on(device)                 # before: not a constructor
+pools.for_device(device)         # after: a real verb or noun phrase
+def _resolve(self): ...          # before
+def resolve(self): ...           # after
+```
+
 ## how to apply
 - writing code -> the doctrine loaded before the first line is this catalogue, filtered to the
   language, at the rigor [[principle-41-rigor-scales-with-purpose]] sets.
