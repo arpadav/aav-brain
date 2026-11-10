@@ -131,3 +131,5 @@ measured_on = "2026-09-05"
 "principle-71-check-every-requirement-then-list-all-missing" = { tier = "conditional", measured = false }
 "principle-72-capabilities-are-declared-per-unit-and-refused-up-front" = { tier = "conditional", measured = false }
 "principle-73-pr-writeup-sorted-by-why" = { tier = "conditional", measured = false }
+"principle-74-the-last-review-runs-at-high-effort" = { tier = "conditional", measured = false }
+"principle-75-green-suite-before-push-and-tests-follow-logic" = { tier = "conditional", measured = false }
