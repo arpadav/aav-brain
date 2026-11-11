@@ -114,13 +114,11 @@ NEVER strip periods one line at a time by hand — use the regex.
 
 ## §1 — No blank line between file-doc comment and first separator
 
-This is a frequent failure: a blank line gets inserted between the file-doc comment and the first import separator. There must be **ZERO blank lines** there. The last line of the file-doc comment (`//! Author: aav`) is immediately followed — same column, next line — by the first separator's top hyphen line. Go straight from the file-doc comment into the import comments.
+This is a frequent failure: a blank line gets inserted between the file-doc comment and the first import separator. There must be **ZERO blank lines** there. The last line of the file-doc comment is immediately followed — same column, next line — by the first separator's top hyphen line. Go straight from the file-doc comment into the import comments.
 
 **CORRECT — flush, no gap:**
 ```rust
 //! Module for handling archive formats
-//!
-//! Author: aav
 // --------------------------------------------------
 // local
 // --------------------------------------------------
@@ -129,15 +127,13 @@ use crate::core::config::Config;
 **WRONG — blank line after the file-doc comment (the exact bug to kill):**
 ```rust
 //! Module for handling archive formats
-//!
-//! Author: aav
 
 // --------------------------------------------------
 // external
 // --------------------------------------------------
 use std::fs;
 ```
-The blank line on the line after `//! Author: aav` is the defect. Delete it so the separator butts directly against the file-doc comment.
+The blank line after the file-doc comment is the defect. Delete it so the separator butts directly against the file-doc comment.
 
 ## Multi-line separators
 

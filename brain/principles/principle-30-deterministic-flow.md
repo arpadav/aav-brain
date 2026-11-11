@@ -5,8 +5,8 @@ tier: narrow
 rule: when executing, deterministically follow the execution flow (brain/flow/flow.toml). the FLOW is the sequence; the GRAPH is the context fetcher. they are SEPARATE and must never conflate.
 interest: [intent-control, intent-efficiency]
 confidence: very-high
-evidence_count: 3
-tells: ["does it deterministically follow a flow chart", "the brain flow chart where it describes the sequence", "ensure they are separate", "is that conflated with the brain graph context fetcher/manager"]
+evidence_count: 4
+tells: ["does it deterministically follow a flow chart", "the brain flow chart where it describes the sequence", "ensure they are separate", "is that conflated with the brain graph context fetcher/manager", "did you do CLEANUP phase prior to DONE phase ? in brain? did you even walk the brain ?"]
 ---
 
 # P30 - deterministic execution flow, separate from the graph
@@ -33,6 +33,12 @@ states/transitions), and call-direction keeps both honest.
 - knowledge never steers sequence: which principle ranks #1 cannot change a transition. transitions depend
   only on (current state, outcome event, guard).
 - rebuild + check the flow when it changes: `b-flow`, then `b-flow -c`.
+
+a cadence change he makes mid-run ("no reviews between phases, one at the end") changes WHICH gates run, never
+whether the walk ends: STYLE -> CLEANUP -> RECORD -> CURATE -> DONE are still stepped with b-walk and their owners
+loaded. measured 2026-11-09: a build walked to STYLE, then stopped stepping; CLEANUP, RECORD, CURATE and DONE never ran
+until he asked "did you do CLEANUP phase prior to DONE phase ? in brain? did you even walk the brain ?". a /brain-edit
+mid-build enters the EDIT walk too - logging its decisions with b-trace is not walking it.
 
 ## anti-pattern
 describing the flow only as drifting prose/mermaid (un-deterministic, un-checkable). using "node/edge"

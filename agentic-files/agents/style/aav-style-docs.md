@@ -47,15 +47,13 @@ Every file begins with a file-level doc comment describing its contents.
 
 If the file is a **module or tool** (publicly used/exported), include inline usage examples with triple backticks. If it is an **internal/private utility**, examples are not required (but usage info for bash scripts is still needed).
 
-The file-doc comment **always ends with**: `Author: aav`
+The file-doc comment carries **no author line** unless the project or the user asks for one; when asked, it is the last line of the file-doc comment, in the project's spelling (`Author: aav`, `POC: aav`).
 
-There is **no blank line between the file-doc comment and the first comment separator**. Go straight from `//! Author: aav` into the first import separator on the very next line — never leave a gap. (A blank line creeping in here is a known recurring bug; the separators lens also kills it, but do not introduce it when you write the file-doc comment.)
+There is **no blank line between the file-doc comment and the first comment separator**. Go straight from the file-doc comment's last line into the first import separator on the very next line — never leave a gap. (A blank line creeping in here is a known recurring bug; the separators lens also kills it, but do not introduce it when you write the file-doc comment.)
 
 **CORRECT — flush:**
 ```rust
 //! Module for handling archive formats
-//!
-//! Author: aav
 // --------------------------------------------------
 // external
 // --------------------------------------------------
@@ -64,8 +62,6 @@ use std::fs;
 **WRONG — blank line before the first separator:**
 ```rust
 //! Module for handling archive formats
-//!
-//! Author: aav
 
 // --------------------------------------------------
 // external

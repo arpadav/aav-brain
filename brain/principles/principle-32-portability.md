@@ -5,8 +5,8 @@ tier: narrow
 rule: be portable - never hardcode an absolute path and never assume a fixed repo layout. discover the root (b-find, this file's own location, a known skill-symlink anchor) and derive every path from it, so the tooling runs on any machine. a relative symlink that bakes in a sibling layout is a hardcoded path in disguise.
 interest: [intent-craft]
 confidence: high
-evidence_count: 6
-tells: ["i want all options combinations to work", "is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT...", "why are you hard-coding x86? why cant you just do a multiarch build say \"get the architecture of current machine?\""]
+evidence_count: 7
+tells: ["i want all options combinations to work", "is this path hardcoded?", "use $HOME not /home/arpad", "discover the root, dont assume the layout", "never guess a path", "if i say local, take local architecture. if i say this remote machine, then go into the damn machine and find out its architecture. there should be 0 hard coded architectures or weird architectural constraints on this", "like the local version should simply take the local architecture, thats IT...", "why are you hard-coding x86? why cant you just do a multiarch build say \"get the architecture of current machine?\"", "the memory budget is specific to THIS machine, not to augmentations in general. if you are capping it in the source code, that is non idiomatic and incorrect"]
 ---
 
 # P32 - be portable: discover paths, never hardcode them
@@ -53,6 +53,10 @@ hardcoded var or a fallback that guesses.
   install matrix in its `verify.toml`, so VERIFY proves every combination on a fresh machine rather than this
   one: "i want all options combinations to work ... seperable and can be installed individually and
   independentally".
+
+a resource budget is the machine's, not the library's: a memory cap written as bytes or as "N 1080p frames" in source
+is tuned to the box it was measured on. size it at runtime from the device (total or free memory) and keep only a
+machine-independent share as the constant.
 
 ## provenance
 this principle was created by brain-self-refine: two skills (brain-self-refine, brain-meta-style) and the

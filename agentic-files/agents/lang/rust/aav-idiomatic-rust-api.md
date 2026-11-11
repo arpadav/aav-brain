@@ -40,6 +40,7 @@ fn count(words: &[String], name: &str) { /* ... */ }
 - Flag constructors with long positional arg lists — especially several `Option`/`bool` in a row, trivial to transpose — or a fan of `new_with_x` variants. Rust has no named or default parameters; this is the exact smell builders exist to fix.
 - Provide a builder with chained `self`-returning setters and a `build()`. Consume `self` in setters; consume in `build()` unless the builder is intended as a reusable template. (A builder whose phases are enforced by typestate is `types`' `TYPE-4`.)
 - Where all fields have sensible zero-values, `#[derive(Default)]` and use `..Default::default()` struct-update syntax instead of a builder. Offer `new()` too when a no-arg constructor is reasonable — users reach for `new` first.
+- Flag a bare-preposition name (`fn of`, `fn on`, `fn at`) or an `of_<x>` constructor: the only constructor is `new`, several are `from_<source>`, a non-constructor gets a real verb (`pools.on(device)` -> `pools.for_device(device)`). They mean nothing to a reader (P22).
 
 ```rust
 let cfg = ServerConfig::builder().port(8080).tls(true).build();
