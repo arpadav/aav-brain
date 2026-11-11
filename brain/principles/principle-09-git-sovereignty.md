@@ -2,11 +2,11 @@
 name: principle-09-git-sovereignty
 kind: principle
 tier: conditional
-rule: Prepare the record, never publish it. No commit, push, PR, artifact or upload unless he asks for that exact act, no version bumps, and never overwrite his manual edits. A commit message is one line, no body, no Co-Authored-By or other trailer.
+rule: Prepare the record, never publish it. No commit, push, PR, artifact or upload unless he asks for that exact act, no version bumps, never a plans/ file in a commit, and never overwrite his manual edits. A commit message is one line, no body, no Co-Authored-By or other trailer.
 interest: [intent-sovereignty]
 confidence: very-high
-evidence_count: 41
-tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read", "yo i never NEVER asked you to commit, let me change the commit message", "i NEVER asked you to open a PR. i said make me a PR description", "i NEVER asked you to put this online as an artifact", "whats my one rule for committing? look at brain principles.. no co-authorship, and single line commits. literally look at my commit history and ask \"would arpad write this?\" for the commit message. why do you fail at this all the time?"]
+evidence_count: 43
+tells: ["do NOT commit", "i bump cargo tomls manually", "i will go through and verify the messages", "im the one who editted this", "files: <tree> commit: 'an example pre-filled commit'", "then i can simply say Y to accept or N to not accept the commit message", "you can commit in your worktree, but when these edits are applied after i approve them, then i should be the one to stage+commit things. but you have free version control reign locally", "note you are making style pass on scratchpad and not main branch, yes?", "did you say the style landed on feat/hml-deploy ? im on that one not v2", "is this built ontop of main or feat/hml-deploy ?", "give me a script to do the git checkout and apply onto feat/hml-deploy (uncommitted) so i can see the diff against hml-deploy btwn your v2", "i edited re-read", "yo i never NEVER asked you to commit, let me change the commit message", "i NEVER asked you to open a PR. i said make me a PR description", "i NEVER asked you to put this online as an artifact", "whats my one rule for committing? look at brain principles.. no co-authorship, and single line commits. literally look at my commit history and ask \"would arpad write this?\" for the commit message. why do you fail at this all the time?", "ok brain-sync should never commit plans, why isnt this ignored?", "i never want you to commit plans, you should know this?"]
 ---
 
 # P09 - Git sovereignty (prepare, don't publish)
@@ -19,6 +19,12 @@ under a blessed plan; the line is any act that leaves it:
 - **no publishing** - an artifact, a gist, a paste, an upload to any service - unless he asks for it.
   "can i view this on my phone?" is a question about how, answered before anything goes online.
 - **no version bumps** - he bumps `Cargo.toml` by hand.
+- **plans/ is never committed** - never staged, never in a drafted commit script, even when he
+  says "commit however": commits carry the work, plans/ stays on his disk. a repo that tracks
+  plans/ gets `/plans/` in its .gitignore and its plan files untracked, the files kept, in a
+  commit he asks for
+  (2026-11-03: "brain-sync should never commit plans, why isnt this ignored?"; 2026-11-09: "i
+  never want you to commit plans, you should know this?").
 - **never overwrite or revert his manual edits.**
 
 

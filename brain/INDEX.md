@@ -50,12 +50,12 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-40-idiom-needs-exemplars]] : "be idiomatic" changes nothing; every idiom rule carries a before/after pair and the writer is shown the pairs
 - [[principles/principle-41-rigor-scales-with-purpose]] : scratch skips idiom, tutorial adheres lightly, production is exhaustive - purpose is asked, never inferred
 - [[principles/principle-42-plain-english-questions]] : current flow is X, proposed flow(s) and options are Y, in plain english - never syntax or jargon
-- [[principles/principle-43-report-state-not-changelog]] : done or not done and what is left - never a tour of what was fixed; usage is a one-liner
+- [[principles/principle-43-report-state-not-changelog]] : done or not done and what is left - never a tour of what was fixed; usage is a one-liner; material he returns to goes on his todo list/doc with links, not into chat
 - [[principles/principle-44-build-from-nothing-to-something]] : he learns by building a ladder atomically, each step from the last one's output, interactive and self-checking - never by memorizing a finished artifact
 - [[principles/principle-46-stay-in-the-working-folder]] : the folder he named is the whole world of a task; toolchain caches may be read, his other repos and files never - ask first
 - [[principles/principle-47-copy-raw-fetches-into-the-repo]] : every fetched page lands in the repo's source corpus as it is fetched and the citing row names the copy; an uncopied fetch does not exist
 - [[principles/principle-48-look-at-the-rendered-output]] : green checks are not a pass - rasterise/screenshot and read the pdf, chart, page or app before calling it done, with a scripted audit of what an eye misses
-- [[principles/principle-49-his-interactive-app-shape]] : 3d stage first, click a point for its page on a stack, sliders for what matters, questionnaire-first persisted settings, receipt totals, 90's page + harsh retro scene, touch on his surface pro and phone, settings/filters relay live to every surface at once
+- [[principles/principle-49-his-interactive-app-shape]] : 3d stage first, click a point for its page on a stack, sliders for what matters, questionnaire-first persisted settings, receipt totals, 90's page + harsh retro scene, touch on his surface pro and phone, settings/filters relay live to every surface at once, a todo list shows dependents under what they wait on
 - [[principles/principle-50-the-standing-mission]] : a worker carries the run's END GOAL, not just the phase's ask - work that moves the mission is kept even when it exceeded the sentence
 - [[principles/principle-51-spaghetti-is-a-design-fault]] : when every available fix makes the code worse the DESIGN is the defect - or the review count stops dropping - leave the impl loop for DESIGN, redesign that one part, destructive proposals sanctioned
 - [[principles/principle-52-parallel-dispatch]] : fan two or three independent workers out in ONE message on disjoint file sets or their own worktrees; the tree-wide build/test/lint command stays with the overseer and runs one at a time
@@ -75,7 +75,7 @@ with [[../bin/run/brain-recall]] (graph traversal).
 - [[principles/principle-66-open-items-are-one-file-each]] : one file per open item in plans/open-items/, fixed shape, sha256 footer detects his edits (the brain-open-items skill)
 - [[principles/principle-67-merge-keeps-both-prioritises-one]] : diverged machines: fold true duplicate rules, but keep both competing mechanisms with a priority and prune later; everything ends on main, staged not committed
 - [[principles/principle-68-a-simplicity-restriction-is-droppable-when-free]] : a "(for now)" / "to keep it simple" restriction is a cost-limiter - lift it, scoped to the one feature that needs it, when lifting is as cheap; ask once if the cost is unknown
-- [[principles/principle-69-reap-what-you-spawn]] : every process the run starts is the run's to stop - kill it when its output is in hand or superseded, budget heavy jobs to the machine, leave nothing running at the end
+- [[principles/principle-69-reap-what-you-spawn]] : every process the run starts is the run's to stop - kill it when its output is in hand or superseded, budget heavy jobs to the machine, leave nothing running at the end - except the app he is looking at, which the run restarts itself and hands over as a 0.0.0.0 link
 
 ## tier 2: interests (the why behind the principles; positions->interests)
 - [[intents/intent-control]] : decision authority, no surprises

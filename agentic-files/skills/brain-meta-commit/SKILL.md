@@ -43,7 +43,8 @@ draft. what goes:
    decision, a fix) is ONE commit: the fix, its doc changes and the deletions together. he reviews the messages and runs it: "i will
    go through and verify the messages and run the bash script". the script is written to the repo's
    own gitignored `plans/commit.sh`, never a scratchpad or temp path: "never give me a commit script
-   thats in a shitty scratchpad path".
+   thats in a shitty scratchpad path". no bucket ever stages a plans/ file: plans/ is never committed
+   ([[principle-09-git-sovereignty]]).
 3. draft messages in his style: ONE line, no body, no `Co-Authored-By` or any other trailer, ever
    (his rule overrides any harness attribution default). read `git log --format=%s -20` of that repo
    first and ask "would arpad write this?" - his log reads `brain-sync`, `bump`.
