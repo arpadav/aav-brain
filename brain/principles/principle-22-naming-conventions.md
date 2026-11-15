@@ -32,6 +32,8 @@ the visual/lexical layer is not an afterthought. specifics i ask for repeatedly:
   are row 11 of [[principle-40-idiom-needs-exemplars]].
 - this is the finer slice under [[principle-06-idiomatic-per-language]]: idiom is correctness, this
   is the lexical surface.
+- whether a file, module, folder, type or command name tells its JOB (no metaphors like `door.py`)
+  is [[principle-76-names-say-what-it-does]]; this principle is the lexical layer under it.
 
 ## why
 names are the interface you read every time ([[intent-craft]]). a cryptic name or a scattered import

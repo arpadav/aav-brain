@@ -108,3 +108,4 @@ see `bin/brainlib/recall.py`
 - [[principles/principle-73-pr-writeup-sorted-by-why]] : plans/PR.md sorts a grown diff by core / needed / review-added
 - [[principles/principle-74-the-last-review-runs-at-high-effort]] : the final full review and a doubt-driven replan run at high effort, never medium
 - [[principles/principle-75-green-suite-before-push-and-tests-follow-logic]] : no push on a red suite; delete/update tests for moved APIs, report changed results as breaking
+- [[principles/principle-76-names-say-what-it-does]] : a file/module/folder/type/unit/command name alone tells what it does; no metaphors (door.py) or vague nouns; renamed with every reference
