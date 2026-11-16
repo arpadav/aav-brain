@@ -1,0 +1,205 @@
+---
+name: brain-meta-drive
+description: "The shared flow-traversal engine. INVOKED ONLY BY THE ENTRY SKILLS - brain-plan, brain-execute, brain-edit, brain-review, brain-self-refine - which MUST call Skill(brain-meta-drive) as their last step; it is never typed by the user and never invoked directly by a request. It walks flow.toml from the entry's $STATE to a terminal by executing b-walk, dispatching each state's owner (a brain-meta-* skill or a cold agent), recalling per state, and looping the threshold gates. It does NOT reconstruct state - the entry does that."
+---
+
+# brain-meta-drive: the shared flow-traversal engine
+
+every entry skill is thin and ends the same way: *reconstruct my region's state -> set `$STATE` (entry
+node) + `$REGIME` -> load this engine.* brain-meta-drive owns ONLY the walk: it steps `flow.toml` from
+`$STATE` to a terminal, running each state's owner. it is the ONE trampoline (P31) - the entries
+never reimplement it.
+
+## what calls this (and what they hand you)
+the caller (`brain-plan` @IDEATION, `brain-execute` @DOCTRINE, `brain-edit` @EDIT, `brain-review` @REVIEW,
+`brain-self-refine` @SR_SCAN) has ALREADY:
+- reconstructed its region's state (execute: the plan in plans/ + git; edit: the last run's commits,
+  diff and trace entries; self-refine: selection-state in the transcript + decisions.jsonl).
+  **the engine reconstructs nothing.**
+- set `$STATE` = its entry node, `$REGIME` = ask-first | execute-through (read it from the entry, do
+  NOT infer it from "did we cross SANCTION" - review and self-refine reach DONE without crossing it),
+  and `$MODE` = its mode, the `mode` of its `[[entries]]` row in flow.toml (`build`, `edit`,
+  `self-refine`, ...). b-walk rejects a mode flow.toml does not declare.
+
+**pass `-m "$MODE"` verbatim on every walk call; never infer it.** a guarded transition resolves by
+mode, so the same (state, event) leads somewhere different per entry - `VERIFY --more_phases-->
+DOCTRINE` is guarded `build` and exists for neither a refine nor an edit run, both of which are
+phase-less. a wrong mode silently takes the build branch and can send a two-line edit back to
+DOCTRINE for a phase that does not exist.
+
+## setup
+home-manager exports the brain root as `$AVB` and puts every brain script on
+PATH as `b-<name>` (`b-walk`, `b-recall`, `b-trace`, ...); a brain file is `$AVB/<path>`.
+the first `b-walk` of a session prints a legend of every command's flags (`-s=--state`, ...); later
+walks print `legend: b-walk -l`, the call that reprints it. a state's doc likewise prints in full once
+per session; a later walk prints the `b-walk ... -d` call that reprints it - run it when the doc is not
+in your context (a subagent shares the session and never saw it).
+
+## the handoff contract (every entry ends here)
+the handoff has TWO steps and both are mandatory - a summary of what the engine does is NOT a
+substitute for running it:
+```bash
+b-walk -s "$STATE" -m "$MODE"   # paste the output
+```
+**you may not proceed until that output is in the transcript.** it names the state's owner and its
+transitions; if it is absent, the walk did not happen. then, and only then, `Skill(brain-meta-drive)` -
+the literal tool call, not a Read. every state the engine reaches prints its own directive the same
+way - a `Skill(...)` or `Agent(...)` line under the state. make that call before doing the state's
+work; the owner skill IS the method, and hand-rolling it inline looks identical in the transcript
+while discarding it.
+
+## EXECUTE, do not read-and-reason (the cardinal rule)
+the flow is a program; you RUN it, you do not interpret it. you MUST execute `b-walk` for
+every step and treat its stdout as AUTHORITATIVE. do NOT open `flow.toml` and reason about
+transitions yourself - that re-derives the machine by hand, non-deterministically, and is the exact bug
+this design exists to prevent. if a script errors, FIX the error; never fall back to reading the data
+file and guessing. same for b-recall: run it, use its output; do not hand-pick principles.
+
+## the trampoline (the engine itself) - loop from `$STATE` until a terminal
+```bash
+b-walk -s "$STATE" -m "$MODE"     # the state's owner, its recall call, its exits
+```
+- if its output carries a `RECALL first, its principles are the method:` line -> run the `b-recall ...
+  <<'EOF'` call printed under it, `<task>` replaced by the active task, FIRST to load the relevant
+  principles. this is the ONLY call into the graph (context); the graph never decides the next
+  step. the query is the task PLUS the state's own job from its doc line ("<task> - judge names,
+  extension, use" at PLANGATE), so each state gets its own principles. the output is an index: READ the
+  principles you judge relevant, then cite each one you applied, with its evidence, in the state's
+  output (`P27: bench/ has 14 files, limit 12`). a state with no citation did not use the brain.
+- **LOAD THE OWNER. this is the step that gets skipped.** `b-walk` prints the literal call
+  under every state that has one:
+  ```
+  LOAD FIRST: Skill(brain-meta-style)
+  ^ make the call, not a Read; never this state's work inline
+  ```
+  make that call. **you may not do a state's work until its owner is in context** - the same bar the
+  walk output itself is held to. "run the owner" does NOT mean "do the state's work yourself": the
+  owner skill IS how that state is done, and hand-rolling it inline discards the encoded method while
+  looking, in the transcript, like the state ran.
+  this is measured, not theoretical: `brain-meta-style` was named as owner 49 times and loaded twice
+  (4%), `brain-meta-author-prompt` 19 times and loaded once (5%). the ONE owner that carries a literal
+  call in its handoff - this engine - loads every time. a name is not an instruction.
+  the two cold AGENTS (`brain-verifier` / `brain-review-gate`) are DISPATCHED instead, and the walk
+  says so (`DISPATCH COLD: Agent(subagent_type='brain-verifier')`). a state owned by the entry itself,
+  or by the `b-recall` script, prints no directive -
+  those are the only states you act on directly.
+- the owner returns an OUTCOME EVENT (`threshold_met` / `below_threshold` / `unsound` / `set_grew` /
+  `drafted`, ...).
+- get the next state from the data, never from your own judgement:
+```bash
+b-walk -s "$STATE" -o "$EVENT" -m "$MODE"
+```
+
+## cyclic refinement is REQUIRED (P03) - the gate loops never advance dirty
+the flow encodes threshold loops; you do not advance a phase until its metric holds:
+- **RECON..REORG**: per-file scrutiny + bidirectional reorg (P29, P27); the EXPAND back-edge grows the
+  relevant-file set to a fixpoint as moves/reshapes implicate new peripherals.
+- **PLAN -> PLANPROBE -> PLANGATE**: trace the plan through its worked example; `gap_found` /
+  `below_threshold` loop to PLAN, only `threshold_met` crosses SANCTION. (PLANGATE rule lives in its
+  flow-state doc - brain-meta-style:plan + the project reviewer when present.)
+- **IMPL -> PHASEGATE -> VERIFY**: PHASEGATE `below_threshold` -> REMEDIATE -> PHASEGATE until the review
+  converges; VERIFY `unsound` -> REMEDIATE until the build/test/bench is sound. only then advance.
+- a gate below threshold routes BACK (to PLAN or REMEDIATE), never forward.
+- **the loop is bounded by a script, not by judgement.** `b-gate phase` after each phase says
+  whether a gate is due (phases batch until the measured diff earns one) and how many reviewers it
+  gets (2-6). `b-gate round <valid> <serious>` after each ADJUDICATE names the event: two
+  rounds per gate, a round-2 decrease is fixed and verified with no third review, and a count that
+  does not drop goes to DESIGN - the design is the defect, not the diff (the same state a design-fault
+  verdict reaches). DESIGN's one re-review is
+  its acceptance test: a net decrease, or `capped` and he gets the list. measured before the cap:
+  22 -> 36 -> 40 findings while +639 -> +753 lines, on a feature a ~100 line script does.
+- **one gate dispatch per review.** the agents he names for review are forwarded into the one
+  `brain-review-gate` dispatch as required lenses; never dispatch them beside it.
+
+## boundary + stops
+- **SANCTION** (only on entries that pass through it) is the regime flip ask-first -> execute-through;
+  LOG the plan's decided-against forks to the trace (`b-trace`) per the SANCTION state doc before
+  flipping. for entries that never cross it (review, self-refine) the regime stays whatever the entry set.
+- a transition to a `blocked`/ASK state is the only sanctioned pause: cross back and ask via
+  `brain-meta-intent`. post-sanction, never assume - decision he'd want = ask; mechanical detail = proceed. several small details that together decide what USING it feels like are NOT mechanical: ask the experience once, plainly, up front (P42).
+
+## the two cold agents vs the loaded meta-skills
+`brain-verifier` and `brain-review-gate` are AGENTS on purpose: their value is a fresh, cleared-context
+dispatch that never saw the author's framing (P03, P04). everything else (`brain-meta-author-prompt`,
+`-style`, `-commit`, `-curate`, `-intent`, `-recall`) is a SKILL you LOAD into this loop. that is the
+bag-of-skills composition (P18).
+
+## reporting
+only at gates, and only what he cant see himself: verdicts, blockers, the single next action. no diff
+recaps. lowercase, terse, ends on the next action.
+
+every gate report also answers ONE line, unasked: is this the simplest AND the most generic way to
+do the job? both halves bind. simple but hard-coded (not generic) is bad. generic but heavier than
+needed is bad: C++ where a bash script does it, rust where python does it. the language follows the
+real bottleneck, so python instead of rust is also wrong when speed IS the bottleneck. a generic
+bash script beats an over-engineered python script. the test: if he asked "is this
+over-engineered?" right now and you would agree, you owed him that sentence before he asked. a
+critique produced only on request is an omission.
+
+## the review barrier - a review's input tree is FROZEN
+a review is a measurement, and a measurement of a moving target is noise. three rules, all hard:
+
+1. **while ANY review agent is live, dispatch nothing that mutates the tree** - no worker, no edit, no
+   `Write`/`Edit` by you. not "mostly nothing": nothing. a writer dispatched 29s after a background
+   `brain-review-gate` once made it report a red suite that was green, and it then attributed the
+   breakage to the diff under review. every finding downstream of that was suspect.
+2. **N reviewers dispatched => BARRIER.** ALL N must return before ADJUDICATE or REMEDIATE begins. a
+   partial set is NOT a converged set: fixing on `[1, N-1]` mutates the tree reviewer N is still
+   reading, and its findings arrive describing a file that no longer exists. wait, converge, adjudicate,
+   THEN fix.
+
+the same exclusion covers writers: **no two mutating agents on an overlapping file set**. serialise
+them, or give each `isolation: "worktree"`. two implementers on one crate 33s apart once forced the
+second to verify itself against a hand-built mirror, because the crate did not compile mid-flight.
+
+3. **N dispatched, M DENIED => the gate ran with M holes.** a dispatch refused by the permission
+   classifier, errored, or returned empty is a lens that DID NOT RUN, and converging on the
+   remainder reports a measurement nobody took. retry it - retries do succeed. if it still will not
+   go, name the missing lens and emit **`unmeasurable`**, which routes to BLOCKED; never
+   `below_threshold`, because a denial is not a finding and ADJUDICATE rules the empty set
+   `all_invalid` and advances. never let the barrier close on a set smaller than the one you chose.
+   about 29% of dispatches in a long session are refused (55 of 187 on the build measured under
+   [[principle-27-organization-reorg]]'s `## the measurement`, 14%-50% depending on the agent), so a
+   denial is the NORMAL case and absorbing one is not an edge case, it is the failure mode.
+
+if this costs wall-clock, it costs wall-clock. a fast wrong answer is what this engine exists to
+prevent (P04).
+
+## findings are evidence, not verdicts (the ADJUDICATE state)
+`PHASEGATE --below_threshold-->` lands on **ADJUDICATE**, never straight on REMEDIATE. classify every
+finding against the artifact's stated contract before any of it becomes work:
+
+| verdict | meaning | action |
+|---|---|---|
+| valid | a real defect | -> REMEDIATE |
+| design fault | real, and every available fix makes the code WORSE | -> DESIGN |
+| invalid | the finding contradicts the artifact's contract | REJECT + log the reason |
+| deferred | real, but a later phase delivers it | REJECT for this phase + log |
+
+**the design-fault verdict is the loop's only exit from the impl phase**: REMEDIATE's own doc says it
+"does NOT leave the impl phase" - DESIGN is the single exception, reached from here: by this verdict,
+or by `b-gate round` reporting a count that does not drop. the tells are mechanical, not a feeling: every fix you can name adds a branch/flag/parameter
+and none removes one; the same seam produces a different finding every round; the fix needs to know
+about something it should not. one of those, and you design that ONE atomic part - the error model,
+the id scheme, the one seam - write it to plans/ as an addendum, and come back. destructive and
+drastic proposals are sanctioned there and the size of the change is not an argument against them
+(P20, P51). without one of those tells you have a list of fixes, not a design fault - and calling
+every finding a design fault turns a bounded remediation into an unbounded redesign.
+
+the two classes that MUST be rejected, because "fixing" them cannot terminate:
+- **deliberate incompleteness.** a tutorial whose deliverable IS `todo!()`, a lab that ships red on
+  purpose, a scaffold carrying `[NEEDS INPUT]` markers. "this is unimplemented" is a DESCRIPTION of a
+  working artifact, not a finding. fixing it destroys the thing.
+- **out-of-phase work.** a multiphase plan is phased on purpose; a reviewer asking phase N to contain
+  phase N+1's deliverable is asking you to abandon the phasing.
+
+log every rejection so the next pass inherits it instead of re-litigating:
+`b-trace -k '<entry>' -d '<finding>' -c rejected -r '<finding>=<why>'`.
+a reviewer that self-reports uncertainty, or that you catch fabricating, is discounted wholesale -
+verify its claims yourself before any of them become work (P04, P08).
+
+## hard rules
+never assume post-sanction (decision he'd want = ask; mechanical detail = proceed; but the shape of the experience is always worth one plain question - P42). never fabricate.
+never commit/push/bump versions unless told. never trample his manual edits. channel intensity into
+named constraints, never abuse sub-agents. FREEZE the tree under a live review and BARRIER on all N.
+adjudicate before you remediate.

@@ -1,0 +1,678 @@
+# the execution flow - the authored source of truth (data, not code).
+# b-walk steps it directly and b-flow renders docs/FLOWCHART.md
+# from it; both validate it on load. this is the SEQUENCE; the knowledge graph
+# is the CONTEXT - they are separate (P30).
+#
+# cyclic refinement is REQUIRED (P03), not optional: each gate is an
+# intermediate node that LOOPS (review -> fix -> re-review) until a metric
+# THRESHOLD holds, then advances ONE phase. PLAN..PLANGATE cycles the plan
+# against its own worked example to a soundness threshold; PHASEGATE/VERIFY are
+# tight in-phase loops through REMEDIATE that converge consistency-then-soundness
+# before advancing. the RECON..REORG region is the per-file scrutiny +
+# bidirectional reorg loop (P29, P27); the set expands to a fixpoint
+
+# --------------------------------------------------
+# entries: the skill he types, the state it seeds, the mode it walks in. a
+# transition guard names one of these modes (`!mode` negates)
+# --------------------------------------------------
+[[entries]]
+skill = "brain-plan"
+state = "IDEATION"
+mode = "build"
+
+[[entries]]
+skill = "brain-execute"
+state = "DOCTRINE"
+mode = "build"
+
+[[entries]]
+skill = "brain-review"
+state = "REVIEW"
+mode = "build"
+
+[[entries]]
+skill = "brain-self-refine"
+state = "SR_SCAN"
+mode = "self-refine"
+
+[[entries]]
+skill = "brain-edit"
+state = "EDIT"
+mode = "edit"
+
+# --------------------------------------------------
+# states
+# --------------------------------------------------
+[[states]]
+id = "IDEATION"
+kind = "entry"
+owner = "-"
+recall = false
+regime = "ask-first"
+doc = "raw request received (brain-plan entry)"
+
+[[states]]
+id = "INTENT"
+kind = "work"
+owner = "brain-meta-intent"
+recall = true
+doc = "position -> interest; surface ambiguity"
+
+[[states]]
+id = "ASK"
+kind = "gate"
+owner = "brain-meta-intent"
+recall = true
+doc = "ask the smallest unblocking question; never guess (pre-sanction clarify). ORDER IS FIXED: the FIRST question is always about the EXPERIENCE - what using the thing is like, how he will interact with it - offered as whole shapes he can pick between (a watch loop that re-runs on save / a page on localhost / a chat drill), never as parameters. only after that are specifics asked, and each carries a RECOMMENDED DEFAULT so the cheap answer is yes. a specific with an obvious default is not worth a question at all - take it and say which you took. measured failure this repairs: a lab count, a file layout and a progress format were each waved through as mechanical detail, and together they WERE the product - he had to redirect three times mid-build. the test is not is this decision small, it is DOES THIS DECIDE WHAT USING IT FEELS LIKE (P42, P44)"
+
+[[states]]
+id = "RECON"
+kind = "work"
+owner = "b-recall+brain-plan"
+recall = true
+doc = "read fs; seed the relevant-file set from the task"
+
+[[states]]
+id = "EXPAND"
+kind = "work"
+owner = "b-recall"
+recall = true
+doc = "grep deps/peripherals; ADD newly-implicated files. the set is mutable"
+
+[[states]]
+id = "WOULDIWRITE"
+kind = "work"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "per file in the set: would i (arpad) write it like this? mark the no's"
+
+[[states]]
+id = "SCRUTINIZE"
+kind = "work"
+owner = "brain-meta-style:style"
+recall = true
+doc = "line-by-line on marked files: idiom, magic values, trim the fat"
+
+[[states]]
+id = "SEMANTIC"
+kind = "work"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "does each fn/struct/class LIVE where it belongs? DRY, reuse, library-fy (P05/P31)"
+
+[[states]]
+id = "RELOCATE"
+kind = "work"
+owner = "worker+brain-review-gate"
+recall = false
+doc = "move fns/structs/classes to their correct module/file"
+
+[[states]]
+id = "HIERARCHY"
+kind = "gate"
+owner = "brain-meta-style:plan"
+recall = false
+doc = "judge the tree: flat->tree if a file too long / folder too flat-crowded; tree->flat if a refactor shrank it"
+
+[[states]]
+id = "REORG"
+kind = "work"
+owner = "worker+brain-review-gate"
+recall = false
+doc = "apply the reshape in the flagged direction; this MUTATES the set -> re-expand"
+
+[[states]]
+id = "PLAN"
+kind = "work"
+owner = "brain-plan"
+recall = true
+doc = "small+verbose plan with a worked example, to plans/"
+
+[[states]]
+id = "PLANPROBE"
+kind = "work"
+owner = "brain-plan"
+recall = true
+doc = "trace the plan THROUGH its own worked example; mark every step the plan cannot actually produce (plan-vs-impl gap)"
+
+[[states]]
+id = "PLANGATE"
+kind = "gate"
+owner = "brain-meta-style:plan"
+recall = true
+doc = "architectural scrutiny (brain-meta-style:plan AND the project-native reviewer when one exists - code-truth lens) + worked-example coherence; the reviewer is handed his asks verbatim and runs the extension, use and name tests; emits threshold_met only when plan_open==0 AND the worked example traces end-to-end AND all three tests pass. loops via below_threshold until then"
+
+[[states]]
+id = "SANCTION"
+kind = "boundary"
+owner = "brain-meta-drive"
+recall = false
+doc = "arpad approves; the regime flips to execute-through. LOG the plan's decided-against forks to the trace HERE (not deferred to CURATE - a sanctioned-but-unexecuted plan never reaches it)"
+
+[[states]]
+id = "DOCTRINE"
+kind = "gate"
+owner = "brain-meta-author-prompt"
+recall = true
+binds = ["code"]
+regime = "execute-through"
+doc = "resolve the artifact PURPOSE (P41: scratch skip / tutorial light / production exhaustive) and the language row (P06); load the always-load doctrine set plus that language's extras; author the worker prompt carrying P40's before/after exemplars and the find-exhaustively ask. an adjective is not a resolved doctrine - emit unresolved (brain-execute entry, post-sanction)"
+
+[[states]]
+id = "IMPL"
+kind = "work"
+owner = "worker"
+recall = true
+regime = "execute-through"
+doc = "dispatch the workers with the prompt DOCTRINE authored; implement the phase (post-sanction). FAN OUT: two to three independent workers issued as PARALLEL TOOL CALLS IN ONE MESSAGE, each on a disjoint file set or in its own worktree, staggered as one returns - a loop of single dispatches is serial and looks identical in the transcript until you count them (P52). the tree-wide build/test/lint command belongs to the OVERSEER and runs one at a time, never to a worker: two builds block on one target lock and two mutation batteries revert over each other. a worker proves its own work with the cheap subset in its own worktree. the worker carries its END GOAL, not just this phase's ask: work beyond the literal ask that moves toward the sanctioned mission is IN, work merely adjacent is out (P24, P50). at the phase boundary `b-gate phase -t <the plan's S|M|L for this phase>` (add `-l` on the final phase) DECIDES the exit, and its word is final: `gate N` -> implemented (PHASEGATE, N reviewers); `defer` -> phase_done (the next phase; a later gate covers this one); `defer` under `-l` -> last_deferred, straight to VERIFY (`-l` gates any nonzero pending score, so its `defer` means a gate that ran already covers every phase). phases and gates are NOT 1-to-1: six small phases may share two gates. prose scores nothing (shape.toml's `[scan] prose`), so a doc-only build never buys the cold review - it gets STYLE. a ref git cannot resolve stops b-gate with a usage error and is never a `defer`, because a gate is not cancelled by a typo"
+
+[[states]]
+id = "PHASEGATE"
+kind = "gate"
+owner = "brain-review-gate"
+recall = true
+doc = "cold unguided multi-lens review vs the repo; converge; emits threshold_met only when nits_open==0 AND consistent-with-repo. loops via below_threshold -> ADJUDICATE, which is what makes the loop terminating. TWO SCOPES, and running only the first is the measured failure: the correctness and idiom lenses read the DIFF, and a STRUCTURE lens reads the WHOLE TREE - file length, folder fan-out, one datatype defined twice - because none of those is visible in a hunk. run `b-shape <repo>` FIRST and hand its crossings to that lens as its input; P27 and P28 are adjectives without it. what makes this a rule rather than a preference is measured, once, on principle-27 under `## the measurement`: the architecture lens ran at every late phase of a build, on the diff, and passed a 7540-line file every time - not because nobody looked, but because what it was shown could not contain the defect. WHEN IT FIRES is `b-gate phase` at the phase boundary (IMPL's doc): it accumulates the pending score across deferred phases and prints `gate N`, so a gate never lands mid-phase; prose scores nothing. a deferred phase goes on to the next - a two-line formatter fix does not buy a cold multi-lens review. A DENIED DISPATCH IS A HOLE, NOT A PASS: a lens refused by the permission classifier did not run, so the gate did not measure what that lens was for. retry once; if it still will not go, emit `unmeasurable` and stop - `below_threshold` is the WRONG event for it, because a denial is not a finding and ADJUDICATE would rule the empty set all_invalid and advance. dispatch brain-review-gate ONCE, never the reviewers yourself: every agent he named for review goes into its prompt as a required lens, and the gate fills the rest up to the count `b-gate phase` printed (2-6). round 2 re-reviews only the files the fix touched. there is no round 3 - ADJUDICATE's round count ends the loop"
+
+[[states]]
+id = "ADJUDICATE"
+kind = "work"
+owner = "brain-meta-style"
+recall = true
+doc = "a finding is EVIDENCE, not a verdict. classify each against the artifact's stated contract: valid | invalid | deferred-to-a-later-phase. ONLY valid findings reach REMEDIATE. an invalid one is REJECTED with a logged reason (b-trace -k '<owner>' -d '<finding>' -c rejected -r '<finding>=<why invalid>'), never fixed - fixing 'this is incomplete' on a deliberately-incomplete artifact is a loop that cannot terminate. then run `b-gate round <valid> <medium-or-worse>` and emit the event it prints: all_invalid | valid_remain | final_fix (fix, no re-review) | not_converging (DESIGN) | design_fault (DESIGN, when a finding's every fix makes the code worse) | capped (stop, list the open findings for him)"
+
+[[states]]
+id = "REMEDIATE"
+kind = "work"
+owner = "brain-meta-author-prompt+worker"
+recall = true
+doc = "fix the ADJUDICATED-VALID nits IN PLACE (incl local relocations); does NOT leave the impl phase. a finding ADJUDICATE ruled a DESIGN fault does not arrive here as a patch - it goes to DESIGN first and comes back as a shape to build to. patching around a bad design is what this state must not be used for (P20, P51). arrived via final_fix -> emit fixed_final (VERIFY, no third review); otherwise emit fixed (re-review)"
+
+[[states]]
+id = "VERIFY"
+kind = "gate"
+owner = "brain-verifier"
+recall = false
+doc = "build/test/bench honestly; emits sound only when the build is green AND the artifact's OWN stated bar is met AND the bench is within threshold. the bar is usually 'tests pass' but is NOT hardcoded to it: an artifact that ships deliberately red (a rustlings-style tutorial, a lab with todo!()) declares its real bar - e.g. `--features solutions` green while a bare `cargo test` stays red - and THAT is what soundness means for it. measuring against the wrong bar makes unsound permanent, the same non-terminating loop ADJUDICATE breaks at PHASEGATE. part of the bar can be declared by the repo itself: `b-verify` lists every check a `verify.toml` (here or in a superproject) attaches to the changed files, and each one it lists must run and pass. loops via unsound -> REMEDIATE. the pass events REQUIRE a returned brain-verifier report: measured, the agent was dispatched on 9 of ~31 visits, so 7 times in 10 the author verified its own work and advanced. verifying yourself is not verification - emit unverified and dispatch the agent"
+
+[[states]]
+id = "STYLE"
+kind = "gate"
+owner = "brain-meta-style:style + aav-style-separators + aav-style-docs + aav-style-imports + aav-style-items"
+recall = true
+doc = "the style gate, and it is ALWAYS required - only an explicit instruction against it skips it. resolve each language in the tree against the style-contract principle, dispatch the aav-style lenses (separators, docs, imports, items) to apply it, then PROVE the result as P39 says (b-fmt -g for the contract's countable breaches, b-fmt -c for formatting), and with b-register over the changed .md files (P57 register). emits styled ONLY when the mechanical checks pass: local separators present inside function bodies, no blank line after any separator, global labels inside the closed whitelist, no bare-preposition or leading-underscore names (P22), formatter clean. anything else emits unstyled and loops back. before this gate existed STYLE had a single outbound event, which made a hollow pass and a thorough one indistinguishable to the machine - it ran every time and proved nothing"
+
+[[states]]
+id = "RECORD"
+kind = "work"
+owner = "brain-meta-commit"
+recall = false
+doc = "categorise by semantics, draft the commit script, stop at the line"
+
+[[states]]
+id = "CURATE"
+kind = "work"
+owner = "brain-meta-curate"
+recall = true
+doc = "capture every correction/approval/interrupt -> update the store; log the decision trace"
+
+[[states]]
+id = "DESIGN"
+kind = "work"
+owner = "brain-meta-author-prompt+aav-semantic-architecture-reviewer"
+recall = true
+doc = "the design is the defect, not the diff (P51). TWO TRIGGERS, one state: ADJUDICATE rules a finding a design fault (`design_fault` - every available fix makes the code worse, so the patch spaghettifies), or `b-gate round` reports the count is not converging (`not_converging` - the valid findings did not drop, or a first round was full of medium-or-worse). STOP patching. map the flow and the dependency graph of what the findings touch (an ascii diagram), list HARD requirements (his words, the contract) apart from SOFT ones (the current shape), and ask of each piece: merge with another step, split it out, move it earlier or later, or cut it. scope is ONE atomic part, never the plan: the error model, the id scheme, the one seam the findings keep circling - name it, design it, write it to plans/ as an addendum so a cold reviewer reads it as errata rather than as drift. DESTRUCTIVE AND DRASTIC PROPOSALS ARE SANCTIONED HERE and nowhere else in the impl loop: delete the layer, invert the ownership, collapse the two types into one. the size of the change is not an argument against it (P20); the only test is whether the result is more maintainable and more atomic. within one part it proceeds without asking: run `b-gate design` and emit designed, handing REMEDIATE a shape to build to; the re-review after it is the acceptance test - a net decrease in valid findings, or capped. a redesign that reaches beyond one part is a re-plan, and re-planning a sanctioned build is his call: emit ambiguous and ask him ONCE (P42) with the diagram, the finding counts per round and the before/after shape"
+
+[[states]]
+id = "CLEANUP"
+kind = "work"
+owner = "brain-meta-commit:sweep"
+recall = true
+doc = "the run's residue goes BEFORE the commit is drafted (P56), so the fix lands as ONE commit and nothing else is left: answer the open item in the docs it affects and `resolve` it with the brain-open-items skill, never a bare delete (a refused resolve keeps the item open: report why and leave it), then delete the plan's index line that pointed at it and the executed plan, grep for references to what was deleted, bring the worktree's changes into the main tree, then remove the worktree and its branch (verify with `git worktree list`), delete scratch scripts and the run's caches, run `b-gate reset`. log the decision ONLY when the repo already keeps a decision log (DECISIONS.md, an ADR dir, a changelog of decisions); with no such history, write nothing. his keep-list is applied literally"
+
+[[states]]
+id = "BLOCKED"
+kind = "halt"
+owner = "brain-meta-intent"
+recall = false
+terminal = true
+doc = "post-sanction ambiguity: stop and ask arpad; resume the blocked state on /continue"
+
+[[states]]
+id = "DONE"
+kind = "terminal"
+owner = "brain-learner"
+recall = false
+terminal = true
+doc = "work complete. the closing line reports STATE, NOT A CHANGELOG (P43): is it done yes/no, and what is left. NEVER a tour of what was fixed, measured or rewritten - he reads git diff for that, and a defect that no longer exists is not information. a how-to is ONE LINE per thing, not a section per thing. surface a number only when it changes what he does next. an unresolved blocker IS state and must be said first. measured: 5 of 77 recorded heat events are him saying the brain wrote too much - it is the single most reliable producer of heat in the corpus. then DISPATCH brain-learner to mine this conversation for durable signal, and say so - e.g. `done. <what is left, if anything>. *note* i have dispatched an agent to learn from this conversation and refine the brain`. measured: IMPL was entered 176 times and CURATE 10, so a run that ends without this never taught the brain anything"
+
+# --------------------------------------------------
+# review region (brain-review entry): cold multi-lens review of the current
+# diff, then it funnels into the SHARED PHASEGATE -> REMEDIATE -> VERIFY loop
+# (not duplicated) and rides those rails to a terminal.
+# --------------------------------------------------
+[[states]]
+id = "REVIEW"
+kind = "entry"
+owner = "brain-review-gate"
+recall = false
+regime = "ask-first"
+doc = "brain-review entry: cold unguided multi-lens review of the current diff; hand findings into the shared gate loop"
+
+# --------------------------------------------------
+# self-refine region (brain-self-refine entry): scan -> findings -> ASK ->
+# edit -> gate -> log. ask-first throughout (SR_ASK is a pre-sanction ASK gate,
+# distinct from post-sanction BLOCKED). a separate region: it is not a build.
+# --------------------------------------------------
+[[states]]
+id = "SR_SCAN"
+kind = "entry"
+owner = "brain-self-refine"
+recall = false
+regime = "ask-first"
+doc = "brain-self-refine entry: run the scripted scan (principles/graph/flow/trace/paths/symlinks/traceability)"
+
+[[states]]
+id = "SR_FINDINGS"
+kind = "work"
+owner = "brain-self-refine"
+recall = true
+doc = "read the trace + structural smells; GENERATE the questions from the brain (recall-driven, never a frozen list)"
+
+[[states]]
+id = "SR_ASK"
+kind = "gate"
+owner = "brain-self-refine"
+recall = false
+doc = "present FINDINGS + QUESTIONS only; he selects + annotates. consent is explicit - an unselected finding is dropped"
+
+# --------------------------------------------------
+# the small-edit state, SHARED by two entries. brain-self-refine reaches it
+# from SR_ASK carrying his selection; brain-edit ENTERS here directly for a
+# follow-up change to work a previous run already planned and built. one state,
+# because the two are the same act: write a small edit, then rejoin the shared
+# tail (P31). it is NOT a plan - nothing here re-derives a phase list or
+# crosses SANCTION.
+# --------------------------------------------------
+[[states]]
+id = "EDIT"
+kind = "work"
+owner = "brain-self-refine+brain-edit"
+recall = true
+regime = "execute-through"
+doc = "make ONLY the selected/asked-for edit, through the right meta-skill (curate/style/direct). the OUTBOUND EVENT IS THE RIGOR DIAL and it is HIS to set, asked before the edit starts, never inferred from how small the change looks (P41): `edited` -> VERIFY builds and tests it, `gated` -> PHASEGATE puts a cold reviewer on the diff first, `unchecked` -> STYLE skips verification entirely. every one of them still rides STYLE -> RECORD -> CURATE, so a small edit is never outside the ecosystem"
+
+# --------------------------------------------------
+# transitions
+# --------------------------------------------------
+[[transitions]]
+src = "IDEATION"
+on = "received"
+dst = "INTENT"
+
+[[transitions]]
+src = "INTENT"
+on = "ambiguous"
+dst = "ASK"
+
+[[transitions]]
+src = "INTENT"
+on = "clear"
+dst = "RECON"
+
+[[transitions]]
+src = "ASK"
+on = "answered"
+dst = "INTENT"
+
+[[transitions]]
+src = "RECON"
+on = "seeded"
+dst = "EXPAND"
+
+[[transitions]]
+src = "EXPAND"
+on = "set_grew"
+dst = "EXPAND"
+
+[[transitions]]
+src = "EXPAND"
+on = "set_stable"
+dst = "WOULDIWRITE"
+
+[[transitions]]
+src = "WOULDIWRITE"
+on = "some_marked"
+dst = "SCRUTINIZE"
+
+[[transitions]]
+src = "WOULDIWRITE"
+on = "all_pass"
+dst = "SEMANTIC"
+
+[[transitions]]
+src = "SCRUTINIZE"
+on = "cleaned"
+dst = "SEMANTIC"
+
+[[transitions]]
+src = "SEMANTIC"
+on = "misplacements_found"
+dst = "RELOCATE"
+
+[[transitions]]
+src = "SEMANTIC"
+on = "placement_ok"
+dst = "HIERARCHY"
+
+[[transitions]]
+src = "RELOCATE"
+on = "moved"
+dst = "EXPAND"
+
+[[transitions]]
+src = "HIERARCHY"
+on = "reshape_needed"
+dst = "REORG"
+
+[[transitions]]
+src = "HIERARCHY"
+on = "shape_ok"
+dst = "PLAN"
+
+[[transitions]]
+src = "REORG"
+on = "reshaped"
+dst = "EXPAND"
+
+# plan phase: PLAN -> probe against the worked example -> gate, cycling until
+# the threshold holds, then sanction
+[[transitions]]
+src = "PLAN"
+on = "drafted"
+dst = "PLANPROBE"
+
+[[transitions]]
+src = "PLANPROBE"
+on = "gap_found"
+dst = "PLAN"
+
+[[transitions]]
+src = "PLANPROBE"
+on = "traced"
+dst = "PLANGATE"
+
+[[transitions]]
+src = "PLANGATE"
+on = "below_threshold"
+dst = "PLAN"
+
+[[transitions]]
+src = "PLANGATE"
+on = "blocked"
+dst = "ASK"
+
+[[transitions]]
+src = "PLANGATE"
+on = "threshold_met"
+dst = "SANCTION"
+boundary = true
+
+[[transitions]]
+src = "SANCTION"
+on = "sanctioned"
+dst = "DOCTRINE"
+
+# every path to a writer passes through DOCTRINE. it is a GATE, not a work step:
+# a resolved doctrine names the purpose register, the language row and the
+# exemplars the worker will see. an unresolved one halts rather than letting an
+# adjective through, which is the failure P40 exists to name.
+[[transitions]]
+src = "DOCTRINE"
+on = "resolved"
+dst = "IMPL"
+
+[[transitions]]
+src = "DOCTRINE"
+on = "unresolved"
+dst = "BLOCKED"
+
+[[transitions]]
+src = "IMPL"
+on = "implemented"
+dst = "PHASEGATE"
+
+[[transitions]]
+src = "IMPL"
+on = "ambiguous"
+dst = "BLOCKED"
+
+# the final phase left nothing to review: `b-gate phase -l` gates any nonzero
+# pending score, so its `defer` means a gate that ran already covers every
+# phase (a prose-only last phase scores zero). without this edge the only way
+# out of the last phase was a cold multi-lens review, whatever it changed.
+[[transitions]]
+src = "IMPL"
+on = "last_deferred"
+dst = "VERIFY"
+guard = "build"
+
+# a multi-phase build sits in IMPL for its whole length, so finishing ONE phase
+# had no beat: the walk stepped 20 times across a 290-line planning region and 8
+# times across 2700 lines of execution. with no state change to mark it, each
+# phase boundary became a status report to arpad - which is exactly what P10
+# forbids and what he blew up at, twice. the self-loop makes the boundary a real
+# transition: re-enter IMPL, re-fire recall, take the next phase. it is NOT a
+# gate and produces no user-facing turn.
+[[transitions]]
+src = "IMPL"
+on = "phase_done"
+dst = "DOCTRINE"
+
+# consistency loop: review -> ADJUDICATE -> remediate -> re-review until the
+# threshold holds. the adjudication step is what makes the loop terminating: a
+# reviewer complaining that a deliberately-incomplete artifact is incomplete
+# (tutorial todo!()s, work a later phase delivers) is REJECTED here rather than
+# fixed, because fixing it would contradict the artifact's own contract.
+[[transitions]]
+src = "PHASEGATE"
+on = "below_threshold"
+dst = "ADJUDICATE"
+
+[[transitions]]
+src = "ADJUDICATE"
+on = "valid_remain"
+dst = "REMEDIATE"
+
+# the escape the impl loop did not have. before it, REMEDIATE's own doc said it
+# "does NOT leave the impl phase", so a finding whose honest fix was "this
+# design is wrong" had nowhere to go and became a patch - and the next round's
+# findings were about the patch. spaghettification is EVIDENCE that the design
+# is at fault, not that the patcher was sloppy (P51).
+[[transitions]]
+src = "ADJUDICATE"
+on = "design_fault"
+dst = "DESIGN"
+guard = "build"
+
+[[transitions]]
+src = "DESIGN"
+on = "designed"
+dst = "REMEDIATE"
+guard = "build"
+
+# a redesign that cannot be scoped to one atomic part is not a design fix - it
+# is a re-plan, and re-planning a sanctioned build is his call, not the loop's.
+[[transitions]]
+src = "DESIGN"
+on = "ambiguous"
+dst = "BLOCKED"
+guard = "build"
+
+# every finding was rejected as invalid, or belongs to a later phase. nothing to
+# fix, so the consistency threshold holds and the phase advances.
+[[transitions]]
+src = "ADJUDICATE"
+on = "all_invalid"
+dst = "VERIFY"
+
+[[transitions]]
+src = "ADJUDICATE"
+on = "deferred"
+dst = "VERIFY"
+
+[[transitions]]
+src = "REMEDIATE"
+on = "fixed"
+dst = "PHASEGATE"
+
+# the round cap: a round-2 decrease is fixed and verified, never reviewed a third time
+[[transitions]]
+src = "REMEDIATE"
+on = "fixed_final"
+dst = "VERIFY"
+
+# the round count decides; b-gate round prints the event
+[[transitions]]
+src = "ADJUDICATE"
+on = "final_fix"
+dst = "REMEDIATE"
+
+# a count that does not drop, or a first round full of medium-or-worse findings,
+# is a design verdict (P51): measured 22 -> 36 -> 40 findings while the diff grew
+[[transitions]]
+src = "ADJUDICATE"
+on = "not_converging"
+dst = "DESIGN"
+
+# the cap held and valid findings remain: stop and hand him the list
+[[transitions]]
+src = "ADJUDICATE"
+on = "capped"
+dst = "BLOCKED"
+
+[[transitions]]
+src = "PHASEGATE"
+on = "threshold_met"
+dst = "VERIFY"
+
+# the gate could not be RUN - a lens was refused by the permission classifier and
+# a retry did not carry it. that is not a finding, so it cannot route through
+# ADJUDICATE: the empty set adjudicates as all_invalid and the phase advances on
+# a measurement nobody took. it stops instead, and he decides.
+[[transitions]]
+src = "PHASEGATE"
+on = "unmeasurable"
+dst = "BLOCKED"
+
+# soundness loop: a fix routes back through PHASEGATE so consistency is
+# re-checked before re-verifying (nested loops).
+# a verification the author ran on its own work is not one. no verifier report -> loop
+[[transitions]]
+src = "VERIFY"
+on = "unverified"
+dst = "VERIFY"
+
+[[transitions]]
+src = "VERIFY"
+on = "unsound"
+dst = "REMEDIATE"
+
+[[transitions]]
+src = "VERIFY"
+on = "more_phases"
+dst = "DOCTRINE"
+guard = "build"
+
+[[transitions]]
+src = "VERIFY"
+on = "last_phase"
+dst = "STYLE"
+
+[[transitions]]
+src = "STYLE"
+on = "styled"
+dst = "CLEANUP"
+
+# the sweep runs before RECORD so the drafted commit is the fix and only the fix
+[[transitions]]
+src = "CLEANUP"
+on = "swept"
+dst = "RECORD"
+
+[[transitions]]
+src = "STYLE"
+on = "unstyled"
+dst = "STYLE"
+
+[[transitions]]
+src = "RECORD"
+on = "prepared"
+dst = "CURATE"
+
+[[transitions]]
+src = "CURATE"
+on = "learned"
+dst = "DONE"
+
+# review region: enter the SHARED gate loop (PHASEGATE -> REMEDIATE -> VERIFY),
+# which rides the existing rails to a terminal. no new transitions on the shared
+# states - REVIEW just funnels in.
+[[transitions]]
+src = "REVIEW"
+on = "reviewed"
+dst = "PHASEGATE"
+
+# self-refine region loop
+[[transitions]]
+src = "SR_SCAN"
+on = "scanned"
+dst = "SR_FINDINGS"
+
+[[transitions]]
+src = "SR_FINDINGS"
+on = "found"
+dst = "SR_ASK"
+
+[[transitions]]
+src = "SR_ASK"
+on = "selected"
+dst = "EDIT"
+
+[[transitions]]
+src = "SR_ASK"
+on = "none_selected"
+dst = "DONE"
+
+# EDIT rejoins the shared tail here, on one of three edges: the edit rides
+# VERIFY -> STYLE -> RECORD -> CURATE -> DONE like any other work, which puts
+# the style gate and the verifier in front of brain code edited by a refine run
+[[transitions]]
+src = "EDIT"
+on = "edited"
+dst = "VERIFY"
+
+# the heavy dial: a cold reviewer reads the diff before anything is trusted.
+# PHASEGATE carries its own ADJUDICATE -> REMEDIATE loop and lands on VERIFY,
+# so this is a strict superset of `edited`, not a detour around it
+[[transitions]]
+src = "EDIT"
+on = "gated"
+dst = "PHASEGATE"
+
+# post-sanction ambiguity stops here, exactly as it does in IMPL. without this
+# an edit run that hits a real question has no sanctioned pause and must guess
+[[transitions]]
+src = "EDIT"
+on = "ambiguous"
+dst = "BLOCKED"
+
+# the light dial: no build, no test, no reviewer - for a change whose artifact
+# does not warrant it (P41). it still gets STYLE, RECORD and CURATE, because
+# the point of routing a small edit through the flow at all is that the brain
+# still learns from it. guarded to the edit mode: a refine run has just written
+# brain code and rides VERIFY
+[[transitions]]
+src = "EDIT"
+on = "unchecked"
+dst = "STYLE"
+guard = "edit"

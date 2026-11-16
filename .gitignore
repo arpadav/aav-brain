@@ -7,21 +7,19 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# compiled agent output, rebuilt by bin/store/brain-compile.py
+# compiled agent output, rebuilt by bin/render/b-compile.py
 .generated/
 
-# rendered recall-quality charts and the venv that draws them (expected vs
-# actual score per principle, one per labelled prompt) - images are bulk, not
-# versioned knowledge, and they are rebuilt by .charts/plot.py
-.charts/*.png
+# the venv a hand run of eval/plot_recall_scores.py may leave; its charts land
+# under eval/results/, ignored below
 .charts-venv/
 
 # eval run trees: materialised fixtures, agent output and graded sheets. bulk,
 # and specific to one run - the tasks and rubrics that generate them ARE tracked
 eval/results/
 
-# written by bin/store/brain-graph.py
-brain/graph/graph.json
+# written by bin/render/b-graph.py
+store/graph/graph.json
 
 # scratch and open items, per machine, never committed
 /plans/

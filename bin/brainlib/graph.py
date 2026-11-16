@@ -2,7 +2,7 @@
 
 nodes: one per principle, of kind `Kind.PRINCIPLE`, keyed by its `name:`
 or else its file stem, a later duplicate replacing an earlier one. `Graph.build`
-says why intents and voice docs are not nodes
+says why interests and voice docs are not nodes
 
 edges: derived from the principles, never authored; `Rel` is the closed set
 - `relates`: one per `[[principle-...]]` link anywhere in a principle's file, to the
@@ -21,16 +21,170 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.model import Edge, Node
+from brainlib.enums import Frontmatter, Kind, Rel, Tier
+from brainlib.file_io import kind_rank, parse_frontmatter, read_text
 from brainlib.paths import Layout
-from brainlib.text import kind_rank
-from brainlib.vocab import Kind, Rel
 
 # --------------------------------------------------
 # external
 # --------------------------------------------------
 import json
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# --------------------------------------------------
+# constants
+# --------------------------------------------------
+# a [[link]] to a principle anywhere in a principle's file, frontmatter included;
+# the captured id is a relates edge's destination
+PRINCIPLE_LINK = re.compile(r"\[\[(principle-[a-z0-9-]+)\]\]")
+
+
+@dataclass
+class Node:
+    """one principle as a graph node, read from its file by `from_principle`."""
+
+    id: str
+    kind: str
+    headline: str
+    interest: list[str]
+    confidence: str
+    tells: list[str]
+    tension: list[str]
+    body_links: list[str]
+    path: str
+    # contexts this principle loads in regardless of score; see schema/principle.md
+    binds: list[str] = field(default_factory=list)
+    # how this principle reaches an agent - always, by score, or on a lower bar (Tier)
+    tier: str = Tier.CONDITIONAL
+
+    def to_dict(self) -> Frontmatter:
+        """serialise to the committed node shape (tension stays edge-only).
+
+        # Returns
+        an ordered dict with the human-meaningful field order
+
+        # Example
+
+            >>> principle = Node("principle-99-example", Kind.PRINCIPLE, "h", [], "c", [], [], [], "p")
+            >>> list(principle.to_dict())[:3], "tension" in principle.to_dict()
+            (['id', 'kind', 'tier'], False)
+        """
+        return {"id": self.id, "kind": self.kind, "tier": self.tier, "headline": self.headline,
+                "interest": self.interest, "confidence": self.confidence, "binds": self.binds,
+                "tells": self.tells, "body_links": self.body_links, "path": self.path}
+
+    @property
+    def short_id(self) -> str | None:
+        """a principle's short id, the `P<nn>` that principles cite and `RecallIndex.resolve` reads back.
+
+        # Returns
+
+        `P` and the principle's number, or None for a node that is not a numbered principle
+
+        # Example
+
+            >>> principle = Node("principle-99-example", Kind.PRINCIPLE, "", [], "", [], [], [], "")
+            >>> principle.short_id, Node("interest-craft", Kind.INTEREST, "", [], "", [], [], [], "").short_id
+            ('P99', None)
+        """
+        number = self.id.removeprefix(f"{Kind.PRINCIPLE}-").split("-")[0]
+        return f"P{number}" if self.kind == Kind.PRINCIPLE and number.isdigit() else None
+
+    @classmethod
+    def from_principle(cls, path: Path, kind: str, root: Path) -> "Node":
+        """one principle file as a node.
+
+        # Arguments
+
+        * `path` - the principle file
+        * `kind` - the kind its directory holds
+        * `root` - the brain root `path` sits under; the node stores its path relative to it
+
+        # Returns
+
+        the node; a field the principle leaves out takes its default, and the id falls
+        back to the file's stem
+        """
+        text = read_text(path)
+        front = parse_frontmatter(text)
+        return cls(id=cls._text(front, "name", path.stem), kind=kind,
+                   headline=cls._text(front, "rule") or cls._text(front, "one_line") or path.stem,
+                   interest=cls._list(front, "interest"), confidence=cls._text(front, "confidence"),
+                   tells=cls._list(front, "tells"), tension=cls._list(front, "tension"),
+                   body_links=sorted(set(PRINCIPLE_LINK.findall(text))), path=str(path.relative_to(root)),
+                   binds=cls._list(front, "binds"), tier=cls._text(front, "tier") or Tier.CONDITIONAL)
+
+    @staticmethod
+    def _text(front: Frontmatter, key: str, default: str = "") -> str:
+        """one frontmatter field as a string.
+
+        parse_frontmatter types every value as scalar-or-list, so a field that must
+        be a string is read through here rather than trusted
+
+        # Arguments
+
+        * `front` - the parsed frontmatter
+        * `key` - the field name
+        * `default` - returned when the field is absent or the wrong shape
+
+        # Returns
+
+        the string value, or the default
+
+        # Example
+
+            >>> Node._text({"name": "principle-01"}, "name"), Node._text({"tells": ["a", "b"]}, "tells", "?")
+            ('principle-01', '?')
+        """
+        value = front.get(key, default)
+        return value if isinstance(value, str) else default
+
+    @staticmethod
+    def _list(front: Frontmatter, key: str) -> list[str]:
+        """one frontmatter field as a list of strings.
+
+        # Arguments
+
+        * `front` - the parsed frontmatter
+        * `key` - the field name
+
+        # Returns
+
+        the list value, or an empty list when the field is absent or a scalar
+
+        # Example
+
+            >>> Node._list({"tells": ["never guess", "ask first"]}, "tells"), Node._list({"name": "p"}, "name")
+            (['never guess', 'ask first'], [])
+        """
+        value = front.get(key, [])
+        return value if isinstance(value, list) else []
+
+
+@dataclass(frozen=True, order=True)
+class Edge:
+    """one derived relationship. field order (type, src, dst) IS the sort order."""
+
+    type: Rel
+    src: str
+    dst: str
+
+    def to_dict(self) -> dict[str, str]:
+        """serialise to the committed edge shape.
+
+        # Returns
+        a dict with keys src, dst, type
+
+        # Example
+
+            >>> Edge(Rel.RELATES, "principle-01-a", "principle-02-b").to_dict() == {
+            ...     "src": "principle-01-a", "dst": "principle-02-b", "type": "relates"}
+            True
+        """
+        return {"src": self.src, "dst": self.dst, "type": self.type}
+
 
 @dataclass(frozen=True)
 class Graph:
@@ -49,7 +203,7 @@ class Graph:
         ...     graph = Graph.build(layout)
         ...     _ = (layout.principles / "c.md").write_text(principle.format("b", "", ""))
         ...     Graph.build(layout).warnings[0]
-        'principle-b is named by both brain/principles/b.md and brain/principles/c.md; brain/principles/c.md is kept'
+        'principle-b is named by both store/principles/b.md and store/principles/c.md; store/principles/c.md is kept'
         >>> for edge in graph.edges:
         ...     print(edge.type, edge.src, edge.dst)
         relates principle-a principle-b
@@ -70,13 +224,13 @@ class Graph:
     def build(cls, layout: Layout) -> "Graph":
         """read every principle in the layout's principles and derive the edges between them.
 
-        brain/intents/ is deliberately not read: an intent is the WHY of its
+        store/interests/ is deliberately not read: an interest is the WHY of its
         principles and never fires independently, so as a peer node it could
         only ever co-occur with them. measured on a labelled prompt set,
-        intent-comprehension and P11 were relevant on 86% of the same prompts
+        interest-comprehension and P11 were relevant on 86% of the same prompts
         while sharing 12% of their vocabulary - two nodes, one rule. five of the
-        seven highest-overlap principle pairs in the store paired an intent with a
-        principle. the intent files remain prose a human reads and valid
+        seven highest-overlap principle pairs in the store paired an interest with a
+        principle. the interest files remain prose a human reads and valid
         [[link]] targets, and each principle's `interest:` field carries the
         association without a node to hang it on. voice docs are retrieved by
         name, not traversal, so they are not nodes either

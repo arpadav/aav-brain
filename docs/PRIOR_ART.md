@@ -7,7 +7,7 @@ and queryable personal knowledge. what each one gave us:
 fisher & ury, "getting to yes" (harvard negotiation project, 1981). core: focus on interests, not
 positions. a position is a stated demand; an interest is the underlying need. BATNA is the walk-away
 alternative that defines leverage.
-taken: the whole INTENT_MAP. every position is decomposed into the interest it serves; the brain
+taken: the whole of docs/INTERESTS.md. every position is decomposed into the interest it serves; the brain
 serves interests, not literal commands. my BATNA (interrupt & do it myself) is the pressure the brain
 relieves by serving the interest early.
 - https://en.wikipedia.org/wiki/Getting_to_Yes
@@ -17,8 +17,8 @@ relieves by serving the interest early.
 memgpt (packer et al.) and its production successor letta: "llm as an operating system". two memory
 tiers: in-context core (always loaded: rules + read/write blocks) and out-of-context external memory
 (retrieved on demand). agents get memory-editing tools to update their own memory over time.
-taken: the store is tiered. brain/CONSTITUTION.md is tier-1 core (always loaded); principles/ +
-intents/ + voice/ are tier-2 retrieved corpus; evidence/ is tier-3 derived. the brain-meta-curate skill is
+taken: the store is tiered. store/CONSTITUTION.md is tier-1 core (always loaded); principles/ +
+interests/ + voice/ are tier-2 retrieved corpus; evidence/ is tier-3 derived. the brain-meta-curate skill is
 the memory-editing tool: it self-edits principles from new feedback. consent-is-explicit is our addition:
 edit memory only from spoken signal, never from accepted diffs.
 - https://www.letta.com/blog/agent-memory/
@@ -39,7 +39,7 @@ for when the corpus outgrows grep.
 known autonomous-agent patterns: reflexion (the agent critiques its own action and caches the
 feedback), planner-critic / actor-critic (one agent proposes, another evaluates), llm-as-a-judge (an
 llm scores outputs), recursive self-prompting (the agent prompts itself toward a goal).
-taken: the DEV_FLOWCHART post-sanction loop is a planner-critic loop. brain-meta-author-prompt is the
+taken: the FLOWCHART post-sanction loop is a planner-critic loop. brain-meta-author-prompt is the
 actor, the brain-review-gate + brain-verifier agents are the cold critics, brain-execute is the
 controller, brain-meta-curate is the reflexion cache. we use independent, cold, multi-lens critics
 (matching my "cold/unguided, converge, single-nit" protocol) instead of a single self-critique,
@@ -53,12 +53,12 @@ per file, cross-linked with [[wikilinks]], traversable as a graph, local-first (
 machine), readable/writable by the agent directly.
 taken: the principle format. each principle/interest is one atomic markdown file with frontmatter +
 [[links]] (zettelkasten). the brain reads/writes them directly; nothing leaves my disk. the store is
-diff-able and git-versioned, itself a record i control ([[../brain/principles/principle-09-git-sovereignty]]).
+diff-able and git-versioned, itself a record i control ([[../store/principles/principle-09-git-sovereignty]]).
 
 ## 6. canonical-instruction files (CLAUDE.md / AGENTS.md / .cursorrules) -> the constitution
 the 2026 convergence: a single canonical markdown file of standing instructions every agent reads
 (CLAUDE.md, the cross-tool AGENTS.md standard, .cursorrules).
-taken & extended: brain/CONSTITUTION.md is that file, but its generated and maintained by the brain
+taken & extended: store/CONSTITUTION.md is that file, but its generated and maintained by the brain
 from evidence, not hand-written once and left to rot. its the always-loaded core any worker agent can
 be seeded with.
 

@@ -1,9 +1,9 @@
 # schema: decision trace
 
-the brain's own reasoning history: `<edit copy>/brain/logs/trace/decisions.jsonl` (the private logs submodule, via `DataLayout`), one decision per line, append-only.
+the brain's own reasoning history: `<edit copy>/brain/logs/trace/decisions.jsonl` (the private logs submodule, via `LogsLayout`), one decision per line, append-only.
 the point is the decided-AGAINST entries - when a later session disagrees with a past call, the trace
-shows WHERE it was made (`affects`) so it can be reversed precisely. written + read by `bin/store/brain-trace.py`
-(via the `Decision` dataclass in `bin/brainlib/store.py`); brain-meta-curate and brain-self-refine consume it.
+shows WHERE it was made (`affects`) so it can be reversed precisely. written + read by `bin/logs/b-trace.py`
+(via the `Decision` dataclass in `bin/brainlib/logs/ledger.py`); brain-meta-curate and brain-self-refine consume it.
 
 ## one entry (json object per line)
 ```json
@@ -39,8 +39,8 @@ shows WHERE it was made (`affects`) so it can be reversed precisely. written + r
   reversal is not re-litigated as an open decision.
 - `repo` : the NAME of the git repo `affects` is relative to, stamped at append. without it the same
   relative path names a live file in the repo the run happened in and nothing anywhere else, so a
-  cross-repo entry is indistinguishable from a stale one. the name, never the path (P32). entries
-  written before this field read as `unattributed`.
+  cross-repo entry is indistinguishable from a stale one. the name, never the path (P32); empty when
+  the run was in no repo, which makes `affects` judgeable from nowhere.
 - `stale` / `pinned` : MARKS, not payload. they live in `Ledger.META`, so setting one does not change
   a record's content id and a re-merge still dedups it onto the same row. present only when set -
   clearing writes no `false`, so an unmarked record is byte-identical to one never marked.

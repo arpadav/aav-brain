@@ -96,7 +96,7 @@ met = """the plan contains a concrete worked example - a struct in use, a sample
 invocation, a traced scenario - not only prose describing intent."""
 
 [plan.phased_atomically]
-principle = "principle-02-plan-before-build / principle-21-sequencing"
+principle = "principle-02-plan-before-build / principle-21-follow-his-step-order"
 weight = 2
 met = """phases are ordered, each independently reviewable, each naming what
 changes and how it is checked."""

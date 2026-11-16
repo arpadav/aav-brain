@@ -4,7 +4,7 @@
 # these exist because "a file that is too long" is an ADJECTIVE, and a worker
 # resolves an adjective against its own priors (P40). the measurement that
 # forced them is stated once, on the principle itself:
-# brain/principles/principle-27-organization-reorg.md, under `## the measurement`.
+# store/principles/principle-27-organization-reorg.md, under `## the measurement`.
 # it is not restated here, and it is not restated in the tool - one anecdote
 # retold in nine places drifts in nine directions.
 #
@@ -35,7 +35,7 @@ collapse_lines = 120
 # threshold that reports it is measuring the convention, not a defect. keep this
 # list short - it is the one place a real crossing can be silenced, and every
 # entry needs a reason that is about the FORM, never about the work of fixing it.
-exempt = ["/brain/principles/", "/brain/intents/"]
+exempt = ["/store/principles/", "/store/interests/"]
 
 # a TYPE name (struct/enum/trait/class/interface/union/record) declared in this
 # many files or more is a DRY candidate (P28, P31). two is the real threshold: a
@@ -86,4 +86,4 @@ reach_files = 15
 # unless its path is keyed here with WHY it is committed. a reason is about what
 # breaks without the committed copy, never about the work of untracking it.
 [decisions.tracked]
-"docs/DEV_FLOWCHART.md" = "he reads the flowchart on GitHub and in his editor; without the committed copy there is nothing to view"
+"docs/FLOWCHART.md" = "he reads the flowchart on GitHub and in his editor; without the committed copy there is nothing to view"

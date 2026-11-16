@@ -49,7 +49,7 @@ unresolved-global = "error"
 # fires wherever a return value is not fully inferable, which here is the raw
 # transcript json and re.Match.group() - the same boundary mypy and basedpyright
 # are configured to allow Any at
-unsound-return-statement = "ignore"
+unsound-return = "ignore"
 unsound-yield = "error"
 unsupported-base = "error"
 unsupported-dynamic-base = "error"

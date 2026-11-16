@@ -18,7 +18,7 @@
   let
     # --------------------------------------------------
     # the flake is evaluated from a store copy, so the live
-    # checkout is named by the caller: $AAV_BRAIN, else the
+    # checkout is named by the caller: $AVB, else the
     # directory the switch runs in
     # --------------------------------------------------
     fromEnv = name:
@@ -27,7 +27,7 @@
       then v
       else throw "${name} is not set - this flake needs `--impure` and a login environment";
     checkout =
-      let explicit = builtins.getEnv "AAV_BRAIN";
+      let explicit = builtins.getEnv "AVB";
       in if explicit != "" then explicit else fromEnv "PWD";
   in
   {

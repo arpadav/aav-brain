@@ -5,9 +5,9 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
+from brainlib.enums import GIT_TIMEOUT, LONG_GIT_TIMEOUT, NoVerdict, UsageError
 from brainlib.repo.diff import Patch
 from brainlib.repo.tree import RepoError, RepoTree
-from brainlib.vocab import GIT_TIMEOUT, LONG_GIT_TIMEOUT, NoVerdict, UsageError
 
 # --------------------------------------------------
 # external

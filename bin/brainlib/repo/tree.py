@@ -11,8 +11,8 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.text import read_text
-from brainlib.vocab import GIT_TIMEOUT, NoVerdict
+from brainlib.enums import GIT_TIMEOUT, NoVerdict
+from brainlib.file_io import read_text
 
 # --------------------------------------------------
 # external

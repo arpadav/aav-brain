@@ -2,15 +2,15 @@
 
 > HUMAN-FACING DOC - nothing reads this at runtime (no skill, agent, or script loads it). it is for a
 > person onboarding to the system, or me re-orienting. the runtime sources of truth are
-> `brain/CONSTITUTION.md` (tier-1, always loaded), the principles, and `brain/flow/flow.toml`.
+> `store/CONSTITUTION.md` (tier-1, always loaded), the principles, and `store/flow/flow.toml`.
 
 a second brain for my dev work. it learns how i plan, review, write, and push back from my real
 agent transcripts (codex + claude), then acts as me: agrees/disagrees with other agents work, writes
 prompts in my voice, supervises a plan by dispatching other agents, and holds my standards.
 
 ONE repo, two halves by ROLE (not by repo):
-- the TOOL: the knowledge store (`brain/`), the docs, and the tooling (`bin/`).
-- the ACTING SUITE (`agentic-files/`): the skills + agents that act, linked into claude + codex by
+- the TOOL: the knowledge store (`store/`), the docs, and the tooling (`bin/`).
+- the ACTING SUITE (`skills/` + `agents/`): the skills + agents that act, linked into claude + codex by
   home-manager. private memory (trace + evidence) is the `logs/` submodule - its content lives in a
   separate private repo, never in this history.
 
@@ -18,33 +18,33 @@ ONE repo, two halves by ROLE (not by repo):
 
 ```
 TIER 1 - core (always loaded when the brain acts)
-  brain/CONSTITUTION.md      prime rule, who i am, the operating loop, the hard rules, voice
+  store/CONSTITUTION.md      prime rule, who i am, the operating loop, the hard rules, voice
 
 TIER 2 - corpus (retrieved on demand via the graph)
-  brain/principles/*.md      atomic principles (one belief each, [[linked]])
-  brain/intents/*.md         interests (the why: positions->interests)
-  brain/voice/*.md           how to write/review as me + idiom lexicon
+  store/principles/*.md      atomic principles (one belief each, [[linked]])
+  store/interests/*.md       interests (the why: positions->interests)
+  store/voice/*.md           how to write/review as me + idiom lexicon
 
 TIER 2.5 - graph: the principles' links as a graph (bin/brainlib/graph.py)
 
 TIER 2.6 - flow = SEQUENCE (the execution flow; "what step is next") - SEPARATE from the graph
-  brain/flow/flow.toml       AUTHORED data: entries, states (work phases), transitions (guarded edges)
-  stepped directly by bin/run/brain-walk.py (validated on load); bin/store/brain-flow.py populates
-  docs/DEV_FLOWCHART.md from docs/templates/DEV_FLOWCHART.md + flow.toml
+  store/flow/flow.toml       AUTHORED data: entries, states (work phases), transitions (guarded edges)
+  stepped directly by bin/flow/b-walk.py (validated on load); bin/render/b-flow.py populates
+  docs/FLOWCHART.md from store/flow/flowchart-template.md + flow.toml
   cyclic by design (P03): PLAN..PLANGATE, PHASEGATE/VERIFY loop through REMEDIATE until a metric
   threshold holds, only then advance one phase
 
 TIER 2.7 - trace = the brain's own reasoning history (append-only; PRIVATE, out of repo)
   <data>/trace/decisions.jsonl   one line per decision: chosen, what it rejected + why, affects
-  written/read by bin/store/brain-trace.py; brain-meta-curate + brain-self-refine consult the decided-AGAINST
+  written/read by bin/logs/b-trace.py; brain-meta-curate + brain-self-refine consult the decided-AGAINST
   entries to know WHERE a past call was made before re-litigating it
 
 TIER 3 - evidence (machine-derived; PRIVATE, out of repo; regenerate with `b-extract`)
   <data>/evidence/prompts.jsonl   EVERY human turn, bucketed + multi-label classed; nothing dropped
   <data>/evidence/corpus-stats.json   tone %, class counts, sequencing histogram, opening verbs
-  <data>/evidence/*.jsonl         back-compat views (rejections, interruptions, approvals, directives, denials)
+  <data>/evidence/*.jsonl         per-signal views of prompts (rejections, heat, interruptions, approvals)
 
-  (data = `DataLayout` = the edit copy's brain/logs/ submodule, found by `XdgLayout.edit_brain()`. the raw
+  (data = `LogsLayout` = the edit copy's brain/logs/ submodule, found by `XdgLayout.edit_brain()`. the raw
    trace + prompts live in a SEPARATE private repo (aav-brain-logs), never in this repo's history. per-machine
    files - raw transcripts (archive/), gate state (gate/), each tool's session logs (sessions/<tool>/) - sit
    in its self-ignoring local/ (`LocalLayout`).)
@@ -58,38 +58,38 @@ file-first, zero servers; the graph's export and neo4j: see schema/optional-grap
 
 ## scope: what is and is not the brain
 
-the brain is `brain/` (the principles, graph and flow) plus the scripts in `bin/`. `agentic-files/` is a
-SEPARATE entity that merely hosts some brain skills and agents alongside unrelated ones used on other
-machines and in other projects. do not audit, prune, or reason about what lives there as if it were
+the brain is `store/` (the principles, graph and flow) plus the scripts in `bin/`. `skills/` and
+`agents/` are a SEPARATE entity that merely hosts some brain skills and agents alongside unrelated ones
+used on other machines and in other projects. do not audit, prune, or reason about what lives there as if it were
 brain territory - an agent with zero dispatches in this repo's transcripts may be in daily use
 elsewhere.
 
-## 2. the acting suite (in agentic-files/)
+## 2. the acting suite (in skills/ and agents/)
 
 skills are the unit (P18). a null agent + a loaded skill = a standalone specialist. the suite is FIVE
 user-callable ENTRY skills + six `brain-meta-*` machinery skills + the agents (categorized under
-`agentic-files/agents/{brain,general,lang/rust,style}`). you only ever call the entries; the
+`agents/{brain,architecture,rust,style}`). you only ever call the entries; the
 `brain-meta-` prefix marks "machinery, dont call directly." skills are the universal SKILL.md across
 claude / codex / ~/.agents; agents are claude `.md` + a codex `.toml` compiled into `.generated/`.
 
 every skill EXECUTES the bundled scripts rather than reading flow.toml or the principles and reasoning by hand -
 running a script keeps its code out of context and is deterministic. module.nix writes a command for
-every brain script (`Layout.scripts` says which file is one) into `~/.local/bin`, named `b-` plus its
-stem less `brain-` (`brain-walk.py` -> `b-walk`, `brain-find.py` -> `b-find`); that directory reaches
-PATH from the home config (his `home.sessionPath`), not from this module. module.nix also exports the
-brain root as `$AAV_BRAIN` and its short alias `$AVB`, which the skills and agents read a brain file
-off (`$AVB/brain/CONSTITUTION.md`), so a skill calls `b-walk -s ...` with no setup line and no
-hardcoded path on any machine (P32). an agent starts after the switch that exports both, so neither
-needs a fallback; the commands do not read them at all, each finds the root from its own location. every
+every brain script (`Layout.scripts` says which file is one) into `~/.local/bin`, named its file
+stem (`b-walk.py` -> `b-walk`); that directory reaches PATH from the home config (his
+`home.sessionPath`), not from this module. module.nix also exports the brain root as `$AVB`, which
+the skills and agents read a brain file off (`$AVB/store/CONSTITUTION.md`), so a skill calls
+`b-walk -s ...` with no setup line and no hardcoded path on any machine (P32). an agent starts after
+the switch that exports it, so it needs no fallback; the commands do not read it at all, each finds
+the root from its own location. every
 flag has a one-letter short form and keeps its long form as an alias; the first `b-walk` of a session
 prints the legend of every command's flags, and `b-walk -l` reprints it. `b-find` prints the root, and
-`eval "$(b-find -e)"` sets both exports in a shell of his that predates the switch.
+`eval "$(b-find -e)"` exports `$AVB` in a shell that has none.
 
 the ENTRIES (call these) are the `[[entries]]` rows of flow.toml - each names its skill, the node it
-enters the unified flow at, and the mode it walks in; docs/DEV_FLOWCHART.md lists them.
+enters the unified flow at, and the mode it walks in; docs/FLOWCHART.md lists them.
 
 four more skills sit OUTSIDE the flow: `brain-measure`, user-callable, runs the 25 eval tasks with the
-brain's principles and without, and hands him one file to grade (`eval/brain-eval.py`); `brain-open-items`
+brain's principles and without, and hands him one file to grade (`eval/measure.py`); `brain-open-items`
 writes, stamps and watches the P66 open items, its script beside its SKILL.md, keeping each in step
 with its todo when `life` is on PATH; `brain-sync`, user-callable, merges and pushes the edit copy's brain
 submodules, the brain and the home repo that holds it to GitHub main with `b-sync`, which then runs `sy`
@@ -161,7 +161,7 @@ brain-meta-commit prepares the record; brain-meta-curate learns. the critics are
    the trace. this is P29 pointed inward - the brain reviewing the brain.
 
 ## 5. isolation
-- ONE repo, separated by role: acting code under `agentic-files/`, doctrine under `brain/`, tooling
+- ONE repo, separated by role: acting code under `skills/` and `agents/`, doctrine under `store/`, tooling
   under `bin/`. private memory is the `logs/` submodule (content in a separate private repo).
 - the agents it bundles are DECOUPLED + general-purpose: they reference the current repo's layout +
   conventions, never a specific project (the semantic-architecture reviewer discovers the repo's

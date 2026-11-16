@@ -15,9 +15,8 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.model import State, Transition
+from brainlib.file_io import read_text
 from brainlib.paths import Layout
-from brainlib.text import read_text
 
 # --------------------------------------------------
 # external
@@ -33,6 +32,96 @@ from typing import Any
 # --------------------------------------------------
 # a state id: an upper-case letter, then upper-case letters, digits or underscores
 STATE_ID = re.compile(r"[A-Z][A-Z0-9_]*")
+
+
+@dataclass(frozen=True)
+class State:
+    """one execution state, authored in flow.toml.
+
+    `recall` is the single coupling to the graph: when true, the walker prints
+    the b-recall call the agent runs to load context before the owner runs. `terminal` marks an end
+    state with no exit. `regime` is the autonomy an entry state establishes
+    (ask-first | execute-through), read from the entry, NOT inferred from the
+    SANCTION crossing - review and self-refine reach a terminal without it
+    """
+
+    id: str
+    kind: str
+    owner: str
+    recall: bool
+    doc: str
+    terminal: bool = False
+    regime: str = ""
+    # context tags this state's recall must bind, so the principles a scored query
+    # would rank off the bottom still reach the owner
+    binds: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "State":
+        """reconstruct a State from a flow.toml `[[states]]` table.
+
+        # Arguments
+        * `data` - a state mapping; optional keys default
+
+        # Returns
+        a State
+
+        # Example
+
+            >>> State.from_dict({"id": "S", "kind": "work", "owner": "o", "recall": True, "doc": "d"}).terminal
+            False
+        """
+        return cls(id=data["id"], kind=data["kind"], owner=data["owner"], recall=data["recall"],
+                   doc=data["doc"], terminal=data.get("terminal", False),
+                   regime=data.get("regime", ""),
+                   binds=list(data.get("binds", [])))
+
+    @property
+    def owners(self) -> list[str]:
+        """the bare owner names: an `a+b` composite split, each `:lens` suffix dropped.
+
+        # Returns
+
+        the names in authored order; a blank part yields an empty name
+
+        # Example
+
+            >>> State("S", "gate", "brain-meta-style:plan + worker", recall=False, doc="").owners
+            ['brain-meta-style', 'worker']
+        """
+        return [part.split(":")[0].strip() for part in self.owner.split("+")]
+
+
+@dataclass(frozen=True)
+class Transition:
+    """one guarded edge: from `src`, on outcome `on`, go to `dst`.
+
+    `boundary` marks the single sanction transition that flips the regime
+    """
+
+    src: str
+    on: str
+    dst: str
+    guard: str = ""
+    boundary: bool = False
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Transition":
+        """reconstruct a Transition from a flow.toml `[[transitions]]` table.
+
+        # Arguments
+        * `data` - a transition mapping; optional keys default
+
+        # Returns
+        a Transition
+
+        # Example
+
+            >>> Transition.from_dict({"src": "A", "on": "ok", "dst": "B"})
+            Transition(src='A', on='ok', dst='B', guard='', boundary=False)
+        """
+        return cls(src=data["src"], on=data["on"], dst=data["dst"],
+                   guard=data.get("guard", ""), boundary=data.get("boundary", False))
 
 
 @dataclass(frozen=True)

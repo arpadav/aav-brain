@@ -2,11 +2,8 @@
 # clear a lower bar. authored data, like flow.toml, prune.toml and shape.toml -
 # b-principles checks the principles against it, and no tier is decided by taste.
 #
-# this file exists because the first version of the tier work did not have it.
-# 51 frontmatter values were set from a measurement whose rule, thresholds and
-# input tables lived only in a scratch directory, so the assignments were
-# reproducible that afternoon and unreproducible as a property of the repo. a
-# number the repo depends on belongs in the repo, with what produced it.
+# a number the repo depends on belongs in the repo, with what produced it: the
+# rule, its thresholds and the measurement each value came from.
 
 [rule]
 # the whole assignment, as three lines. it reproduces all 68 values below.
@@ -24,10 +21,10 @@ narrow_served = 0.05
 # real corpus and stratified by size of ask, not by vocabulary.
 #
 # SERVED: the share of 1374 real prompts where the principle reached the top 8 under
-# the scorer AS IT WAS BEFORE this work - the degree-normalised spread, the
-# constitution tier and the share-based floor all postdate it. it is a record of
-# the problem, not of current behaviour, and re-measuring it against today's
-# recall would compare the fix to itself.
+# the scorer without the degree-normalised spread, the constitution tier and the
+# share-based floor. it measures the problem those three answer, not current
+# behaviour, and re-measuring it against today's recall would compare the fix to
+# itself.
 #
 # the two DISAGREEING is the point. principle-11 was judged relevant on 28% of
 # the sample and served on 1% of real recalls; that gap is what a constitution
@@ -54,17 +51,17 @@ measured_on = "2026-09-05"
 # measured on the question-answering half of this principle; the change-scope half measured breadth 0.16, served 0.020 as its own principle
 "principle-24-the-ask-is-the-scope" = { tier = "constitution", breadth = 0.44, served = 0.224 }
 "principle-04-anti-fabrication" = { tier = "constitution", breadth = 0.42, served = 0.459 }
-"principle-11-comprehension-ownership" = { tier = "constitution", breadth = 0.28, served = 0.008 }
+"principle-11-explain-by-example-in-plain-english" = { tier = "constitution", breadth = 0.28, served = 0.008 }
 "principle-08-read-source-and-error" = { tier = "constitution", breadth = 0.26, served = 0.022 }
 "principle-44-build-from-nothing-to-something" = { tier = "constitution", breadth = 0.22, served = 0.049 }
 "principle-29-interrogate-the-work" = { tier = "conditional", breadth = 0.16, served = 0.080 }
 "principle-43-report-state-not-changelog" = { tier = "conditional", breadth = 0.16, served = 0.049 }
 "principle-10-autonomy-after-sanction" = { tier = "conditional", breadth = 0.14, served = 0.078 }
-"principle-12-context-hygiene" = { tier = "conditional", breadth = 0.14, served = 0.003 }
+"principle-12-keep-raw-output-out-of-context" = { tier = "conditional", breadth = 0.14, served = 0.003 }
 "principle-14-minimal-surface" = { tier = "conditional", breadth = 0.14, served = 0.029 }
 "principle-01-no-assumptions" = { tier = "conditional", breadth = 0.12, served = 0.837 }
 "principle-13-performance-obsession" = { tier = "conditional", breadth = 0.12, served = 0.006 }
-"principle-21-sequencing" = { tier = "conditional", breadth = 0.12, served = 0.002 }
+"principle-21-follow-his-step-order" = { tier = "conditional", breadth = 0.12, served = 0.002 }
 "principle-23-standing-decisions" = { tier = "conditional", breadth = 0.12, served = 0.117 }
 "principle-36-verify-with-stderr-visible" = { tier = "conditional", breadth = 0.10, served = 0.001 }
 "principle-02-plan-before-build" = { tier = "conditional", breadth = 0.08, served = 0.020 }
@@ -85,36 +82,36 @@ measured_on = "2026-09-05"
 "principle-33-git-is-not-a-blocker" = { tier = "conditional", breadth = 0.04, served = 0.027 }
 "principle-51-spaghetti-is-a-design-fault" = { tier = "conditional", breadth = 0.04, served = 0.009 }
 "principle-09-git-sovereignty" = { tier = "conditional", breadth = 0.02, served = 0.078 }
-"principle-17-agent-general" = { tier = "narrow", breadth = 0.02, served = 0.008 }
+"principle-17-harness-agnostic" = { tier = "narrow", breadth = 0.02, served = 0.008 }
 "principle-27-organization-reorg" = { tier = "narrow", breadth = 0.02, served = 0.046 }
 "principle-28-dry-merge-blast-radius" = { tier = "narrow", breadth = 0.02, served = 0.036 }
-"principle-32-portability" = { tier = "narrow", breadth = 0.02, served = 0.005 }
+"principle-32-discover-paths-never-hardcode" = { tier = "narrow", breadth = 0.02, served = 0.005 }
 "principle-34-untrusted-input" = { tier = "narrow", breadth = 0.02, served = 0.000 }
 "principle-35-gates-are-agent-side" = { tier = "narrow", breadth = 0.02, served = 0.004 }
 "principle-38-a-non-answer-is-not-consent" = { tier = "narrow", breadth = 0.02, served = 0.005 }
 "principle-46-stay-in-the-working-folder" = { tier = "narrow", breadth = 0.02, served = 0.007 }
 "principle-47-copy-raw-fetches-into-the-repo" = { tier = "narrow", breadth = 0.02, served = 0.009 }
 "principle-50-the-standing-mission" = { tier = "narrow", breadth = 0.02, served = 0.008 }
-"principle-19-think-in-code-ops" = { tier = "narrow", breadth = 0.00, served = 0.010 }
-"principle-22-naming-conventions" = { tier = "narrow", breadth = 0.00, served = 0.041 }
+"principle-19-commit-only-rerunnable-scripts" = { tier = "narrow", breadth = 0.00, served = 0.010 }
+"principle-22-lexical-conventions" = { tier = "narrow", breadth = 0.00, served = 0.041 }
 "principle-25-deploy-infra" = { tier = "narrow", breadth = 0.00, served = 0.004 }
 "principle-30-deterministic-flow" = { tier = "narrow", breadth = 0.00, served = 0.011 }
 "principle-37-comment-the-artifact-not-the-edit" = { tier = "conditional", breadth = 0.00, served = 0.096 }
-"principle-41-rigor-scales-with-purpose" = { tier = "conditional", breadth = 0.00, served = 0.051 }
+"principle-41-idiom-strictness-follows-purpose" = { tier = "conditional", breadth = 0.00, served = 0.051 }
 "principle-49-his-interactive-app-shape" = { tier = "conditional", breadth = 0.00, served = 0.188 }
 
-# AUTHORED AFTER `measured_on`, AND NOT MEASURED. these three carry no breadth or
+# AUTHORED AFTER `measured_on`, AND NOT MEASURED. these carry no breadth or
 # served figure because the 50-prompt sample predates them, and inventing one
 # would make this file a claim rather than a record. `conditional` is the
 # rule's own default - neither the constitution nor the narrow bar can be
 # cleared by a principle with no measurement - and it is provisional until the next
 # re-derivation reads them with everything else.
 "principle-52-parallel-dispatch" = { tier = "conditional", measured = false }
-"principle-53-rigor-scales-with-the-change" = { tier = "conditional", measured = false }
+"principle-53-review-size-follows-the-change" = { tier = "conditional", measured = false }
 "principle-54-a-count-is-a-measurement" = { tier = "conditional", measured = false }
 "principle-55-the-run-is-visible" = { tier = "conditional", measured = false }
 "principle-56-close-out-housekeeping" = { tier = "conditional", measured = false }
-"principle-57-user-docs-are-an-icd" = { tier = "conditional", measured = false }
+"principle-57-docs-read-like-a-reference-manual" = { tier = "conditional", measured = false }
 "principle-58-a-correction-is-a-class" = { tier = "conditional", measured = false }
 "principle-59-cli-shows-the-commands-it-runs" = { tier = "conditional", measured = false }
 "principle-60-device-facing-code-is-gated-by-a-live-run" = { tier = "conditional", measured = false }
@@ -133,3 +130,4 @@ measured_on = "2026-09-05"
 "principle-73-pr-writeup-sorted-by-why" = { tier = "conditional", measured = false }
 "principle-74-the-last-review-runs-at-high-effort" = { tier = "conditional", measured = false }
 "principle-75-green-suite-before-push-and-tests-follow-logic" = { tier = "conditional", measured = false }
+"principle-76-names-say-what-it-does" = { tier = "conditional", measured = false }

@@ -4,12 +4,12 @@ my second brain for dev work. it learns how i plan, review, write, and push back
 transcripts (codex + claude), then acts as me: reviews other agents work, writes prompts in my voice,
 supervises a plan by dispatching other agents. it doesnt fabricate and it doesnt publish.
 
-this is ONE repo: the doctrine (`brain/`), the tooling (`bin/`), and the acting suite
-(`agentic-files/` - skills + agents) that home-manager links into claude + codex. private memory
+this is ONE repo: the doctrine (`store/`), the tooling (`bin/`), and the acting suite (`skills/` +
+`agents/`) that home-manager links into claude + codex. private memory
 (evidence + trace) lives in the `logs/` submodule, never in this repo's history.
 
 > human-facing doc - nothing reads this at runtime. the authoritative sources are
-> `brain/CONSTITUTION.md`, the principles, and `brain/flow/flow.toml`.
+> `store/CONSTITUTION.md`, the principles, and `store/flow/flow.toml`.
 
 ## why
 i delegate to AI for leverage, not to hand off judgment. the brain is the part that stays in the loop
@@ -21,41 +21,43 @@ cold, refuses to fabricate, stops only on real ambiguity, prepares the commit. i
 aav-brain/             the one transferable brain (a `brain` submodule of home)
   README.md            you are here
   ARCHITECTURE.md      the system: memory tiers, the 5 entries + brain-meta-* machinery + agents
-  brain/               the queryable DOCTRINE store (committed, public knowledge)
+  store/               the queryable DOCTRINE store (committed, public knowledge)
     CONSTITUTION.md    tier-1 core: the hard rules + voice (always loaded)
     principles/        atomic principles (one belief each)
-    intents/           interests (the why)
+    interests/         interests (the why)
     voice/             how to write/review as me
     flow/  graph/      the deterministic flow + the graph derived from the principles
     INDEX.md           the store manifest
-  agentic-files/       the acting suite (home-manager links it into claude + codex)
-    skills/            the 14 skills (universal SKILL.md across claude / codex / ~/.agents)
-    agents/            categorized: brain/  general/  lang/rust/  style/
-  bin/                 brainlib (the shared lib) and the brain scripts, each a command
-                       `b-<name>` (`Layout.scripts` says which file is one); each answers -h, and
-                       ARCHITECTURE.md says how they reach PATH
-    store/             build and keep the knowledge
-    run/               used while a task runs
-    check/             measure
+  skills/              the skills (universal SKILL.md across claude / codex / ~/.agents)
+  agents/              the agents, by folder: brain/  architecture/  rust/  style/
+  bin/                 brainlib (the shared lib) and the brain scripts, each the command its file
+                       is named (`b-<name>.py` runs as `b-<name>`); each answers -h, and
+                       ARCHITECTURE.md says how they reach PATH. b-find, b-sync and b-try sit
+                       at its root
+    render/            build the generated files: compile, flow, graph
+    logs/              mine and keep the private logs: extract, trace
+    flow/              used while a task walks the flow: walk, gate, recall
+    check/             measure and verify
   prune.toml           how old a trace entry must be before it is eligible to be judged
   shape.toml           the numbers behind P27 and P28
   tiers.toml           which principles always load, which are scored, and the measurement behind it
   verify.toml          the checks b-verify runs for a change here
-  eval/                brain-eval.py + 25 tasks and their principle-derived rubrics: does a brain
-                       version change how the work comes out, measured paired (on vs off)
+  eval/                measure.py + 25 tasks and their principle-derived rubrics: does a brain
+                       version change how the work comes out, measured paired (on vs off);
+                       plot_recall_scores.py charts expected vs actual recall per prompt
   .generated/          codex TOML agents, compiled on every switch (GITIGNORED)
   logs/                PRIVATE memory submodule (aav-brain-logs): evidence + trace. its content
                        lives in a separate private repo, never here; the scripts write to the edit
-                       copy's logs/ (brainlib.DataLayout), per-machine files in its git-ignored
+                       copy's logs/ (brainlib.LogsLayout), per-machine files in its git-ignored
                        logs/local/ (brainlib.LocalLayout).
-  docs/                INTENT_MAP, DEV_FLOWCHART, PRIOR_ART
+  docs/                INTERESTS, FLOWCHART, PRIOR_ART
   schema/              the principle / flow / trace schemas
 ```
 
 ## quickstart
 ```bash
 # 1. (re)build the evidence from my real history. explicit signal only, no accepted-edit guessing.
-b-extract          # or: uv run bin/store/brain-extract.py
+b-extract          # or: uv run bin/logs/b-extract.py
 
 # 2. ask the brain what it knows about a task
 b-recall <<'EOF'
@@ -66,9 +68,9 @@ EOF
 b-recall -a
 ```
 
-the acting suite lives in `agentic-files/` (home-manager links it into ~/.claude and ~/.codex). use the
-entrypoints, the only skills you call: each `[[entries]]` row of `brain/flow/flow.toml` (listed with
-its start state and mode in `docs/DEV_FLOWCHART.md`).
+the acting suite lives in `skills/` and `agents/` (home-manager links them into ~/.claude and ~/.codex). use the
+entrypoints, the only skills you call: each `[[entries]]` row of `store/flow/flow.toml` (listed with
+its start state and mode in `docs/FLOWCHART.md`).
 
 everything else is `brain-meta-*` machinery the entries load (the engine + node-owner skills) - dont
 call it directly.

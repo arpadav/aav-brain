@@ -1,7 +1,7 @@
 # schema: principle
 
 every belief in the brain is one atomic principle (zettelkasten / basic-memory style: one idea per note,
-densely linked). principles live in brain/principles/. brain/intents/ holds the interest documents: they are prose a
+densely linked). principles live in store/principles/. store/interests/ holds the interest documents: they are prose a
 human reads and valid [[link]] targets, and carry no tier.
 
 ## frontmatter
@@ -10,11 +10,11 @@ human reads and valid [[link]] targets, and carry no tier.
 name: principle-NN-short-slug      # unique, kebab-case, matches filename
 kind: principle                    # principle | interest
 tier: constitution|conditional|narrow  # REQUIRED on a principle. how the principle REACHES an agent
-                                   # (brainlib.vocab.Tier); measured, not asserted: see tiers.toml.
+                                   # (brainlib.enums.Tier); measured, not asserted: see tiers.toml.
                                    # re-derive from that, never hand-promote a favourite.
 rule: <one sentence, the imperative>      # principle only
-interest: [intent-x, intent-y]     # which interest(s) this serves (principle only)
-# a FIELD, not an edge: why intents are not graph nodes, see bin/brainlib/graph.py
+interest: [interest-x, interest-y] # which interest(s) this serves (principle only)
+# a FIELD, not an edge: why interests are not graph nodes, see bin/brainlib/graph.py
 confidence: very-high | high | medium     # how strong the evidence is
 evidence_count: <int>              # rough count of corpus occurrences
 binds: [code, python]              # OPTIONAL. contexts where this principle loads REGARDLESS of score.
@@ -30,7 +30,7 @@ tells: ["verbatim phrase", ...]    # exact phrases that signal this principle; u
 ## body sections (in order)
 1. `# PNN - title` : the principle heading.
 2. rule : the imperative, restated with nuance.
-3. why : the interest it serves, linked [[intent-...]]. this is the positions->interests bridge: the
+3. why : the interest it serves, linked [[interest-...]]. this is the positions->interests bridge: the
    rule is the position, the why is the interest.
 4. how to apply : concrete, situational; when it dominates vs yields to another principle.
 5. verbatim tells : real quotes from the corpus (evidence; keeps the principle honest).
@@ -39,7 +39,7 @@ tells: ["verbatim phrase", ...]    # exact phrases that signal this principle; u
 ## linking rules
 - link liberally with [[principle-name]]. a link to a not-yet-written principle is fine; it marks a gap to fill.
 - every principle names >=1 interest via `interest:`. it is metadata, not an edge; b-principles
-  fails on a name with no document in `brain/intents/`.
+  fails on a name with no document in `store/interests/`.
 - when two principles tension (e.g. P01 ask-first vs P10 execute-through), each names the other and states
   which regime makes it dominant.
 

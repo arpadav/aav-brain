@@ -5,9 +5,9 @@ co-equal with the knowledge graph (schema/optional-graph.md) and kept strictly s
 the graph is CONTEXT ("which principles apply"), the flow is SEQUENCE ("what step is next").
 
 ## what it is
-- `brain/flow/flow.toml` : the authored SOURCE - entries + states + transitions, hand-edited. the
+- `store/flow/flow.toml` : the authored SOURCE - entries + states + transitions, hand-edited. the
   flow's data, the way the markdown principles are the graph's data. there is no built copy.
-- `bin/run/brain-walk.py` reads flow.toml directly and steps it; `bin/store/brain-flow.py` renders the doc
+- `bin/flow/b-walk.py` reads flow.toml directly and steps it; `bin/render/b-flow.py` renders the doc
   view. both load and validate it through `brainlib.Flow` - one parse, one set of checks (P31).
 
 ## entries
@@ -60,6 +60,6 @@ NEVER calls the flow. which principle ranks #1 cannot change a transition; trans
 (state, event). knowledge never steers sequence. that asymmetry is the separation.
 
 ## the doc view
-`docs/DEV_FLOWCHART.md` is POPULATED by `b-flow` from the tracked template
-`docs/templates/DEV_FLOWCHART.md` (prose, with `<!-- fill: ... -->` markers) and flow.toml (the diagram
+`docs/FLOWCHART.md` is POPULATED by `b-flow` from the tracked template
+`store/flow/flowchart-template.md` (prose, with `<!-- fill: ... -->` markers) and flow.toml (the diagram
 and the state table). re-run it after editing either; `b-flow -c` fails while the doc is stale.

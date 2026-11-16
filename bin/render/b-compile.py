@@ -1,0 +1,390 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""b-compile: render the brain into the surfaces that consume it.
+
+    b-compile     build the codex agents + the global preamble
+    b-compile -c  rebuild in memory, fail if either drifts
+
+two targets. the CODEX AGENTS are described below. the GLOBAL PREAMBLE carries
+the handful of rules that must hold in EVERY session, including the ones where
+no brain skill is ever loaded and none of the store is reachable: those render
+from their principles into a marked block in ~/.claude/CLAUDE.md, so the always-on
+copy cannot say something the principle does not
+
+the brain SKILLS are universal (same SKILL.md in claude, codex, and ~/.agents)
+so they need no compilation - they symlink raw. the AGENTS differ per surface:
+claude reads the `.md` source directly (frontmatter `model`/`color` + <example>
+dispatch blocks), while codex consumes a TOML agent file (`~/.codex/agents/<name>.toml`)
+with `name` / `description` / `developer_instructions`. this renders each source
+`.md` into that TOML. output is deterministic, so `--check` gates drift (the files
+are gitignored - this is an idempotency gate, run on init / in CI, not a committed
+artifact diff)
+
+Author: aav
+"""
+# brainlib lives in bin/, one folder up; shared so this build tooling reuses the
+# GeneratedFile drift-gate instead of hand-rolling a second copy (P31)
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# --------------------------------------------------
+# local
+# --------------------------------------------------
+from brainlib import Args, Exit, GeneratedFile, Layout, Tool, read_text, split_frontmatter
+
+# --------------------------------------------------
+# external
+# --------------------------------------------------
+import re
+from dataclasses import dataclass
+from typing import override
+
+# --------------------------------------------------
+# constants
+# --------------------------------------------------
+# the command this tool runs as, for its messages
+TOOL = Layout.command(Path(__file__))
+# every path this tool touches, resolved once by the shared discovery
+LAYOUT = Layout.discover()
+# the principles that bind with no skill loaded, and the always-read file they land in
+# home is discovered, never spelled out (P32); a surface whose config dir is absent
+# is skipped, so this never invents config for a tool he doesn't run
+PREAMBLE_PRINCIPLES = (
+    "principle-09-git-sovereignty",
+    "principle-37-comment-the-artifact-not-the-edit",
+    "principle-43-report-state-not-changelog",
+    "principle-61-private-infra-stays-out-of-tracked-files",
+)
+# where the preamble lives: the claude config dir, and the file in it the build writes into
+PREAMBLE_DIR = Path.home() / ".claude"
+PREAMBLE_FILE = PREAMBLE_DIR / "CLAUDE.md"
+# claude is in use on this machine when its config dir exists. read once, here,
+# because GeneratedFile.emit creates out_dir before it asks for the targets
+PREAMBLE_SURFACE = PREAMBLE_DIR.is_dir()
+# only the span between these two lines belongs to the build; every other byte of
+# that file is his (P09)
+MARK_OPEN = "<!-- GENERATED from the brain - do not hand-edit -->"
+MARK_CLOSE = "<!-- END GENERATED -->"
+# the `## rule` section of a principle, up to the next `##` heading
+RULE_SECTION = re.compile(r"^## rule\n(.*?)(?=^## )", re.MULTILINE | re.DOTALL)
+# one `key: value` frontmatter line; keys allow letters/underscores (e.g. model_id)
+FRONT_KV = re.compile(r"([A-Za-z_]+):\s*(.*)")
+# the shortest string that can carry BOTH of its surrounding quotes
+QUOTED_MIN = 2
+
+
+def toml_basic(s: str) -> str:
+    r"""render a single-line TOML basic string.
+
+    escapes the control chars and metacharacters a basic string forbids, so an
+    embedded quote/backslash/tab/newline can never break the emitted TOML
+
+    # Arguments
+    * `s` - the raw string value
+
+    # Returns
+    the quoted, escaped TOML scalar
+
+    # Example
+
+        >>> toml_basic('a "quoted" value')
+        '"a \\"quoted\\" value"'
+        >>> toml_basic("tab\there")
+        '"tab\\there"'
+    """
+    out = (s.replace("\\", "\\\\").replace('"', '\\"')
+           .replace("\t", "\\t").replace("\r", "\\r").replace("\n", "\\n"))
+    return f'"{out}"'
+
+
+def toml_multiline(body: str) -> str:
+    """render a TOML multi-line string for the agent body.
+
+    prefers a literal (`'''`) so markdown backslashes/quotes need no escaping;
+    falls back to a basic (`\"\"\"`) string only if the body itself contains `'''`
+    the body is right-stripped of newlines so the value carries exactly one
+    trailing newline (TOML trims the leading one after the opener), keeping the
+    output byte-stable build over build
+
+    # Arguments
+    * `body` - the agent's markdown instructions
+
+    # Returns
+    the TOML multi-line string
+    """
+    body = body.rstrip("\n")
+    if "'''" not in body:
+        return f"'''\n{body}\n'''"
+    esc = body.replace("\\", "\\\\").replace('"""', '\\"\\"\\"')
+    return f'"""\n{esc}\n"""'
+
+
+@dataclass
+class Agent:
+    """one claude agent file, parsed into its parts."""
+
+    name: str
+    description: str
+    body: str
+
+    @classmethod
+    def parse(cls, path: Path) -> "Agent":
+        """parse an agent .md into name, description, and body.
+
+        fails LOUD on a malformed file (no frontmatter, unterminated fence,
+        missing name) rather than silently corrupting the body or emitting an
+        empty field - a stray non-agent `.md` in the tree is a build error, not
+        a silent half-agent (P04)
+
+        # Arguments
+        * `path` - the agent file path
+
+        # Returns
+        an Agent. model/color frontmatter is dropped; codex inherits those
+        """
+        # --------------------------------------------------
+        # read and normalise the line endings
+        # --------------------------------------------------
+        text = read_text(path).replace("\r\n", "\n").replace("\r", "\n")
+        # --------------------------------------------------
+        # locate and validate the frontmatter fences
+        # --------------------------------------------------
+        split = split_frontmatter(text)
+        if split is None:
+            raise ValueError(f"{path}: unterminated frontmatter")
+        front, body = split
+        if body == text:
+            raise ValueError(f"{path}: no frontmatter")
+        if not front:
+            raise ValueError(f"{path}: empty frontmatter")
+        body = body.lstrip("\n")
+        # --------------------------------------------------
+        # scan the frontmatter line-by-line: robust to a description that is the
+        # LAST key, to underscore/case in the next key, and to inline comments
+        # --------------------------------------------------
+        name = desc = None
+        for line in front.splitlines():
+            kv = FRONT_KV.match(line)
+            if kv is None:
+                continue
+            key, val = kv.group(1), kv.group(2).strip()
+            if key == "name" and name is None:
+                name = val.strip('"').split(" #", 1)[0].strip().strip('"')
+            elif key == "description" and desc is None:
+                desc = val[1:-1] if len(val) >= QUOTED_MIN and val[0] == '"' and val[-1] == '"' else val.strip('"')
+        # --------------------------------------------------
+        # validate what the scan found, then construct
+        # --------------------------------------------------
+        if not name:
+            raise ValueError(f"{path}: frontmatter has no name")
+        return cls(name=name, description=desc or "", body=body)
+
+    def codex_description(self) -> str:
+        r"""the trigger sentence, without the claude-only <example> blocks.
+
+        splits on the `<example>` tag regardless of how the surrounding newlines
+        are encoded (escaped ``\n`` vs real), then collapses whitespace
+
+        # Returns
+        a single-line codex agent description
+        """
+        head = self.description.split("<example>")[0]
+        return re.sub(r"\s+", " ", head.replace("\\n", " ").replace('\\"', '"')).strip()
+
+    def to_codex_agent(self) -> str:
+        """render this agent as a codex TOML agent file.
+
+        # Returns
+        the full `.toml` text (name + description + developer_instructions),
+        trailing newline
+        """
+        return (f"name = {toml_basic(self.name)}\n"
+                f"description = {toml_basic(self.codex_description())}\n"
+                f"developer_instructions = {toml_multiline(self.body)}\n")
+
+
+@dataclass
+class CodexAgents(GeneratedFile):
+    """compiles every claude agent in a tree into codex TOML agents.
+
+    a brainlib.GeneratedFile: it supplies only `targets()` and `summary()`; the
+    drift-gate (build / --check / byte-compare) is inherited, not re-rolled
+    """
+
+    agents_dir: Path = Path()
+
+    def targets(self) -> list[tuple[Path, str]]:
+        """the codex agent files, one `.toml` per source `.md` (recursive).
+
+        raises on a duplicate agent `name` across the tree - two sources mapping
+        to one output path would otherwise silently overwrite, and `--check`
+        would never see the loss
+
+        # Returns
+        a list of (path, content) pairs
+        """
+        out: list[tuple[Path, str]] = []
+        seen: dict[Path, Path] = {}
+        for path in sorted(self.agents_dir.rglob("*.md")):
+            agent = Agent.parse(path)
+            dst = self.out_dir / f"{agent.name}.toml"
+            if dst in seen:
+                raise ValueError(f"duplicate agent name {agent.name!r}: {seen[dst]} and {path}")
+            seen[dst] = path
+            out.append((dst, agent.to_codex_agent()))
+        return out
+
+    def orphans(self) -> list[Path]:
+        r"""the agent files in the output directory that no source builds.
+
+        an agent whose source was deleted or renamed leaves its `.toml` behind,
+        and codex keeps loading it
+
+        # Returns
+        the orphaned `.toml` paths, sorted
+
+        # Example
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmp:
+            ...     source, out = Path(tmp) / "src", Path(tmp) / "out"
+            ...     _ = source.mkdir(), out.mkdir()
+            ...     _ = (source / "a.md").write_text("---\nname: kept\n---\nbody\n")
+            ...     _ = (out / "kept.toml").write_text(""), (out / "gone.toml").write_text("")
+            ...     [path.name for path in CodexAgents(out_dir=out, agents_dir=source).orphans()]
+            ['gone.toml']
+        """
+        built = {path for path, _ in self.targets()}
+        return sorted(path for path in self.out_dir.glob("*.toml") if path not in built)
+
+    @override
+    def is_current(self) -> bool:
+        """every agent file matches a fresh build, and none is orphaned.
+
+        # Returns
+        true when the output directory holds exactly the built agents
+        """
+        return super().is_current() and not self.orphans()
+
+    @override
+    def emit(self) -> None:
+        """delete every orphaned agent file, naming each, then build.
+
+        each orphan is an agent file in the output folder that no source builds;
+        it is unlinked and reported on stdout before the normal targets are
+        written, so a rename in the source never leaves the old file behind
+        """
+        for orphan in self.orphans():
+            orphan.unlink()
+            print(f"{TOOL}: pruned {orphan.name}: no agent source builds it")
+        super().emit()
+
+    def summary(self) -> str:
+        """a one-line build summary.
+
+        # Returns
+        the directory and the compiled agent names
+        """
+        names = sorted(path.stem for path, _ in self.targets())
+        return f"{TOOL} done -> {self.out_dir}\n  codex agents: {', '.join(names)}"
+
+
+@dataclass
+class Preamble(GeneratedFile):
+    """renders the always-on principles into the global prompt file.
+
+    a brainlib.GeneratedFile, so the drift gate is inherited. it owns ONLY the span
+    between the two markers: the surrounding file is hand-written and stays
+    untouched, a file that has no markers yet gets the block appended, and a
+    missing file is created holding only the block
+    """
+
+    principles_dir: Path = Path()
+    principles: tuple[str, ...] = ()
+
+    def block(self) -> str:
+        """the generated span, rendered from every named principle.
+
+        # Returns
+        the marked block, markers included, without a trailing newline
+        """
+        parts = [MARK_OPEN]
+        for name in self.principles:
+            text = read_text(self.principles_dir / f"{name}.md")
+            match = RULE_SECTION.search(text)
+            if not match:
+                raise ValueError(f"{name}: no `## rule` section to render")
+            rule = match.group(1).strip()
+            # a [[principle]] link resolves only inside the store; emitting one into a
+            # file read with no store loaded hands the reader a dead reference
+            if "[[" in rule:
+                raise ValueError(f"{name}: the rule section links to another principle, so it cannot render standalone")
+            parts.append(rule)
+        parts.append(MARK_CLOSE)
+        return "\n\n".join(parts)
+
+    def targets(self) -> list[tuple[Path, str]]:
+        """the global prompt file, with only its generated span replaced.
+
+        # Returns
+        a list of one (path, content) pair, or none when claude is not in use here
+        """
+        # --------------------------------------------------
+        # no claude config dir, no claude: write nothing
+        # --------------------------------------------------
+        if not PREAMBLE_SURFACE:
+            return []
+        # --------------------------------------------------
+        # a machine with claude but no global file yet gets one
+        # holding just the block
+        # --------------------------------------------------
+        block = self.block()
+        if not PREAMBLE_FILE.exists():
+            return [(PREAMBLE_FILE, block + "\n")]
+        # --------------------------------------------------
+        # render the block, then splice it over the marked span or append it
+        # --------------------------------------------------
+        text = read_text(PREAMBLE_FILE)
+        start = text.find(MARK_OPEN)
+        end = text.find(MARK_CLOSE)
+        if start != -1 and end != -1:
+            merged = text[:start] + block + text[end + len(MARK_CLOSE):]
+        else:
+            merged = text.rstrip("\n") + "\n\n## Comments\n\n" + block + "\n"
+        return [(PREAMBLE_FILE, merged)]
+
+    def summary(self) -> str:
+        """a one-line build summary.
+
+        # Returns
+        the file written and the principles it carries
+        """
+        if not self.targets():
+            return f"{TOOL}: {PREAMBLE_DIR} absent, preamble skipped"
+        return f"{TOOL} done -> {PREAMBLE_FILE}\n  preamble principles: {', '.join(self.principles)}"
+
+
+def main(args: Args) -> Exit:
+    """compile the codex agents and the global preamble, or check both.
+
+    # Arguments
+
+    * `args` - the parsed command line; `--check` compares both outputs to disk instead of writing
+
+    # Returns
+
+    the combined exit status of the two artifacts
+    """
+    return GeneratedFile.run_all([
+        CodexAgents(out_dir=LAYOUT.codex_agents, agents_dir=LAYOUT.agents),
+        Preamble(out_dir=PREAMBLE_DIR, principles_dir=LAYOUT.principles, principles=PREAMBLE_PRINCIPLES),
+    ], args, TOOL)
+
+
+if __name__ == "__main__":
+    Tool.of(TOOL, __doc__).run(main)

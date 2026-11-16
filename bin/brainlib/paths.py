@@ -6,7 +6,7 @@ appears once, as a property, so a move is one edit and every tool follows.
 Layout holds the paths inside a brain repo. XdgLayout holds those in his
 per-machine config folder, the install copy, and the edit copy's brain that
 the folder's repos.toml leads to, which every tool keeps its data in.
-DataLayout holds the paths of that data: the edit brain's private-data
+LogsLayout holds the paths of that data: the edit brain's private-data
 submodule, with LocalLayout its never-committed per-machine `local/`
 
 Author: aav
@@ -14,9 +14,9 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
+from brainlib.enums import Env, NoVerdict
+from brainlib.file_io import Json, read_text, write_text
 from brainlib.repo.tree import git
-from brainlib.text import Json, read_text, write_text
-from brainlib.vocab import Env, NoVerdict
 
 # --------------------------------------------------
 # external
@@ -40,8 +40,6 @@ REPOS_TOML = "repos.toml"
 DEFAULT_ROOTS = ("~/repos/personal",)
 # the home repo's directory: under a root for the edit copy, under his config folder for the install copy
 HOME_REPO = "home"
-# the legacy install copy location under $HOME, which sy migrates from; repos.nix spells the same
-HM_HOME = Path(".config", "home-manager")
 # the install copy under $HOME, the value install-copy.nix holds
 INSTALL_HOME = Path(".config", "aav", HOME_REPO)
 # the brain's folder inside a home checkout
@@ -52,7 +50,7 @@ LOCAL = "local"
 SESSIONS = "sessions"
 # the self-ignoring .gitignore every writer of LOCAL puts in it first, as a tool cache does
 LOCAL_GITIGNORE = "# self-ignoring: per-machine brain data, never committed\n*\n"
-# the prefix every brain command carries, before its script's stem past `brain-`
+# the prefix every brain command, and so every brain script's file name, starts with
 COMMAND_PREFIX = "b-"
 # the interpreter flag every brain command runs under: no PYTHON* variables, no user site, no script dir on sys.path
 ISOLATED = "-I"
@@ -89,9 +87,9 @@ class Layout:
     root: Path
 
     # the scripts other code names, relative to `bin`
-    RECALL: ClassVar[Path] = Path("run", "brain-recall.py")
-    WALK: ClassVar[Path] = Path("run", "brain-walk.py")
-    PRIVATE: ClassVar[Path] = Path("check", "brain-private.py")
+    RECALL: ClassVar[Path] = Path("flow", "b-recall.py")
+    WALK: ClassVar[Path] = Path("flow", "b-walk.py")
+    PRIVATE: ClassVar[Path] = Path("check", "b-private.py")
 
     @classmethod
     def discover(cls) -> "Layout":
@@ -139,24 +137,14 @@ class Layout:
         return self.root / "bin"
 
     @property
-    def agentic(self) -> Path:
-        """the agent and skill tree.
-
-        # Returns
-
-        `<root>/agentic-files`
-        """
-        return self.root / "agentic-files"
-
-    @property
     def agents(self) -> Path:
         """the agent definitions.
 
         # Returns
 
-        `<root>/agentic-files/agents`
+        `<root>/agents`
         """
-        return self.agentic / "agents"
+        return self.root / "agents"
 
     @property
     def skills(self) -> Path:
@@ -164,9 +152,9 @@ class Layout:
 
         # Returns
 
-        `<root>/agentic-files/skills`
+        `<root>/skills`
         """
-        return self.agentic / "skills"
+        return self.root / "skills"
 
     @property
     def store(self) -> Path:
@@ -174,9 +162,9 @@ class Layout:
 
         # Returns
 
-        `<root>/brain`
+        `<root>/store`
         """
-        return self.root / "brain"
+        return self.root / "store"
 
     @property
     def principles(self) -> Path:
@@ -184,19 +172,19 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/principles`
+        `<root>/store/principles`
         """
         return self.store / "principles"
 
     @property
-    def intents(self) -> Path:
+    def interests(self) -> Path:
         """the interests: the why behind the principles.
 
         # Returns
 
-        `<root>/brain/intents`
+        `<root>/store/interests`
         """
-        return self.store / "intents"
+        return self.store / "interests"
 
     @property
     def store_dirs(self) -> tuple[Path, Path]:
@@ -204,9 +192,9 @@ class Layout:
 
         # Returns
 
-        `(principles, intents)`, the order b-principles lints them in
+        `(principles, interests)`, the order b-principles lints them in
         """
-        return (self.principles, self.intents)
+        return (self.principles, self.interests)
 
     @property
     def index(self) -> Path:
@@ -214,7 +202,7 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/INDEX.md`
+        `<root>/store/INDEX.md`
         """
         return self.store / "INDEX.md"
 
@@ -224,7 +212,7 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/CONSTITUTION.md`
+        `<root>/store/CONSTITUTION.md`
         """
         return self.store / "CONSTITUTION.md"
 
@@ -234,7 +222,7 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/flow`
+        `<root>/store/flow`
         """
         return self.store / "flow"
 
@@ -244,19 +232,19 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/flow/flow.toml`
+        `<root>/store/flow/flow.toml`
         """
         return self.flow_dir / "flow.toml"
 
     @property
     def flow_template(self) -> Path:
-        """the hand-written frame DEV_FLOWCHART.md is populated from.
+        """the hand-written frame FLOWCHART.md is populated from.
 
         # Returns
 
-        `<root>/docs/templates/DEV_FLOWCHART.md`
+        `<root>/store/flow/flowchart-template.md`
         """
-        return self.docs / "templates" / "DEV_FLOWCHART.md"
+        return self.flow_dir / "flowchart-template.md"
 
     @property
     def graph_dir(self) -> Path:
@@ -264,13 +252,13 @@ class Layout:
 
         # Returns
 
-        `<root>/brain/graph`
+        `<root>/store/graph`
         """
         return self.store / "graph"
 
     @staticmethod
     def command(script: Path) -> str:
-        """the command a brain script runs as: `b-`, then its stem past `brain-`.
+        """the command a brain script runs as: its file stem, COMMAND_PREFIX included.
 
         module.nix writes each script's command under this name, so a tool's
         messages name it as he would type it
@@ -285,19 +273,19 @@ class Layout:
 
         # Example
 
-            >>> Layout.command(Path("bin/run/brain-walk.py")), Layout.command(Path("bin/check/brain-lint.py"))
+            >>> Layout.command(Path("bin/flow/b-walk.py")), Layout.command(Path("bin/check/b-lint.py"))
             ('b-walk', 'b-lint')
         """
-        return f"{COMMAND_PREFIX}{script.stem.removeprefix('brain-')}"
+        return script.stem
 
     @property
     def scripts(self) -> list[Path]:
-        """every brain script: a `brain-?*.py` file in bin/ or a folder directly under it, NOT_SCRIPT_DIRS aside.
+        """every brain script: a `b-?*.py` file in bin/ or a folder directly under it, NOT_SCRIPT_DIRS aside.
 
         module.nix makes each one a command by this rule, spelled again in
         nix, which cannot call this. nix's `readDir` types a symlink as
         neither a directory nor a file, so a symlinked folder or script is
-        none here either. a bare `brain-.py` is none, since it would run as `b-`
+        none here either. a bare `b-.py` is none, since it would run as `b-`
 
         # Returns
 
@@ -310,7 +298,7 @@ class Layout:
         """
         dirs = [self.bin, *(d for d in self.bin.iterdir()
                             if d.is_dir() and not d.is_symlink() and d.name not in NOT_SCRIPT_DIRS)]
-        return sorted(script for d in dirs for script in d.glob("brain-?*.py")
+        return sorted(script for d in dirs for script in d.glob(f"{COMMAND_PREFIX}?*.py")
                       if script.is_file() and not script.is_symlink())
 
     def script_for(self, command: str) -> Path | None:
@@ -329,10 +317,10 @@ class Layout:
             >>> import tempfile
             >>> with tempfile.TemporaryDirectory() as tmp:
             ...     layout = Layout(Path(tmp))
-            ...     (layout.bin / "run").mkdir(parents=True)
-            ...     (layout.bin / "run" / "brain-walk.py").touch()
+            ...     (layout.bin / "flow").mkdir(parents=True)
+            ...     (layout.bin / "flow" / "b-walk.py").touch()
             ...     layout.script_for("b-walk").relative_to(layout.bin).as_posix(), layout.script_for("walk")
-            ('run/brain-walk.py', None)
+            ('flow/b-walk.py', None)
         """
         return next((script for script in self.scripts if self.command(script) == command), None)
 
@@ -342,7 +330,7 @@ class Layout:
 
         # Returns
 
-        `<root>/bin/run/brain-recall.py`
+        `<root>/bin/flow/b-recall.py`
         """
         return self.bin / self.RECALL
 
@@ -352,7 +340,7 @@ class Layout:
 
         # Returns
 
-        `<root>/bin/check/brain-private.py`
+        `<root>/bin/check/b-private.py`
         """
         return self.bin / self.PRIVATE
 
@@ -530,9 +518,9 @@ class XdgLayout:
         the candidates are repos.toml's `edit` when set and not empty, else
         `<root>/home` for every one of its `roots` in order (DEFAULT_ROOTS
         when it sets none), `~` expanded in each. the first candidate that
-        holds a brain and does not resolve to an install copy,
-        `install_home()` or the older HM_HOME, is the edit copy; a declared
-        `edit` that does not qualify is refused, never passed over. repos.nix
+        holds a brain and does not resolve to the install copy,
+        `install_home()`, is the edit copy; a declared `edit` that does not
+        qualify is refused, never passed over. repos.nix
         resolves `AVE` from the same candidates in the same order, but matches
         an install copy by its path string, unresolved, and refuses nothing.
         the file is read on every call
@@ -564,20 +552,19 @@ class XdgLayout:
             ...         except NoVerdict as refused:
             ...             return str(refused).replace(tmp, "~")
             ...     brain(".config/aav/home")
-            ...     brain(".config/home-manager")
             ...     (home / "half" / HOME_REPO / HOME_BRAIN).mkdir(parents=True)
             ...     absent = edit("")
             ...     brain("repos/personal/home")
             ...     brain("else/home")
             ...     edit(""), edit('roots = ["~/.config/aav", "~/half", "~/repos/personal"]\n'), edit('edit = ""\n')
             ...     edit('edit = "~/else/home"\n'), absent
-            ...     edit('edit = "~/.config/home-manager"\n')
+            ...     edit('edit = "~/.config/aav/home"\n')
             ...     edit('edit = "~/half/home"\n')
             ...     edit('roots = "~"\n')
             ...     edit('edit = "else/home"\n')
             ('repos/personal/home/brain', 'repos/personal/home/brain', 'repos/personal/home/brain')
             ('else/home/brain', 'no edit copy - run /home-setup')
-            '~/.config/aav/repos.toml: `edit` = ~/.config/home-manager is an install copy, never the edit copy'
+            '~/.config/aav/repos.toml: `edit` = ~/.config/aav/home is an install copy, never the edit copy'
             '~/.config/aav/repos.toml: `edit` = ~/half/home holds no brain'
             '~/.config/aav/repos.toml: `roots` takes a list of paths and `edit` one path'
             '~/.config/aav/repos.toml: `roots` and `edit` take absolute paths, `~` expanded; else/home is not'
@@ -612,7 +599,7 @@ class XdgLayout:
         # the declared edit copy alone, else every root's home; the first holding a brain that no install copy is
         # --------------------------------------------------
         candidates = [Path(edit)] if edit is not None else [Path(root) / HOME_REPO for root in named]
-        installs = {cls.install_home().resolve(), (Path.home() / HM_HOME).resolve()}
+        installs = {cls.install_home().resolve()}
         found = next((home for candidate in candidates
                       if (home := candidate.expanduser().resolve()) not in installs
                       and Layout(home / HOME_BRAIN).bin.is_dir()), None)
@@ -629,7 +616,7 @@ class XdgLayout:
 
 
 @dataclass(frozen=True)
-class DataLayout:
+class LogsLayout:
     """every path inside the brain's private data dir: the edit brain's `logs/` submodule.
 
     the same rule as Layout, for the half that is never committed to the public
@@ -638,19 +625,19 @@ class DataLayout:
 
     # Example
 
-        data = DataLayout.discover()
+        data = LogsLayout.discover()
         rows = Ledger(data.decisions).read()
     """
 
     root: Path
 
     @classmethod
-    def discover(cls) -> "DataLayout":
+    def discover(cls) -> "LogsLayout":
         """the layout rooted at the edit brain's private data dir.
 
         # Returns
 
-        a DataLayout over the edit brain's `Layout.data_submodule`
+        a LogsLayout over the edit brain's `Layout.data_submodule`
 
         # Raises
 
@@ -723,7 +710,7 @@ class LocalLayout:
 
         >>> import tempfile
         >>> with tempfile.TemporaryDirectory() as tmp:
-        ...     local = DataLayout(Path(tmp)).local
+        ...     local = LogsLayout(Path(tmp)).local
         ...     paths = (local.archive, local.gate, local.session_log("b-recall"), local.session_log("b-gate"))
         ...     [path.relative_to(tmp).as_posix() for path in paths]
         ...     read = local.root.exists()
@@ -788,7 +775,7 @@ class LocalLayout:
         return self.root / SESSIONS
 
     def session_log(self, tool: str) -> Path:
-        """the dir of one tool's session logs (brainlib.session); nothing prunes it.
+        """the dir of one tool's session logs (brainlib.logs.session); nothing prunes it.
 
         one dir per tool, so one tool's call is never read as another's
 
@@ -818,7 +805,7 @@ class EvidenceLayout:
 
     # Example
 
-        evidence = DataLayout.discover().evidence
+        evidence = LogsLayout.discover().evidence
         rows = Ledger(evidence.heat).read()
     """
 
@@ -833,16 +820,6 @@ class EvidenceLayout:
         `<evidence>/prompts.jsonl`
         """
         return self.root / "prompts.jsonl"
-
-    @property
-    def denials(self) -> Path:
-        """the permission prompts he refused.
-
-        # Returns
-
-        `<evidence>/denials.jsonl`
-        """
-        return self.root / "denials.jsonl"
 
     @property
     def heat(self) -> Path:
@@ -885,16 +862,6 @@ class EvidenceLayout:
         return self.root / "approvals.jsonl"
 
     @property
-    def directives(self) -> Path:
-        """his long turns that carried no other signal.
-
-        # Returns
-
-        `<evidence>/directives.jsonl`
-        """
-        return self.root / "directives.jsonl"
-
-    @property
     def corpus_stats(self) -> Path:
         """the aggregate statistics over the prompts.
 
@@ -930,38 +897,28 @@ def plain_name(name: str) -> bool:
 def find_brain() -> Path:
     """locate the aav-brain repo root, no env var, no hardcode.
 
-    the brain is ONE repo: principles, scripts (`bin/`), and the agentic files
-    (`agentic-files/{agents,skills}`) all live under a single root. discovery
-    returns that root; everything else derives from it (`<root>/bin`,
-    `<root>/agentic-files/agents`, `<root>/agentic-files/skills`)
+    the brain is ONE repo: the store (`store/`), the scripts (`bin/`), the
+    agents (`agents/`) and the skills (`skills/`) all live under a single
+    root. discovery returns that root; everything else derives from it
 
-    resolution order, first hit wins:
-    1. this file's own location (brainlib lives in <root>/bin/) - authoritative
-       when called from a brain script
-    2. a known brain-skill symlink under ~/.agents, then ~/.claude: readlink
-       resolves the home-manager -> nix-store -> live-repo chain
-    there is NO hardcoded-path fallback: a guess at a conventional checkout path
-    (P32) would resolve a STALE sibling checkout, so discovery fails loud instead
+    the root is the one this file sits in: brainlib lives in `<root>/bin/`,
+    and every copy of the brain - a checkout, a worktree, a flake's store
+    copy - carries this file and `store/CONSTITUTION.md` together, so the
+    walk up from here always finds it. there is NO fallback: a guess at a
+    conventional checkout path (P32) would resolve a STALE sibling checkout
 
     # Returns
-    the resolved aav-brain root Path; raises FileNotFoundError if it cannot be
-    located (fail loud, never guess)
+
+    the resolved aav-brain root
+
+    # Raises
+
+    FileNotFoundError when this file sits in no brain, a tree missing its
+    constitution
     """
-    # --------------------------------------------------
-    # self-location: this module sits inside the checkout it belongs to. a
-    # miss here falls through to the skill symlink below, resolution step 2
-    # --------------------------------------------------
     if root := Layout.root_of(Path(__file__).resolve()):
         return root
-    # --------------------------------------------------
-    # follow a known skill symlink: ~/.agents first, then ~/.claude. a skill
-    # lives inside the brain, so its resolved dir sits under the root
-    # --------------------------------------------------
-    for base in (Path.home() / ".agents", Path.home() / ".claude"):
-        link = base / "skills" / "brain-plan"
-        if link.exists() and (root := Layout.root_of(link.resolve())):
-            return root
-    raise FileNotFoundError("cannot locate aav-brain via __file__ or the ~/.agents / ~/.claude skill symlink")
+    raise FileNotFoundError(f"{Path(__file__).resolve()} sits in no brain: no store/CONSTITUTION.md above it")
 
 
 def find_repo(start: Path | None = None) -> str:

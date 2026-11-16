@@ -27,7 +27,7 @@
   "reportExplicitAny": "none",
 
   // wrapping a long regex across lines as adjacent literals is how python does
-  // it, and the classifier patterns in brain-extract.py have no other shape
+  // it, and the classifier patterns in b-extract.py have no other shape
   // that fits the 120-column limit
   "reportImplicitStringConcatenation": "none",
 

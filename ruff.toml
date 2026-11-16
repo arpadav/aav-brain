@@ -8,7 +8,7 @@
 # carry for `uv run`. line-length 120 fits the existing code (longest line 128,
 # only two over 120) without reflowing every signature.
 #
-# ruff is one of four checkers; bin/check/brain-lint.py runs every one that is
+# ruff is one of four checkers; bin/check/b-lint.py runs every one that is
 # installed. ruff owns lint and idiom, and cannot see types - a bare `dict`
 # annotation is invisible to all 956 of its rules, which is why ty, mypy and
 # basedpyright carry their own pinned configs beside this one.
@@ -78,8 +78,8 @@ ignore = [
 ]
 
 [lint.flake8-tidy-imports.banned-api]
-"sys.exit".msg = "end a brain tool by returning an Exit, or raising UsageError / NoVerdict (brainlib.tool)"
-"argparse".msg = "declare flags on brainlib.tool.Tool"
+"sys.exit".msg = "end a brain tool by returning an Exit, or raising UsageError / NoVerdict (brainlib.cli)"
+"argparse".msg = "declare flags on brainlib.cli.Tool"
 
 [lint.isort]
 # brainlib is the shared library every script imports; classify it as

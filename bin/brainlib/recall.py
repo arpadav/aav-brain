@@ -24,11 +24,10 @@ Author: aav
 # --------------------------------------------------
 # local
 # --------------------------------------------------
-from brainlib.graph import Graph
-from brainlib.model import Node
+from brainlib.enums import Rel, Tier, UsageError
+from brainlib.file_io import kind_rank, read_text, split_frontmatter
+from brainlib.graph import Graph, Node
 from brainlib.paths import Layout
-from brainlib.text import kind_rank, read_text, split_frontmatter
-from brainlib.vocab import Rel, Tier, UsageError
 
 # --------------------------------------------------
 # external
